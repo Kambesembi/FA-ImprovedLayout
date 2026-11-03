@@ -19,6 +19,11 @@ html:not(.faw-off) body {
   margin-left: auto !important;
   margin-right: auto !important;
 }
+/* Pagination arrows (content.js / features.js); here so they apply before first paint */
+.faw-arrow-btn { min-width: 36px; }
+.faw-arrow-btn > .faw-hide-text { display: none !important; }
+.faw-arrow-btn::before { content: attr(data-faw-arrow); font-weight: 700; letter-spacing: -.04em; }
+
 /* Subtle frame around the page so the content doesn't just fade into the empty sides */
 html:not(.faw-off) body {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 0 48px rgba(0, 0, 0, .45);
@@ -86,6 +91,8 @@ html:not(.faw-off) #page-userpage .userpage-layout-left-col-content {
 }
 html:not(.faw-off) #page-userpage .userpage-layout-left-col-content > * { grid-column: 1 / -1; min-width: 0; }
 html:not(.faw-off) #page-userpage .userpage-layout-left-col-content.faw-pair > .faw-featured { grid-column: 1; }
+html:not(.faw-off) #page-userpage .userpage-layout-left-col-content.faw-pair > .faw-gallery { padding-top: 10px !important; }
+html:not(.faw-off) #page-userpage .userpage-layout-profile-container { padding-right: 5px !important; }
 /* Gallery next to Featured: as tall as Featured (contain:size keeps it from growing the row) */
 html:not(.faw-off) #page-userpage .userpage-layout-left-col-content.faw-pair > .faw-gallery {
   grid-column: 2;

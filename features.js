@@ -38,7 +38,9 @@
     applyArrowButtons();
     initCommentToolbar();
     initExternalConfirm();
-    onDomChange(() => { applyArrowButtons(); initCommentToolbar(); });
+    initFigureTitles();
+    indentReplies();
+    onDomChange(() => { applyArrowButtons(); initCommentToolbar(); initFigureTitles(); indentReplies(); });
     if (page === "pageid-submission") { initAjaxFav(); initMoreFromArtist(); }
     if (S.quickView) initQuickView();
   });
@@ -862,6 +864,37 @@
     }
   }
 
+  // ------------------------------------------------------------------ submission titles on every thumbnail
+  // A small title link (straight to the page, bypassing the quick view) on thumbnails whose
+  // caption is hidden — FA's "titles off" setting, profile Gallery/Favorites, "More from artist".
+  function initFigureTitles() {
+    for (const f of document.querySelectorAll("section.gallery figure:not([data-faw-title])")) {
+      f.dataset.fawTitle = "1";
+      const a = f.querySelector("a[href*='/view/']");
+      if (!a || !viewId(a.getAttribute("href"))) continue;
+      const capLink = f.querySelector("figcaption a[href*='/view/']");
+      if (capLink && capLink.offsetParent !== null && getComputedStyle(capLink).visibility !== "hidden") continue;
+      const title = (capLink && (capLink.getAttribute("title") || capLink.textContent.trim())) ||
+        f.getAttribute("title") || (f.querySelector("img") || {}).alt || "";
+      if (!title) continue;
+      const t = el("a", "faw-figtitle", title);
+      t.href = "/view/" + viewId(a.getAttribute("href")) + "/";
+      t.title = "Open submission page";
+      f.classList.add("faw-has-figtitle");
+      f.appendChild(t);
+    }
+  }
+
+  // ------------------------------------------------------------------ replies: depth for indentation
+  function indentReplies() {
+    for (const c of document.querySelectorAll(":is(#comments-submission, #comments-journal) .comment_container:not([data-faw-depth])")) {
+      const w = parseFloat((c.getAttribute("style") || "").match(/width:\s*([\d.]+)%/)?.[1] || "100");
+      const depth = Math.max(0, Math.round((100 - w) / 3));
+      c.dataset.fawDepth = String(depth);
+      c.style.setProperty("--faw-depth", String(Math.min(depth, 8)));
+    }
+  }
+
   // ------------------------------------------------------------------ external links: in-page confirmation
   // Replaces FA's "You are leaving Fur Affinity" interstitial with the same overlay as Archived Gallery.
   function initExternalConfirm() {
@@ -944,15 +977,22 @@
         const a = f.querySelector("a[href*='/view/']");
         const img = f.querySelector("img");
         if (!a || !img) continue;
+        const cell = el("div", "faw-more__cell faw-has-figtitle");
         const t = el("a", "faw-more__item");
         t.href = a.getAttribute("href");
-        t.title = (f.querySelector("figcaption a[title]") || {}).title || "";
+        const name = (f.querySelector("figcaption a[title]") || {}).title || img.getAttribute("alt") || "";
         const im = el("img");
         im.loading = "lazy";
-        im.alt = t.title;
+        im.alt = name;
         im.src = abs(img.getAttribute("src"));
         t.appendChild(im);
-        grid.appendChild(t);
+        cell.appendChild(t);
+        if (name) {
+          const tl = el("a", "faw-figtitle", name);
+          tl.href = "/view/" + viewId(a.getAttribute("href")) + "/";
+          cell.appendChild(tl);
+        }
+        grid.appendChild(cell);
       }
       box.append(head, grid);
       list.appendChild(box);
@@ -1091,9 +1131,15 @@
 
     // window + capture runs before FA's (and other extensions') handlers on the page
     window.addEventListener("click", (e) => {
-      if (e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+      if (e.defaultPrevented || e.button !== 0 || e.shiftKey || e.altKey) return;
       const a = e.target.closest && e.target.closest("a[href]");
       if (!isQvAnchor(a)) return;
+      if (e.ctrlKey || e.metaKey) {                 // Ctrl/Cmd+click: go straight to the submission page
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        location.href = a.href;
+        return;
+      }
       e.preventDefault();
       e.stopImmediatePropagation();
       buildList(a);

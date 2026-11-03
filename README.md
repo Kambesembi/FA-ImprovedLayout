@@ -24,6 +24,7 @@ Chrome extension (Manifest V3) that adapts Fur Affinity's modern theme to ultraw
 - External links: in-page confirmation instead of FA's interstitial page
 - +Fav on submission pages without a page reload
 - "More from artist" next to submissions that have no comments yet
+- Every thumbnail without a visible caption gets a hover title that links straight to the submission page; Ctrl/Cmd+click a thumbnail also opens the page instead of the quick view
 - Recent watchers / recently watched: one row of avatars; full watcher lists as avatar tiles
 - Comment & shout style: Classic (FA) or Bubbles; extra BBCode buttons in comment boxes (strike, sup/sub, headings, colour, quote, spoiler, link, YouTube, user icons/links, line)
 

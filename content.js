@@ -80,7 +80,29 @@
     const pair = featured && gallery && !featured.classList.contains("faw-empty") && !gallery.classList.contains("faw-empty");
     lc.classList.toggle("faw-pair", !!pair);
   }
-  const onReady = () => { splitSubmissionPanel(); tagProfile(); };
+  // ---- pagination arrows as early as possible (before first paint) so the long labels never flash;
+  //      features.js re-applies them when FA re-renders. The label stays in the DOM for FA's scripts.
+  const ARROWS = {
+    "first": "<<", "first page": "<<", "prev": "<", "prev page": "<", "previous": "<", "previous page": "<",
+    "back": "<", "next": ">", "next page": ">", "last": ">>", "last page": ">>"
+  };
+  function arrowButtons() {
+    if (!current.enabled) return;
+    for (const b of document.querySelectorAll("button, a.button, .button > a")) {
+      if (b.classList.contains("faw-arrow-btn") || b.children.length || b.closest("#ddmenu")) continue;
+      const arrow = ARROWS[b.textContent.trim().toLowerCase()];
+      if (!arrow) continue;
+      const span = document.createElement("span");
+      span.className = "faw-hide-text";
+      span.textContent = b.textContent;
+      b.textContent = "";
+      b.appendChild(span);
+      b.dataset.fawArrow = arrow;
+      if (!b.title) b.title = span.textContent.trim();
+      b.classList.add("faw-arrow-btn");
+    }
+  }
+  const onReady = () => { arrowButtons(); splitSubmissionPanel(); tagProfile(); };
 
   chrome.storage.sync.get(DEFAULTS, apply);
   chrome.storage.onChanged.addListener((changes, area) => {

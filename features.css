@@ -183,9 +183,6 @@ html.faw-comic-h .submission-area { overflow: visible !important; }
 }
 
 /* Shout pagination: arrow-only buttons */
-.faw-arrow-btn { min-width: 36px; }
-.faw-arrow-btn > .faw-hide-text { display: none !important; }
-.faw-arrow-btn::before { content: attr(data-faw-arrow); font-weight: 700; letter-spacing: -.04em; }
 
 /* ---------- Comment style: Bubbles (html.faw-cmt-bubbles) — comments, journal comments and shouts ---------- */
 html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) comment-container {
@@ -206,37 +203,79 @@ html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) .comm
 html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) comment-title { display: none !important; }
 
 /* ---------- Comment box: extra BBCode buttons ---------- */
-.faw-bb { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 3px; margin-left: 10px; vertical-align: middle; }
-.faw-bb__sep { width: 1px; height: 18px; background: rgba(255,255,255,.15); margin: 0 4px; }
+/* Our buttons join FA's icon row and copy its 25px square look */
+.faw-bb { display: contents; }
+.faw-bb__sep { width: 8px; height: 25px; flex: none; }
 .faw-bb__btn {
-  position: relative; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 3px;
-  border: 1px solid rgba(255,255,255,.18); background: #4a515c; color: #eee;
-  font: 600 12px/22px system-ui, sans-serif; cursor: pointer;
+  position: relative; flex: none; width: 25px; height: 25px; padding: 0; margin: 0;
+  border: 0; border-radius: 0; background: #555d69; color: #fff;
+  font: 700 12px/25px "Open Sans", system-ui, sans-serif; text-align: center; cursor: pointer;
 }
-.faw-bb__btn:hover { background: #5a6270; }
+.faw-bb__btn:hover { background: #69727f; }
 .faw-bb__btn.is-s { text-decoration: line-through; }
 .faw-bb__color { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; border: 0; padding: 0; }
+form span.floatleft:has(> .faw-bb) {
+  float: none !important; display: flex; flex-wrap: wrap; align-items: center; row-gap: 4px;
+  justify-content: flex-start; width: 100%; margin-bottom: 8px; text-align: left;
+}
+form span.floatleft:has(> .faw-bb) > .bbcodeformat.align_left { margin-left: 8px; }
+form span.floatleft:has(> .faw-bb) > .bbcodeformat.align_right { margin-right: 8px; }
+
+/* Bubbles: the comment form gets the same soft, rounded look as the comments */
+html.faw-cmt-bubbles #add_comment_form textarea,
+html.faw-cmt-bubbles form textarea#JSMessage {
+  border-radius: 14px !important; background: rgba(255,255,255,.05) !important;
+  border: 1px solid rgba(255,255,255,.12) !important; padding: 10px 14px !important;
+}
+html.faw-cmt-bubbles #add_comment_form textarea:focus { border-color: rgba(224,166,75,.6) !important; outline: none; }
+html.faw-cmt-bubbles form span.floatleft:has(> .faw-bb) { gap: 3px; }
+html.faw-cmt-bubbles form span.floatleft:has(> .faw-bb) > .bbcodeformat,
+html.faw-cmt-bubbles .faw-bb__btn { border-radius: 6px !important; overflow: hidden; }
+html.faw-cmt-bubbles .faw-bb__btn { background: rgba(255,255,255,.1); }
+html.faw-cmt-bubbles .faw-bb__btn:hover { background: rgba(255,255,255,.18); }
+html.faw-cmt-bubbles #add_comment_form .button.go {
+  border-radius: 8px !important; padding: 6px 16px !important;
+  background: rgba(224,166,75,.18) !important; border: 1px solid rgba(224,166,75,.45) !important; color: #f0c27a !important;
+}
+html.faw-cmt-bubbles #add_comment_form .button.go:hover { background: rgba(224,166,75,.28) !important; }
+
+/* Bubbles: replies indented by depth (features.js sets --faw-depth) */
+html.faw-cmt-bubbles :is(#comments-submission, #comments-journal) .comment_container[data-faw-depth] {
+  width: auto !important; float: none !important;
+  margin-left: calc(var(--faw-depth, 0) * 28px) !important;
+}
 
 /* ---------- Quick view comments ---------- */
-.faw-qv__comments { border-top: 1px solid #333; padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
-.faw-qv__ch { margin: 0; font-size: 13px; color: #bbb; font-weight: 600; }
+.faw-qv__comments {
+  display: flex; flex-direction: column; gap: 10px;
+  background: #181a1f; border: 1px solid #2c3038; border-radius: 10px; padding: 12px;
+}
+.faw-qv__ch { margin: 0; font-size: 13px; color: #ddd; font-weight: 600; display: flex; gap: 6px; align-items: baseline; }
 .faw-qv__ch span { color: #777; font-weight: 400; }
-.faw-qv__clist { max-height: 38vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; }
-.faw-qv__cempty { color: #777; font-size: 12px; }
+.faw-qv__clist {
+  max-height: 38vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;
+  scrollbar-width: thin;
+}
+.faw-qv__cempty { color: #777; font-size: 12px; text-align: center; padding: 10px 0; }
 .faw-qv__c { display: flex; gap: 8px; align-items: flex-start; }
 .faw-qv__c img { width: 32px; height: 32px; border-radius: 6px; object-fit: cover; flex: none; }
-.faw-qv__cbody { flex: 1; min-width: 0; background: rgba(255,255,255,.05); border-radius: 4px 10px 10px 10px; padding: 6px 10px; }
-.faw-qv__chead { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; color: #888; }
+.faw-qv__cbody { flex: 1; min-width: 0; background: rgba(255,255,255,.06); border-radius: 4px 12px 12px 12px; padding: 7px 11px; }
+.faw-qv__chead { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; color: #888; margin-bottom: 2px; }
 .faw-qv__chead a { color: #9cf; font-weight: 600; text-decoration: none; }
 .faw-qv__ctext { font-size: 12.5px; color: #ddd; word-break: break-word; }
 .faw-qv__ctext img { max-width: 100%; height: auto; }
-.faw-qv__cform { display: flex; flex-direction: column; gap: 6px; }
+.faw-qv__cform { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #2c3038; padding-top: 10px; }
 .faw-qv__cform[hidden] { display: none; }
 .faw-qv__cform textarea {
-  width: 100%; box-sizing: border-box; resize: vertical; min-height: 54px; background: #15171b; color: #ddd;
-  border: 1px solid #3a3f4a; border-radius: 6px; padding: 7px 9px; font: inherit; font-size: 13px;
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 60px;
+  background: rgba(255,255,255,.05); color: #ddd; border: 1px solid rgba(255,255,255,.12);
+  border-radius: 12px; padding: 9px 12px; font: inherit; font-size: 13px;
 }
+.faw-qv__cform textarea:focus { outline: none; border-color: rgba(224,166,75,.6); }
 .faw-qv__crow { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.faw-qv__crow .faw-qv__btn {
+  border-radius: 8px; background: rgba(224,166,75,.18); border-color: rgba(224,166,75,.45); color: #f0c27a;
+}
 .faw-qv__cstatus { font-size: 11.5px; color: #888; }
 
 /* ---------- Submission: "More from artist" (no comments yet) ---------- */
@@ -245,6 +284,7 @@ html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) comme
 .faw-more__head span { font-weight: 600; color: #ddd; }
 .faw-more__head a { font-size: 12px; color: #9cf; }
 .faw-more__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+.faw-more__cell { position: relative; min-width: 0; }
 .faw-more__item { display: block; aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: rgba(255,255,255,.04); }
 .faw-more__item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .15s; }
 .faw-more__item:hover img { transform: scale(1.05); }
@@ -272,3 +312,21 @@ form span.floatleft:has(> .faw-bb) {
   justify-content: flex-start; width: 100%; margin-bottom: 6px; text-align: left;
 }
 form span.floatleft:has(> .faw-bb) > .faw-bb { margin-left: 8px; }
+
+/* ---------- Title link on thumbnails without a visible caption ---------- */
+.faw-has-figtitle { position: relative !important; }
+a.faw-figtitle, .faw-justified > figure a.faw-figtitle {
+  position: absolute !important; left: 0 !important; right: 0 !important; bottom: 0 !important; top: auto !important;
+  width: auto !important; height: auto !important; display: block !important; z-index: 2;
+  padding: 3px 7px !important; font-size: 11.5px; line-height: 1.35; color: #fff !important; text-decoration: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: linear-gradient(transparent, rgba(0,0,0,.8)); opacity: 0; transition: opacity .12s;
+  border-radius: 0 0 6px 6px;
+}
+.faw-has-figtitle:hover > a.faw-figtitle, a.faw-figtitle:focus { opacity: 1; }
+a.faw-figtitle:hover { text-decoration: underline; }
+
+/* ---------- Watchers / watching tiles: no "~"/badge line, no page buttons ---------- */
+.watch-list.faw-tiles .c-usernameBlockSimple > :not(a) { display: none !important; }
+.watch-list.faw-tiles > * > :not(.c-usernameBlockSimple) { display: none !important; }
+.watch-list.faw-tiles ~ .watchlist-navigation { display: none !important; }
