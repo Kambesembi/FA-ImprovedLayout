@@ -3,7 +3,7 @@
 (() => {
   "use strict";
 
-  const DEFAULTS = { enabled: true, imageFit: true, quickView: true, comic: true, infinite: true };
+  const DEFAULTS = { enabled: true, imageFit: true, quickView: true, comic: true, comicHorizontal: false, infinite: true };
   const root = document.documentElement;
   const page = document.body ? document.body.id : "";
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -186,10 +186,16 @@
     if (!byLinks && !(titled && current.artist)) return;
 
     const bar = el("div", "faw-comic-bar");
-    const btn = el("button", null, "📖 Read as comic");
+    const btn = el("button", "button standard", "Read as comic");
     const status = el("span");
     bar.append(btn, status);
     const area = img.closest(".submission-area") || img.parentElement;
+    // Sit next to FA's "Main Gallery / Newer / Older" box under the image
+    const placeBar = () => {
+      const mini = document.getElementById("minigallery");
+      if (mini) { mini.classList.add("faw-has-comic"); mini.appendChild(bar); }
+      else area.after(bar);
+    };
 
     // Title-based series ("Name - Page 9"): find siblings via FA search before showing the button
     let titleMatches = null;
@@ -197,24 +203,38 @@
       findTitledSeries(titled, current).then((m) => {
         if (m.length < 2) return;
         titleMatches = m;
-        btn.textContent = `📖 Read as comic (${m.length} pages)`;
-        area.after(bar);
+        btn.textContent = `Read as comic (${m.length} pages)`;
+        placeBar();
       }).catch(() => {});
     } else {
-      area.after(bar);
+      placeBar();
     }
 
     let container = null, loading = false;
     const MAX = 150;
 
-    btn.addEventListener("click", async () => {
-      if (container) {                       // toggle view
-        const open = root.classList.toggle("faw-comic-open");
-        container.hidden = !open;
-        btn.textContent = open ? "Show single page" : `📖 Read as comic (${container.children.length} pages)`;
-        if (open) container.querySelector(".is-current")?.scrollIntoView({ block: "start" });
-        return;
+    const setOpen = (open) => {
+      root.classList.toggle("faw-comic-open", open);
+      root.classList.toggle("faw-comic-h", open && !!S.comicHorizontal);
+      container.hidden = !open;
+      btn.textContent = open ? "Show single page" : `Read as comic (${container.children.length} pages)`;
+      if (open) showCurrent();
+    };
+    const showCurrent = () => {
+      const cur = container.querySelector(".is-current");
+      if (!cur) return;
+      if (S.comicHorizontal) {
+        container.scrollIntoView({ block: "start" });
+        window.scrollBy(0, -(parseFloat(getComputedStyle(root).getPropertyValue("--faw-nav")) || 50) - 6);
+        container.scrollLeft += cur.getBoundingClientRect().left - container.getBoundingClientRect().left;
+      } else {
+        cur.scrollIntoView({ block: "start" });
+        window.scrollBy(0, -56);
       }
+    };
+
+    btn.addEventListener("click", async () => {
+      if (container) { setOpen(container.hidden); return; }
       if (loading) return;
       loading = true;
       btn.disabled = true;
@@ -224,10 +244,9 @@
           : await loadSeries(current, (n, dir) => { status.textContent = `Loading… ${n} pages found (${dir})`; });
         container = renderComic(pages, current.id);
         area.appendChild(container);
-        root.classList.add("faw-comic-open");
+        if (S.comicHorizontal) enableHorizontal(container);
         status.textContent = `${pages.length} pages`;
-        btn.textContent = "Show single page";
-        container.querySelector(".is-current")?.scrollIntoView({ block: "start" });
+        setOpen(true);
       } catch (err) {
         status.textContent = "Couldn't load series: " + err.message;
       } finally {
@@ -305,12 +324,37 @@
         im.alt = p.title || "";
         if (p.res) {
           im.style.setProperty("--natw", p.res.w + "px");
+          im.style.setProperty("--ar", String(p.res.w / p.res.h));
           im.style.aspectRatio = p.res.w + " / " + p.res.h;
         }
         wrap.append(label, im);
         c.appendChild(wrap);
       });
       return c;
+    }
+
+    // Horizontal reader: vertical wheel scrolls the strip; ← → step one page
+    function enableHorizontal(strip) {
+      strip.addEventListener("wheel", (e) => {
+        if (!root.classList.contains("faw-comic-h") || e.ctrlKey) return;
+        const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+        const max = strip.scrollWidth - strip.clientWidth;
+        if ((d < 0 && strip.scrollLeft <= 0) || (d > 0 && strip.scrollLeft >= max - 1)) return; // let the page scroll at the ends
+        e.preventDefault();
+        strip.scrollLeft += d * (e.deltaMode === 1 ? 40 : 1);
+      }, { passive: false });
+      document.addEventListener("keydown", (e) => {
+        if (!root.classList.contains("faw-comic-h") || document.querySelector(".faw-qv:not([hidden])")) return;
+        if (e.target.closest && e.target.closest("input, textarea, select, [contenteditable]")) return;
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        const pages = [...strip.children];
+        const sl = strip.getBoundingClientRect().left;
+        let i = pages.findIndex((pg) => { const r = pg.getBoundingClientRect(); return r.left + r.width / 2 > sl; });
+        if (i < 0) i = pages.length - 1;
+        const target = pages[Math.max(0, Math.min(pages.length - 1, i + (e.key === "ArrowRight" ? 1 : -1)))];
+        strip.scrollTo({ left: strip.scrollLeft + target.getBoundingClientRect().left - sl, behavior: "smooth" });
+        e.preventDefault();
+      });
     }
   }
 

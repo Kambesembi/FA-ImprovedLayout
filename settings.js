@@ -8,5 +8,6 @@ const FAW_DEFAULTS = {
   imageFit: true,     // fit submission image to available space
   quickView: true,    // click thumbnails to open a popup
   comic: true,        // comic series reader
+  comicHorizontal: false, // comic reader scrolls left→right, comments move to the left
   infinite: true      // infinite scroll in galleries
 };

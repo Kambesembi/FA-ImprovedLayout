@@ -36,10 +36,8 @@ html:not(.faw-off) .generic-message-block {
 /* ---- Banner ---- */
 html:not(.faw-off) #header { max-height: none !important; }
 /* Banners: always centered at native size, whatever alignment the profile owner chose */
-html:not(.faw-off) site-banner {
-  display: flex !important;
-  justify-content: center !important;
-}
+/* (no display override — FA hides the banner on some pages, e.g. submissions) */
+html:not(.faw-off) site-banner { justify-content: center !important; }
 html:not(.faw-off) site-banner a { margin: 0 auto; }
 
 /* ---- Profile pages: profile text on the left above featured/gallery/favorites,
@@ -62,6 +60,44 @@ html:not(.faw-off) #page-userpage .userpage-layout-left-col { grid-area: left; w
 html:not(.faw-off) #page-userpage .userpage-layout-right-col { grid-area: right; width: auto !important; min-width: 0; }
 html:not(.faw-off) #page-userpage > :not(.userpage-layout):not(.userpage-layout-profile):not(script):not(style) {
   grid-column: 1 / -1;
+}
+
+/* Left column: Featured | Gallery side by side, Favorites and the rest full width below.
+   Gallery/Favorites show only their thumbnail grid (no big "latest" preview); empty ones are hidden. */
+html:not(.faw-off) #page-userpage .userpage-layout-left-col-content {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+}
+html:not(.faw-off) #page-userpage .userpage-layout-left-col-content > * { grid-column: 1 / -1; min-width: 0; }
+html:not(.faw-off) #page-userpage .userpage-layout-left-col-content > .gallery_container:not(:has(#gallery-latest-submissions, #gallery-latest-favorites)) {
+  grid-column: 1;            /* Featured */
+}
+/* Gallery: as tall as Featured (contain:size keeps it from growing the row), thumbnails scroll inside */
+html:not(.faw-off) #page-userpage .userpage-layout-left-col-content > .gallery_container:has(#gallery-latest-submissions) {
+  grid-column: 2;
+  contain: size;
+  align-self: stretch;
+  display: flex !important;
+  flex-direction: column;
+}
+html:not(.faw-off) #page-userpage .gallery_container:has(#gallery-latest-submissions) > .userpage-section-left {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; box-sizing: border-box;
+}
+html:not(.faw-off) #page-userpage #gallery-latest-submissions { flex: 1; min-height: 0; overflow-y: auto; }
+html:not(.faw-off) #page-userpage #gallery-latest-submissions figure,
+html:not(.faw-off) #page-userpage #gallery-latest-favorites figure { zoom: 1; }
+/* only one of the pair present → it takes the full width */
+html:not(.faw-off) #page-userpage .userpage-layout-left-col-content:not(:has(> .gallery_container #gallery-latest-submissions figure)) > .gallery_container:not(:has(#gallery-latest-submissions, #gallery-latest-favorites)),
+html:not(.faw-off) #page-userpage .userpage-layout-left-col-content:not(:has(> .gallery_container:not(:has(#gallery-latest-submissions, #gallery-latest-favorites)))) > .gallery_container:has(#gallery-latest-submissions) {
+  grid-column: 1 / -1;
+  contain: none;
+}
+html:not(.faw-off) #page-userpage #gallery-preview,
+html:not(.faw-off) #page-userpage #favorite-preview { display: none !important; }
+html:not(.faw-off) #page-userpage .gallery_container:has(#gallery-latest-submissions):not(:has(#gallery-latest-submissions figure)),
+html:not(.faw-off) #page-userpage .gallery_container:has(#gallery-latest-favorites):not(:has(#gallery-latest-favorites figure)) {
+  display: none !important;
 }
 
 /* ---- Submission page ---- */
@@ -92,6 +128,11 @@ html.faw-sub-classic:not(.faw-off) #pageid-submission #submission-main-content >
     grid-template-rows: auto auto auto 1fr;
     column-gap: var(--faw-gap);
     align-items: start;
+  }
+  /* Horizontal comic reader open: comments move to the left, the strip gets the wide column */
+  html.faw-comic-h:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-page-content {
+    grid-template-columns: clamp(420px, 24%, 760px) minmax(0, 1fr);
+    grid-template-areas: "com ads" "com img" "com desc" "com side";
   }
   html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content,
   html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(1),

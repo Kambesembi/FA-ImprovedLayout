@@ -80,26 +80,43 @@
 .faw-qv__hint { color: #666; font-size: 11px; margin-top: auto; }
 
 /* ---------- Comic reader ---------- */
+/* Button sits in FA's #minigallery row, right of the Main Gallery box */
+#minigallery.faw-has-comic { display: flex !important; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap; }
+#minigallery.faw-has-comic > * { margin-left: 0 !important; margin-right: 0 !important; }
 .faw-comic-bar {
-  display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;
-  margin: 10px 0 0; font-size: 13px; color: #bbb;
+  display: flex; justify-content: center; align-items: center; gap: 8px;
+  margin: 10px 0 0; font-size: 12px; color: #999;
 }
-.faw-comic-bar button {
-  background: #3a3f4a; color: #eee; border: 1px solid #4a505c; border-radius: 3px;
-  padding: 5px 12px; font: inherit; cursor: pointer;
-}
-.faw-comic-bar button:hover { background: #4a505c; }
+#minigallery .faw-comic-bar { margin: 0; flex-direction: column; gap: 4px; }
+.faw-comic-bar button { cursor: pointer; white-space: nowrap; }
 .faw-comic-bar button[disabled] { opacity: .5; cursor: default; }
+
+/* --faw-comic-h: height available for one page (viewport minus menu, label, gaps) */
+:root { --faw-comic-h: calc(100vh - var(--faw-nav, 50px) - 46px); }
 .faw-comic { display: flex; flex-direction: column; align-items: center; gap: 18px; margin: 12px 0; }
 .faw-comic__page { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.faw-comic__label { font-size: 12.5px; color: #999; }
+.faw-comic__label { font-size: 12.5px; color: #999; line-height: 16px; }
 .faw-comic__label a { color: #9cf; }
 .faw-comic__page.is-current .faw-comic__label { color: #e0a64b; font-weight: 600; }
+/* one page fits the screen: limited by column width, viewport height and 2× native */
 .faw-comic__page img {
-  display: block; height: auto;
-  width: min(100%, calc(var(--natw, 99999px) * 2));
+  display: block; height: auto; max-width: none;
+  width: min(100%, calc(var(--faw-comic-h) * var(--ar, .7)), calc(var(--natw, 99999px) * 2));
 }
 html.faw-comic-open #submissionImg { display: none !important; }
+
+/* Horizontal reader: pages side by side, scroll left/right */
+html.faw-comic-h .faw-comic {
+  flex-direction: row; align-items: flex-start; gap: 14px;
+  overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain; padding-bottom: 8px;
+}
+html.faw-comic-h .faw-comic__page { width: auto; flex: none; scroll-snap-align: start; }
+html.faw-comic-h .faw-comic__page img {
+  height: min(var(--faw-comic-h), calc(var(--natw, 99999px) * 2 / var(--ar, .7)));
+  width: auto; aspect-ratio: auto;
+}
+html.faw-comic-h .submission-area { overflow: visible !important; }
 
 /* ---------- Infinite scroll ---------- */
 .faw-inf-status {
