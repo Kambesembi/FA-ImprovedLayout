@@ -438,15 +438,15 @@ html.faw-cmt-bubbles #responsebox #add_comment_form .section-footer { position: 
 
 /* ---------- Bubbles: FA's own bordered boxes (sections, profile/gallery panels, system messages,
    settings) get rounded corners and a soft hairline instead of the hard theme outline ---------- */
-html.faw-design :is(section, .stats-page, .submission-preview, .fa-plus-subscribe-box, .section-warning,
-  #page-userpage .userpage-profile, #page-userpage .userpage-section-right, #page-userpage .userpage-section-left):not([class*="faw-"]) {
+html.faw-design :where(section, .stats-page, .submission-preview, .fa-plus-subscribe-box, .section-warning,
+  .userpage-profile, .userpage-section-right, .userpage-section-left):not([class^="faw-"]) {
   border-color: rgba(var(--faw-ink), .09) !important; border-radius: 12px !important;
 }
 /* boxes inside a box: no second outline */
-html.faw-design :is(section, .userpage-section-left, .userpage-section-right, .userpage-profile) section:not([class*="faw-"]) {
+html.faw-design :is(section, .userpage-section-left, .userpage-section-right, .userpage-profile) section:not([class^="faw-"]) {
   border: 0 !important; border-radius: 0 !important;
 }
-html.faw-design section:not([class*="faw-"]):has(> .section-header),
+html.faw-design section:not([class^="faw-"]):has(> .section-header),
 html.faw-design #page-userpage :is(.userpage-section-left, .userpage-section-right) { overflow: hidden; }
 html.faw-design .section-header {
   background-image: none !important;
@@ -469,3 +469,8 @@ html.faw-design .faw-archive-sys { border-radius: 12px; }
 
 /* dark overlays keep their dark palette on every theme */
 .faw-qv, .faw-confirm { --faw-ink: 255,255,255; --faw-text: rgba(255,255,255,.9); --faw-accent-text: #f0c27a; --faw-danger-text: #f3a3a3; --faw-menu-bg: #1f2228; }
+
+/* ---------- Submission: newer / older as small arrow buttons below the image ---------- */
+.faw-subnav-row { display: flex; justify-content: center; gap: 6px; margin: 10px 0 0; }
+.faw-subnav-row .faw-arrow-btn { min-width: 40px; min-height: 30px; display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; text-decoration: none !important; }
+.faw-subnav-row .faw-arrow-btn.is-off { opacity: .3; pointer-events: none; }

@@ -294,12 +294,12 @@
       btn.disabled = true;
       try {
         const pages = titleMatches
-          ? await loadTitled(titleMatches, (n, total) => { status.textContent = `Loading page ${n}/${total}…`; })
-          : await loadSeries(current, (n, dir) => { status.textContent = `Loading… ${n} pages found (${dir})`; });
+          ? await loadTitled(titleMatches, (n, total) => { status.textContent = `Loading… ${n} pages found`; })
+          : await loadSeries(current, (n, dir) => { status.textContent = `Loading… ${n} pages found`; });
         container = renderComic(pages, current.id);
         area.appendChild(container);
         if (S.comicHorizontal) enableHorizontal(container);
-        status.textContent = `${pages.length} pages`;
+        status.textContent = "";
         setOpen(true);
       } catch (err) {
         status.textContent = "Couldn't load series: " + err.message;
@@ -833,20 +833,44 @@
     if (!avPending.has(slug)) avPending.set(slug, new Promise((resolve) => { avQueue.push({ slug, resolve }); avPump(); }));
     return avPending.get(slug);
   }
-  // Fast path: the short avatar address loads instantly. A real (timestamped) URL from an earlier
-  // lookup is preferred when cached; only avatars that fail to load are looked up on the profile.
+  // Short avatar address, loaded through a small queue: only tiles near the viewport, six at a time.
+  // Requesting hundreds at once makes FA's image server fail some (broken or wrong images); failed
+  // ones are retried with a fresh address, and only after that looked up on the profile.
+  const avLoadQ = [];
+  let avLoading = 0, avIO = null;
+  function avNext() {
+    while (avLoading < 6 && avLoadQ.length) {
+      const job = avLoadQ.shift();
+      avLoading++;
+      job();
+    }
+  }
+  function avStart(img, key, attempt) {
+    avLoadQ.push(() => {
+      const done = () => { avLoading--; avNext(); };
+      img.onload = () => { img.onload = img.onerror = null; done(); };
+      img.onerror = () => {
+        img.onload = img.onerror = null;
+        done();
+        if (attempt < 2) setTimeout(() => avStart(img, key, attempt + 1), 700 * (attempt + 1));
+        else resolveAvatar(key).then((u) => { img.onerror = () => { img.onerror = null; img.src = AV_DEFAULT; }; img.src = u; });
+      };
+      const cached = attempt === 0 && avCacheGet(key);
+      img.src = cached || "https://a.furaffinity.net/" + encodeURIComponent(key) + ".gif?d=" + AV_DAY + (attempt ? "-" + attempt : "");
+    });
+    avNext();
+  }
   function attachAvatar(img, slug) {
-    const key = String(slug).toLowerCase();
-    img.loading = "lazy";
+    img.dataset.fawAv = String(slug).toLowerCase();
     img.decoding = "async";
-    const cached = avCacheGet(key);
-    img.onerror = () => {
-      img.onerror = () => { img.onerror = null; img.src = AV_DEFAULT; };
-      resolveAvatar(key).then((u) => { if (u !== img.src) img.src = u; else img.onerror(); });
-    };
-    // Daily version parameter: the browser cache can hold a wrong image for the short avatar address
-    // (e.g. a disabled account's avatar for many users); a fresh URL per day avoids that.
-    img.src = cached || "https://a.furaffinity.net/" + encodeURIComponent(key) + ".gif?v=" + AV_DAY;
+    avIO = avIO || new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        avIO.unobserve(e.target);
+        avStart(e.target, e.target.dataset.fawAv, 0);
+      }
+    }, { rootMargin: "600px 0px" });
+    avIO.observe(img);
   }
   function decorateWatchlist(list) {
     if (!designOn()) return;
@@ -1064,19 +1088,22 @@
   function initSubmissionNav() {
     const area = document.querySelector("#pageid-submission .submission-area");
     const nav = document.querySelector("#minigallery .minigallery-navigation");
-    if (!area || area.querySelector(".faw-subnav")) return;
+    if (!area || document.querySelector(".faw-subnav-row")) return;
     const links = nav ? [...nav.querySelectorAll("a[href]")] : [];
     const newer = links.find((a) => /newer/i.test(a.textContent));
     const older = links.find((a) => /older/i.test(a.textContent));
-    const mk = (a, dir, title) => {
-      const x = el("a", "faw-subnav faw-subnav--" + dir);
-      x.href = a.getAttribute("href");
+    if (!newer && !older) return;
+    const row = el("div", "faw-subnav-row");
+    const mk = (a, arrow, title) => {
+      const x = el("a", "button standard faw-arrow-btn" + (a ? "" : " is-off"));
+      x.dataset.fawArrow = arrow;
       x.title = title;
-      x.innerHTML = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="${dir === "prev" ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"}"/></svg>`;
-      area.appendChild(x);
+      if (a) x.href = a.getAttribute("href");
+      row.appendChild(x);
     };
-    if (newer) mk(newer, "prev", "Newer submission");
-    if (older) mk(older, "next", "Older submission");
+    mk(newer, "<", "Newer submission");
+    mk(older, ">", "Older submission");
+    area.appendChild(row);
     document.documentElement.classList.add("faw-subnav-on");
   }
 
