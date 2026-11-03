@@ -4,9 +4,10 @@
 // keywords and folders move into a panel below the description.
 (() => {
   const DEFAULTS = {
-    enabled: true, max: 2800, gutter: 24, thumb: 1.25, layout: "comments-right", commentStyle: "cards"
+    enabled: true, max: 2800, gutter: 24, thumb: 1.25, layout: "comments-right", commentStyle: "bubbles"
   };
-  const COMMENT_STYLES = ["default", "cards", "compact", "bubbles", "minimal"];
+  // "classic" = FA's own look; older presets from v1.8 map onto the two that remain
+  const commentStyle = (v) => (v === "classic" || v === "default" ? "classic" : "bubbles");
   const root = document.documentElement;
   let current = DEFAULTS;
 
@@ -15,7 +16,7 @@
     current = s;
     root.classList.toggle("faw-off", !s.enabled);
     root.classList.toggle("faw-sub-classic", s.layout === "classic");
-    for (const c of COMMENT_STYLES) root.classList.toggle("faw-cmt-" + c, s.commentStyle === c);
+    root.classList.toggle("faw-cmt-bubbles", commentStyle(s.commentStyle) === "bubbles");
     root.style.setProperty("--faw-max", s.max > 0 ? s.max + "px" : "100vw");
     root.style.setProperty("--faw-gutter", s.gutter + "px");
     root.style.setProperty("--faw-thumb", String(s.thumb));

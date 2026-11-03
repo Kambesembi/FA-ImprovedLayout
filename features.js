@@ -33,8 +33,13 @@
     }
     if (S.infinite) initInfinite();
     if (S.archiveLink) initArchiveLink();
-    if (page === "pageid-userpage") { initProfileGallery(); initShoutArrows(); initWatcherRows(); }
+    if (page === "pageid-userpage") { initProfileGallery(); initWatcherRows(); }
     if (page === "pageid-watchlist") initWatchlistAll();
+    applyArrowButtons();
+    initCommentToolbar();
+    initExternalConfirm();
+    onDomChange(() => { applyArrowButtons(); initCommentToolbar(); });
+    if (page === "pageid-submission") { initAjaxFav(); initMoreFromArtist(); }
     if (S.quickView) initQuickView();
   });
   chrome.storage.onChanged.addListener((c, area) => {
@@ -119,8 +124,41 @@
       tags: [...doc.querySelectorAll(".submission-tags a[href*='/search/'], .tags a[href*='/search/']")].map((a) => ({
         text: a.textContent.trim(), href: a.getAttribute("href")
       })).filter((t) => t.text),
-      comicLinks
+      comicLinks,
+      comments: parseComments(doc),
+      commentForm: parseCommentForm(doc)
     };
+  }
+
+  // Comments of a fetched submission page (for the quick view)
+  function parseComments(doc) {
+    const out = [];
+    for (const c of doc.querySelectorAll("#comments-submission .comment_container")) {
+      const cc = c.querySelector("comment-container");
+      if (!cc) continue;
+      const w = parseFloat((c.getAttribute("style") || "").match(/width:\s*([\d.]+)%/)?.[1] || "100");
+      const av = cc.querySelector(".avatar img");
+      const name = cc.querySelector(".c-usernameBlock__displayName, comment-username a");
+      const user = cc.querySelector("comment-username a[href^='/user/'], .avatar a[href^='/user/']");
+      const date = cc.querySelector("comment-date span[title], comment-date");
+      const text = cc.querySelector("comment-user-text, .comment_text");
+      out.push({
+        depth: Math.max(0, Math.round((100 - w) / 3)),
+        avatar: av ? abs(av.getAttribute("src")) : "",
+        name: name ? name.textContent.trim() : "",
+        href: user ? user.getAttribute("href") : "",
+        date: date ? (date.getAttribute("title") || date.textContent).trim() : "",
+        html: text ? sanitize(text) : ""
+      });
+    }
+    return out;
+  }
+  function parseCommentForm(doc) {
+    const form = doc.querySelector("#add_comment_form");
+    if (!form) return null;
+    const fields = {};
+    for (const i of form.querySelectorAll("input[type=hidden][name]")) fields[i.name] = i.value;
+    return { action: form.getAttribute("action") || "", fields };
   }
 
   function sanitize(node) {
@@ -339,26 +377,40 @@
       return c;
     }
 
-    // Horizontal reader: vertical wheel scrolls the strip; ← → step one page
+    // Horizontal reader: each wheel notch / arrow key steps one page (smooth). Plain pixel scrolling
+    // fought with scroll-snap, which pulled small wheel deltas back to the same page.
     function enableHorizontal(strip) {
+      const pageIndex = () => {
+        const sl = strip.getBoundingClientRect().left;
+        const pages = [...strip.children];
+        let i = pages.findIndex((pg) => { const r = pg.getBoundingClientRect(); return r.left + r.width / 2 > sl; });
+        return { pages, i: i < 0 ? pages.length - 1 : i, sl };
+      };
+      const step = (dir) => {
+        const { pages, i, sl } = pageIndex();
+        const j = Math.max(0, Math.min(pages.length - 1, i + dir));
+        if (j === i && ((dir > 0 && strip.scrollLeft >= strip.scrollWidth - strip.clientWidth - 1) || (dir < 0 && strip.scrollLeft <= 0))) return false;
+        strip.scrollTo({ left: strip.scrollLeft + pages[j].getBoundingClientRect().left - sl, behavior: "smooth" });
+        return true;
+      };
+      let lastWheel = 0;
       strip.addEventListener("wheel", (e) => {
         if (!root.classList.contains("faw-comic-h") || e.ctrlKey) return;
         const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+        if (!d) return;
         const max = strip.scrollWidth - strip.clientWidth;
         if ((d < 0 && strip.scrollLeft <= 0) || (d > 0 && strip.scrollLeft >= max - 1)) return; // let the page scroll at the ends
         e.preventDefault();
-        strip.scrollLeft += d * (e.deltaMode === 1 ? 40 : 1);
+        const now = performance.now();
+        if (now - lastWheel < 280) return;                       // one page per notch / gesture burst
+        lastWheel = now;
+        step(d > 0 ? 1 : -1);
       }, { passive: false });
       document.addEventListener("keydown", (e) => {
         if (!root.classList.contains("faw-comic-h") || document.querySelector(".faw-qv:not([hidden])")) return;
         if (e.target.closest && e.target.closest("input, textarea, select, [contenteditable]")) return;
         if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-        const pages = [...strip.children];
-        const sl = strip.getBoundingClientRect().left;
-        let i = pages.findIndex((pg) => { const r = pg.getBoundingClientRect(); return r.left + r.width / 2 > sl; });
-        if (i < 0) i = pages.length - 1;
-        const target = pages[Math.max(0, Math.min(pages.length - 1, i + (e.key === "ArrowRight" ? 1 : -1)))];
-        strip.scrollTo({ left: strip.scrollLeft + target.getBoundingClientRect().left - sl, behavior: "smooth" });
+        step(e.key === "ArrowRight" ? 1 : -1);
         e.preventDefault();
       });
     }
@@ -505,15 +557,17 @@
       const figs = [...box.querySelectorAll(":scope > figure")];
       const contained = getComputedStyle(section).contain.includes("size");
       const W = box.clientWidth - 2 * PAD;
-      const base = Math.round(170 * (+S.thumb || 1.25));
+      const base = Math.round(150 * (+S.thumb || 1.25));
       const maxH = contained ? box.clientHeight - 2 * PAD : 2 * base + GAP;
       if (W <= 0 || maxH <= 0) return;
 
       // Try many row heights. Leftover space is absorbed by slightly wider row gaps (≤6px each)
-      // and then by cropping rows a little (object-fit). Prefer the largest thumbnails whose crop
-      // stays under 12%; otherwise take the layout with the least crop.
+      // and then by cropping rows a little (object-fit). Among layouts whose crop stays under 12%
+      // and whose rows are at least ~120px tall, show as many submissions as possible.
       let best = null, fallback = null;
-      for (let k = 0.6; k <= 1.8; k += 0.01) {
+      const minRow = Math.min(120, maxH);
+      const count = (p) => p.rows.reduce((n, r) => n + r.items.length, 0);
+      for (let k = 0.5; k <= 1.8; k += 0.01) {
         const p = plan(figs, W, maxH, base * k);
         if (!p.complete || !p.rows.length) { fallback = fallback || p; continue; }
         const n = p.rows.length;
@@ -521,15 +575,17 @@
         const avg = (p.used - GAP * n) / n;
         const gapExtra = Math.min(left, (n - 1) * 6);
         const crop = (left - gapExtra) / n / avg;
-        Object.assign(p, { left, avg, gapExtra, crop });
-        if (crop <= 0.12) { if (!best || best.crop > 0.12 || avg > best.avg) best = p; }
-        else if (!best || (best.crop > 0.12 && crop < best.crop)) best = p;
+        Object.assign(p, { left, avg, gapExtra, crop, items: count(p) });
+        const good = crop <= 0.12 && avg >= minRow;
+        const bestGood = best && best.crop <= 0.12 && best.avg >= minRow;
+        if (good && (!bestGood || p.items > best.items || (p.items === best.items && p.crop < best.crop))) best = p;
+        else if (!good && !bestGood && (!best || crop < best.crop)) best = p;
       }
       best = best || fallback;
       if (!best) return;
 
       // not enough submissions to fill the box → fetch more, then lay out again
-      if (!best.complete && next && pagesFetched < 4 && !fetching) loadMore();
+      if ((!best.complete || best.items >= figs.length - 1) && next && pagesFetched < 4 && !fetching) loadMore();
 
       figs.forEach((f) => f.classList.add("faw-hide"));
       const n = best.rows.length;
@@ -596,17 +652,40 @@
     layout();
   }
 
-  // ------------------------------------------------------------------ profile: shout pagination arrows
-  function initShoutArrows() {
-    // Only the visible label changes (CSS ::before); the button text stays as FA's script expects it
-    const map = { "first page": "<<", "prev page": "<", "next page": ">", "last page": ">>" };
-    for (const b of document.querySelectorAll("form.c-shoutPaginationForm button")) {
-      const k = b.textContent.trim().toLowerCase();
-      if (!map[k]) continue;
-      b.title = b.textContent.trim();
-      b.dataset.fawArrow = map[k];
+  // ------------------------------------------------------------------ pagination: << < > >> buttons
+  // Shouts, search, browse… The original label stays in the DOM (hidden span) because FA's own
+  // scripts read the button text; the arrow is drawn with CSS. Re-applied when FA re-renders.
+  const ARROWS = {
+    "first": "<<", "first page": "<<",
+    "prev": "<", "prev page": "<", "previous": "<", "previous page": "<", "back": "<",
+    "next": ">", "next page": ">",
+    "last": ">>", "last page": ">>"
+  };
+  function applyArrowButtons(scope) {
+    for (const b of (scope || document).querySelectorAll("button, a.button, .button > a")) {
+      if (b.classList.contains("faw-arrow-btn") || b.closest("#ddmenu, .faw-qv, .faw-confirm")) continue;
+      const label = b.textContent.trim().toLowerCase();
+      const arrow = ARROWS[label];
+      if (!arrow || b.children.length) continue;
+      const span = el("span", "faw-hide-text", b.textContent);
+      b.textContent = "";
+      b.appendChild(span);
+      b.dataset.fawArrow = arrow;
+      if (!b.title) b.title = span.textContent.trim();
       b.classList.add("faw-arrow-btn");
     }
+  }
+
+  // One shared observer for features that must survive FA re-rendering parts of the page
+  const domHooks = [];
+  function onDomChange(fn) {
+    domHooks.push(fn);
+    if (domHooks.length > 1) return;
+    let t = null;
+    new MutationObserver(() => {
+      clearTimeout(t);
+      t = setTimeout(() => domHooks.forEach((f) => { try { f(); } catch (e) {} }), 80);
+    }).observe(document.body, { childList: true, subtree: true });
   }
 
   // ------------------------------------------------------------------ profile: recent watchers as avatars
@@ -626,12 +705,47 @@
         const img = el("img");
         img.loading = "lazy";
         img.alt = "";
-        img.src = "https://a.furaffinity.net/" + encodeURIComponent(slug.toLowerCase()) + ".gif";
+        img.src = avatarUrl(slug);
         img.onerror = () => { img.onerror = null; img.src = "https://a.furaffinity.net/default.gif"; };
         item.append(img, el("span", null, a.textContent.trim()));
         row.appendChild(item);
       }
       table.before(row);
+      fitWatchRow(row);
+      new ResizeObserver(() => fitWatchRow(row)).observe(row);
+    }
+  }
+  // Exactly one row: hide whatever doesn't fully fit instead of wrapping or clipping it
+  function fitWatchRow(row) {
+    const items = [...row.children];
+    items.forEach((it) => { it.hidden = false; });
+    const right = row.getBoundingClientRect().right - parseFloat(getComputedStyle(row).paddingRight);
+    const top = items[0] ? items[0].getBoundingClientRect().top : 0;
+    for (const it of items) {
+      const r = it.getBoundingClientRect();
+      if (r.right > right + 1 || r.top > top + 2) it.hidden = true;
+    }
+  }
+
+  // Avatar tiles for the full watchers / watching list
+  function avatarUrl(slug) {
+    return "https://a.furaffinity.net/" + encodeURIComponent(String(slug).toLowerCase()) + ".gif";
+  }
+  function decorateWatchlist(list) {
+    list.classList.add("faw-tiles");
+    for (const it of list.children) {
+      if (it.dataset.fawTile) continue;
+      const a = it.querySelector("a[href^='/user/']");
+      if (!a) continue;
+      const slug = (a.getAttribute("href").match(/^\/user\/([^/]+)/) || [])[1];
+      if (!slug) continue;
+      const img = el("img", "faw-tile__img");
+      img.loading = "lazy";
+      img.alt = "";
+      img.src = avatarUrl(slug);
+      img.onerror = () => { img.onerror = null; img.src = "https://a.furaffinity.net/default.gif"; };
+      a.prepend(img);
+      it.dataset.fawTile = "1";
     }
   }
 
@@ -640,6 +754,7 @@
     const list = document.querySelector(".watch-list");
     const nav = document.querySelector(".watchlist-navigation");
     if (!list) return;
+    decorateWatchlist(list);
     let next = findNext(document, location.href);
     if (!next) return;
     const status = el("div", "faw-inf-status", "Loading all entries…");
@@ -666,6 +781,7 @@
           items[0].classList.add("inline");
         }
         for (const it of items) list.appendChild(document.adoptNode(it));
+        decorateWatchlist(list);
         pages++;
         status.textContent = `Loading all entries… ${list.children.length} so far`;
         next = findNext(doc, url);
@@ -676,6 +792,171 @@
       status.textContent = `Stopped after ${list.children.length} entries (${err.message})`;
       if (nav) nav.style.display = "";
     }
+  }
+
+  // ------------------------------------------------------------------ comment box: more BBCode buttons
+  // FA's toolbar only has B/I/U + alignment; add the rest of FA's tags & codes.
+  const BB_TOOLS = [
+    { t: "S", title: "Strikethrough", wrap: ["[s]", "[/s]"], cls: "s" },
+    { t: "x²", title: "Superscript", wrap: ["[sup]", "[/sup]"] },
+    { t: "x₂", title: "Subscript", wrap: ["[sub]", "[/sub]"] },
+    { sep: true },
+    { t: "H1", title: "Heading 1", wrap: ["[h1]", "[/h1]"] },
+    { t: "H2", title: "Heading 2", wrap: ["[h2]", "[/h2]"] },
+    { t: "H3", title: "Heading 3", wrap: ["[h3]", "[/h3]"] },
+    { sep: true },
+    { t: "A", title: "Text colour", color: true },
+    { t: "❝", title: "Quote", wrap: ["[quote]", "[/quote]"] },
+    { t: "◼", title: "Spoiler", wrap: ["[spoiler]", "[/spoiler]"] },
+    { t: "🔗", title: "Link (select a URL or text)", url: true },
+    { t: "▶", title: "YouTube video", wrap: ["[yt]", "[/yt]"] },
+    { sep: true },
+    { t: "@i", title: "User icon  :iconname:", wrap: [":icon", ":"] },
+    { t: "@l", title: "User link  :linkname:", wrap: [":link", ":"] },
+    { t: "—", title: "Horizontal line", insert: "\n-----\n" }
+  ];
+  function insertBB(ta, open, close, placeholder) {
+    const a = ta.selectionStart, b = ta.selectionEnd, v = ta.value;
+    const sel = v.slice(a, b) || placeholder || "";
+    ta.focus();
+    ta.setRangeText(open + sel + (close || ""), a, b, "end");
+    if (!v.slice(a, b) && placeholder == null) {             // nothing selected: put the cursor between the tags
+      const pos = a + open.length;
+      ta.setSelectionRange(pos, pos);
+    }
+    ta.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  function initCommentToolbar() {
+    for (const bar of document.querySelectorAll("form span.floatleft:has(> .bbcodeformat)")) {
+      if (bar.querySelector(".faw-bb")) continue;
+      const ta = bar.closest("form").querySelector("textarea");
+      if (!ta) continue;
+      const wrapBox = el("span", "faw-bb");
+      for (const tool of BB_TOOLS) {
+        if (tool.sep) { wrapBox.appendChild(el("span", "faw-bb__sep")); continue; }
+        const btn = el("button", "faw-bb__btn" + (tool.cls ? " is-" + tool.cls : ""), tool.t);
+        btn.type = "button";
+        btn.title = tool.title;
+        if (tool.color) {
+          const picker = el("input");
+          picker.type = "color";
+          picker.value = "#e0a64b";
+          picker.className = "faw-bb__color";
+          picker.addEventListener("change", () => insertBB(ta, `[color=${picker.value}]`, "[/color]"));
+          btn.addEventListener("click", () => picker.click());
+          btn.appendChild(picker);
+        } else if (tool.url) {
+          btn.addEventListener("click", () => {
+            const sel = ta.value.slice(ta.selectionStart, ta.selectionEnd).trim();
+            if (/^https?:\/\//i.test(sel)) insertBB(ta, `[url=${sel}]`, "[/url]", sel);
+            else insertBB(ta, "[url=https://]", "[/url]");
+          });
+        } else if (tool.insert) {
+          btn.addEventListener("click", () => insertBB(ta, tool.insert, "", ""));
+        } else {
+          btn.addEventListener("click", () => insertBB(ta, tool.wrap[0], tool.wrap[1]));
+        }
+        wrapBox.appendChild(btn);
+      }
+      bar.appendChild(wrapBox);
+    }
+  }
+
+  // ------------------------------------------------------------------ external links: in-page confirmation
+  // Replaces FA's "You are leaving Fur Affinity" interstitial with the same overlay as Archived Gallery.
+  function initExternalConfirm() {
+    const handler = (e) => {
+      if (e.defaultPrevented) return;
+      if (e.type === "click" && (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey)) return;
+      if (e.type === "auxclick" && e.button !== 1) return;
+      const a = e.target.closest && e.target.closest("a[href]");
+      if (!a || a.closest(".faw-archive, .faw-confirm")) return;
+      let url;
+      try { url = new URL(a.getAttribute("href"), location.href); } catch (err) { return; }
+      if (!/^https?:$/.test(url.protocol)) return;
+      if (/(^|\.)(furaffinity\.net|facdn\.net)$/i.test(url.hostname)) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      confirmExternal("You are leaving Fur Affinity for:", url.href);
+    };
+    window.addEventListener("click", handler, true);
+    window.addEventListener("auxclick", handler, true);
+  }
+
+  // ------------------------------------------------------------------ submission: +Fav without reload
+  function initAjaxFav() {
+    window.addEventListener("click", async (e) => {
+      if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      const a = e.target.closest && e.target.closest("a[href^='/fav/'], a[href^='/unfav/']");
+      if (!a || a.closest(".faw-qv")) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (a.dataset.fawBusy) return;
+      a.dataset.fawBusy = "1";
+      a.classList.add("faw-busy");
+      const wasFav = a.getAttribute("href").startsWith("/unfav/");
+      try {
+        const { doc } = await fetchDoc(new URL(a.getAttribute("href"), location.origin).href);
+        const fresh = doc.querySelector("a[href^='/fav/'], a[href^='/unfav/']");
+        if (!fresh) throw new Error("no fav link in response");
+        for (const link of document.querySelectorAll("a[href^='/fav/'], a[href^='/unfav/']")) {
+          if (link.closest(".faw-qv")) continue;
+          link.setAttribute("href", fresh.getAttribute("href"));
+          link.textContent = fresh.textContent;
+        }
+        // keep the Favorites counter in the stats in sync
+        for (const lab of document.querySelectorAll(".submission-page-stats .highlight")) {
+          if (!/favorites/i.test(lab.textContent)) continue;
+          const num = lab.previousElementSibling;
+          const n = parseInt((num && num.textContent || "").replace(/\D/g, ""), 10);
+          if (num && !isNaN(n)) num.textContent = String(Math.max(0, n + (wasFav ? -1 : 1)));
+        }
+      } catch (err) {
+        location.href = a.href;                                   // fall back to FA's normal behaviour
+      } finally {
+        delete a.dataset.fawBusy;
+        a.classList.remove("faw-busy");
+      }
+    }, true);
+  }
+
+  // ------------------------------------------------------------------ submission: "More from artist" when there are no comments
+  async function initMoreFromArtist() {
+    const list = document.querySelector(".comments-list");
+    if (!list || document.querySelector("#comments-submission comment-container")) return;
+    const me = parseSubmission(document, location.pathname);
+    const slug = me.artist && (me.artist.href.match(/^\/user\/([^/]+)/) || [])[1];
+    if (!slug) return;
+    try {
+      const { doc } = await fetchDoc(new URL(`/gallery/${slug}/`, location.origin).href);
+      const figs = [...doc.querySelectorAll("section.gallery figure")]
+        .filter((f) => viewId(f.querySelector("a[href*='/view/']")?.getAttribute("href")) !== me.id)
+        .slice(0, 24);
+      if (!figs.length) return;
+      const box = el("section", "faw-more");
+      const head = el("div", "faw-more__head");
+      head.append(el("span", null, `More from ${me.artist.name}`));
+      const all = el("a", null, "View gallery");
+      all.href = `/gallery/${slug}/`;
+      head.appendChild(all);
+      const grid = el("div", "faw-more__grid");
+      for (const f of figs) {
+        const a = f.querySelector("a[href*='/view/']");
+        const img = f.querySelector("img");
+        if (!a || !img) continue;
+        const t = el("a", "faw-more__item");
+        t.href = a.getAttribute("href");
+        t.title = (f.querySelector("figcaption a[title]") || {}).title || "";
+        const im = el("img");
+        im.loading = "lazy";
+        im.alt = t.title;
+        im.src = abs(img.getAttribute("src"));
+        t.appendChild(im);
+        grid.appendChild(t);
+      }
+      box.append(head, grid);
+      list.appendChild(box);
+    } catch (e) { /* optional extra, ignore failures */ }
   }
 
   // ------------------------------------------------------------------ infinite scroll
@@ -860,6 +1141,14 @@
           <dl class="faw-qv__meta"></dl>
           <div class="faw-qv__tags"></div>
           <div class="faw-qv__desc"></div>
+          <section class="faw-qv__comments">
+            <h3 class="faw-qv__ch">Comments <span></span></h3>
+            <div class="faw-qv__clist"></div>
+            <form class="faw-qv__cform">
+              <textarea placeholder="Write a comment…" rows="3"></textarea>
+              <div class="faw-qv__crow"><span class="faw-qv__cstatus"></span><button class="faw-qv__btn" type="submit">Post</button></div>
+            </form>
+          </section>
           <div class="faw-qv__hint">← → browse · F fav · D download · click image for actual size · Esc close</div>
         </aside>`;
       document.body.appendChild(qv);
@@ -868,6 +1157,11 @@
       $(".faw-qv__nav--prev").onclick = () => go(-1);
       $(".faw-qv__nav--next").onclick = () => go(1);
       $("[data-act=fav]").onclick = toggleFav;
+      $(".faw-qv__cform").addEventListener("submit", (e) => { e.preventDefault(); postComment(); });
+      $(".faw-qv__cform textarea").addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); postComment(); }
+        e.stopPropagation();                                       // don't trigger F / D / arrows while typing
+      });
       $("[data-act=dl]").onclick = download;
       $(".faw-qv__stage").addEventListener("click", (e) => { if (e.target === e.currentTarget) close(); });
       $(".faw-qv__frame").addEventListener("click", () => {
@@ -962,6 +1256,9 @@
       $(".faw-qv__meta").textContent = "";
       $(".faw-qv__tags").textContent = "";
       $(".faw-qv__desc").textContent = "";
+      $(".faw-qv__clist").textContent = "";
+      $(".faw-qv__ch span").textContent = "";
+      $(".faw-qv__cstatus").textContent = "";
       try {
         data = await getSubmission("/view/" + item.id + "/");
       } catch (err) {
@@ -992,6 +1289,7 @@
         tags.appendChild(a);
       }
       $(".faw-qv__desc").innerHTML = data.descHTML;
+      renderComments();
       updateFavBtn();
       $("[data-act=dl]").disabled = !data.download;
 
@@ -1045,6 +1343,68 @@
       if (!force && ow && Math.abs(w - ow) / ow < 0.015 && Math.abs(h - oh) / oh < 0.015) return;
       frame.style.width = w + "px";
       frame.style.height = h + "px";
+    }
+
+    function renderComments() {
+      const list = qv.querySelector(".faw-qv__clist");
+      list.textContent = "";
+      const cs = (data && data.comments) || [];
+      qv.querySelector(".faw-qv__ch span").textContent = cs.length ? `(${cs.length})` : "";
+      if (!cs.length) list.appendChild(el("div", "faw-qv__cempty", "No comments yet."));
+      for (const c of cs) {
+        const item = el("div", "faw-qv__c");
+        item.style.marginLeft = Math.min(c.depth, 6) * 14 + "px";
+        const img = el("img");
+        img.src = c.avatar || "https://a.furaffinity.net/default.gif";
+        img.alt = "";
+        img.loading = "lazy";
+        const body = el("div", "faw-qv__cbody");
+        const head = el("div", "faw-qv__chead");
+        const who = el("a", null, c.name || "?");
+        if (c.href) who.href = c.href;
+        head.append(who, el("span", null, c.date));
+        const text = el("div", "faw-qv__ctext");
+        text.innerHTML = c.html;
+        body.append(head, text);
+        item.append(img, body);
+        list.appendChild(item);
+      }
+      const form = qv.querySelector(".faw-qv__cform");
+      form.hidden = !(data && data.commentForm);
+    }
+
+    async function postComment() {
+      const cur = data;
+      const ta = qv.querySelector(".faw-qv__cform textarea");
+      const st = qv.querySelector(".faw-qv__cstatus");
+      const btn = qv.querySelector(".faw-qv__cform button");
+      const text = ta.value.trim();
+      if (!cur || !cur.commentForm || !text) return;
+      btn.disabled = true;
+      st.textContent = "Posting…";
+      try {
+        const body = new URLSearchParams(cur.commentForm.fields);
+        body.set("reply", text);
+        const url = new URL(cur.commentForm.action || `/view/${cur.id}/`, location.origin).href;
+        const res = await fetch(url, { method: "POST", body, credentials: "same-origin" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const doc = new DOMParser().parseFromString(await res.text(), "text/html");
+        const fresh = parseSubmission(doc, `/view/${cur.id}/`);
+        docCache.set(cur.id, Promise.resolve(fresh));
+        ready.set(cur.id, fresh);
+        if (data === cur) {
+          data = fresh;
+          renderComments();
+          const list = qv.querySelector(".faw-qv__clist");
+          list.scrollTop = list.scrollHeight;
+        }
+        ta.value = "";
+        st.textContent = "Posted";
+      } catch (err) {
+        st.textContent = "Couldn't post (" + err.message + ")";
+      } finally {
+        btn.disabled = false;
+      }
     }
 
     function updateFavBtn() {

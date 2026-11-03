@@ -19,6 +19,11 @@ html:not(.faw-off) body {
   margin-left: auto !important;
   margin-right: auto !important;
 }
+/* Subtle frame around the page so the content doesn't just fade into the empty sides */
+html:not(.faw-off) body {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 0 48px rgba(0, 0, 0, .45);
+  min-height: 100vh;
+}
 html:not(.faw-off) #ddmenu {
   max-width: var(--faw-w) !important;
   left: 0 !important;
@@ -116,12 +121,13 @@ html:not(.faw-off) #page-userpage .userpage-layout-left-col { container-type: in
 
 /* Recent watchers / recently watched: one row of avatars (features.js builds .faw-watchrow) */
 .faw-watchrow {
-  display: flex; flex-wrap: wrap; gap: 6px 10px; padding: 10px 12px;
-  height: calc(56px + 2.6em); overflow: hidden; box-sizing: content-box;
+  display: flex; flex-wrap: nowrap; justify-content: space-around; gap: 10px; padding: 10px 12px;
+  overflow: hidden;
 }
+.faw-watchrow a[hidden] { display: none !important; }
 .faw-watchrow a {
-  flex: 0 0 76px; display: flex; flex-direction: column; align-items: center; gap: 4px;
-  text-decoration: none; color: inherit; font-size: 11.5px; min-width: 0;
+  flex: 0 1 100px; min-width: 76px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  text-decoration: none; color: inherit; font-size: 11.5px;
 }
 .faw-watchrow img {
   width: 56px; height: 56px; border-radius: 10px; object-fit: cover; background: rgba(255,255,255,.05);
@@ -188,8 +194,7 @@ html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-descript
   }
   /* Horizontal comic reader open: the aside (info + comments) moves to the left */
   html.faw-comic-h:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-page-content {
-    grid-template-columns: clamp(300px, 18%, 480px) minmax(0, 1fr);
-    grid-template-areas: "side main" "com main";
+    grid-template-columns: minmax(0, 1fr) clamp(300px, 18%, 480px);
   }
 }
 
@@ -229,19 +234,21 @@ html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-con
   background: transparent !important;
   padding: 2px 2px 14px !important;
   border-bottom: 1px solid rgba(255, 255, 255, .08);
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
   align-items: center !important;
-  justify-content: space-between;
-  gap: 12px 20px !important;
+  justify-content: flex-start;
+  gap: 12px !important;
 }
 html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(2) > div:has(.submission-page-stats) {
-  flex: 1 1 auto !important;
+  flex: none !important; width: 100%; order: 1;
 }
 html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-page-stats {
   background: transparent !important; padding: 0 !important; margin: 0 !important;
-  display: flex !important; justify-content: flex-start !important; gap: 22px; flex-wrap: wrap;
+  display: flex !important; justify-content: center !important; gap: 26px; flex-wrap: wrap;
 }
 html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-page-stats > div {
-  flex: none !important; width: auto !important; text-align: left !important; line-height: 1.15;
+  flex: none !important; width: auto !important; text-align: center !important; line-height: 1.15;
 }
 html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-page-stats > div > div:first-child {
   font-size: 17px; font-weight: 700;
@@ -250,7 +257,7 @@ html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-page-sta
   font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; opacity: .55;
 }
 html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-controls-upper {
-  flex: 0 0 auto !important; display: flex !important; gap: 6px; flex-wrap: wrap; justify-content: flex-end;
+  flex: none !important; order: 2; display: flex !important; gap: 6px; flex-wrap: wrap; justify-content: center;
 }
 html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-controls-upper > * { margin: 0 !important; background: transparent !important; }
 html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-controls-upper .button {

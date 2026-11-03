@@ -19,8 +19,9 @@ function render(s) {
     $(id + "-v").textContent = fmt(id, s[id]);
   }
   for (const id of CHECKS) $(id).checked = !!s[id];
+  const val = (k) => (k === "commentStyle" ? (s[k] === "classic" || s[k] === "default" ? "classic" : "bubbles") : s[k]);
   for (const seg of document.querySelectorAll(".seg")) {
-    for (const b of seg.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.val === s[seg.dataset.key]));
+    for (const b of seg.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.val === val(seg.dataset.key)));
   }
   $("comicHorizontal").disabled = !s.comic;
 }

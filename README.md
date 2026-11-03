@@ -16,13 +16,16 @@ Chrome extension (Manifest V3) that adapts Fur Affinity's modern theme to ultraw
 - Responsive: every layout adapts to the window size (single column below ~1100px); the top menu stays on one line
 
 **Features** (each can be toggled in the popup)
-- Quick view: click a thumbnail to open the submission in an overlay (fav, download, open page, ← → to browse). Shows the thumbnail instantly and fades in the full image when loaded; neighbours are prefetched so browsing doesn't flicker.
+- Quick view: click a thumbnail to open the submission in an overlay (fav, download, open page, ← → to browse). Shows the thumbnail instantly and fades in the full image when loaded; neighbours are prefetched so browsing doesn't flicker. Includes a scrollable comment list and a box to post comments (e.g. auction bids).
 - Comic reader: assembles a whole series on one page, via prev/next/first links in the description or via numbered titles ("Name - Page 9") found with FA's search. Each page is scaled to fit the screen; optional horizontal mode (comments move left, scroll pages left→right with wheel or ← →)
 - Infinite scroll in galleries, scraps, favorites, browse, search and the submission inbox (next page is prefetched and appended well before the end)
 - Watchers / watching lists load completely on one page
-- Profile shout pagination uses compact << < > >> buttons
-- Recent watchers / recently watched: one row of avatars
-- Comment style presets: Cards, Bubbles, Compact, Minimal or FA default
+- Pagination buttons (shouts, search, browse) use compact << < > >> arrows
+- External links: in-page confirmation instead of FA's interstitial page
+- +Fav on submission pages without a page reload
+- "More from artist" next to submissions that have no comments yet
+- Recent watchers / recently watched: one row of avatars; full watcher lists as avatar tiles
+- Comment & shout style: Classic (FA) or Bubbles; extra BBCode buttons in comment boxes (strike, sup/sub, headings, colour, quote, spoiler, link, YouTube, user icons/links, line)
 
 ## Install
 

@@ -115,15 +115,12 @@ html.faw-comic-h .faw-comic {
   overscroll-behavior-x: contain; padding-bottom: 14px; margin: var(--faw-gap, 12px) 0 0;
 }
 html.faw-comic-h .faw-comic__page {
-  width: auto; height: 100%; flex: none; scroll-snap-align: start; position: relative; gap: 0;
+  width: auto; height: 100%; flex: none; scroll-snap-align: start; gap: 4px; justify-content: flex-start;
 }
-html.faw-comic-h .faw-comic__label {
-  position: absolute; top: 6px; left: 6px; z-index: 1; padding: 2px 8px; border-radius: 3px;
-  background: rgba(0,0,0,.65); opacity: .9;
-}
+html.faw-comic-h .faw-comic__label { flex: none; height: 18px; line-height: 18px; white-space: nowrap; }
 html.faw-comic-h .faw-comic__page img {
-  height: min(100%, calc(var(--natw, 99999px) * 2 / var(--ar, .7)));
-  width: auto; max-width: none;
+  height: min(calc(100% - 22px), calc(var(--natw, 99999px) * 2 / var(--ar, .7)));
+  width: auto; max-width: none; flex: none;
 }
 html.faw-comic-h .submission-area { overflow: visible !important; }
 
@@ -166,11 +163,15 @@ html.faw-comic-h .submission-area { overflow: visible !important; }
   font: 14px/1.45 "Open Sans", system-ui, sans-serif; color: #ddd;
 }
 .faw-confirm__box {
-  background: #1f2228; border: 1px solid #3a3f4a; border-radius: 6px; padding: 18px 20px;
-  max-width: 460px; box-shadow: 0 10px 40px rgba(0,0,0,.6);
+  background: #1f2228; border: 1px solid #3a3f4a; border-radius: 10px; padding: 22px 24px;
+  min-width: min(440px, 90vw); max-width: min(620px, 92vw); box-shadow: 0 16px 50px rgba(0,0,0,.6);
+  font-size: 15px;
 }
-.faw-confirm__box p { margin: 0 0 6px; color: #fff; }
-.faw-confirm__url { font-size: 12px; color: #889; word-break: break-all; margin-bottom: 14px; }
+.faw-confirm__box p { margin: 0 0 8px; color: #fff; font-size: 15px; }
+.faw-confirm__url {
+  font-size: 15px; font-weight: 600; color: #9cf; word-break: break-all; margin-bottom: 18px;
+  padding: 8px 10px; background: rgba(255,255,255,.04); border-radius: 6px;
+}
 .faw-confirm__row { display: flex; justify-content: flex-end; gap: 8px; }
 .faw-confirm__ok { background: #6b4a12 !important; border-color: #8a6420 !important; }
 
@@ -182,54 +183,92 @@ html.faw-comic-h .submission-area { overflow: visible !important; }
 }
 
 /* Shout pagination: arrow-only buttons */
-.faw-arrow-btn { font-size: 0 !important; min-width: 36px; padding: 6px 10px !important; }
-.faw-arrow-btn::before { content: attr(data-faw-arrow); font-size: 13px; font-weight: 700; letter-spacing: -.04em; line-height: 1.3; }
+.faw-arrow-btn { min-width: 36px; }
+.faw-arrow-btn > .faw-hide-text { display: none !important; }
+.faw-arrow-btn::before { content: attr(data-faw-arrow); font-weight: 700; letter-spacing: -.04em; }
 
-/* ---------- Comment style presets (html.faw-cmt-*) ---------- */
-:is(html.faw-cmt-cards, html.faw-cmt-compact, html.faw-cmt-bubbles, html.faw-cmt-minimal) :is(#comments-submission, #comments-journal) comment-container {
-  border: 0 !important; background: transparent; box-shadow: none; gap: 12px; align-items: flex-start;
+/* ---------- Comment style: Bubbles (html.faw-cmt-bubbles) — comments, journal comments and shouts ---------- */
+html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) comment-container {
+  border: 0 !important; background: transparent !important; box-shadow: none !important;
+  display: flex !important; gap: 10px; align-items: flex-start; padding: 6px 2px !important; margin-bottom: 4px;
 }
-:is(html.faw-cmt-cards, html.faw-cmt-compact, html.faw-cmt-bubbles, html.faw-cmt-minimal) :is(#comments-submission, #comments-journal) comment-container > .avatar {
+html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) comment-container > .avatar {
   width: auto !important; flex: none !important; padding: 0 !important; margin: 0 !important;
 }
-:is(html.faw-cmt-cards, html.faw-cmt-compact, html.faw-cmt-bubbles, html.faw-cmt-minimal) :is(#comments-submission, #comments-journal) .comment-content {
-  flex: 1 1 auto; min-width: 0;
+html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) .comment_useravatar,
+html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) .avatar img {
+  width: 44px !important; height: 44px !important; border-radius: 8px !important; object-fit: cover;
+}
+html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) .comment-content {
+  flex: 1 1 auto; min-width: 0; background: rgba(255,255,255,.06);
+  border-radius: 4px 14px 14px 14px; padding: 8px 14px !important; border: 0 !important;
+}
+html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) comment-title { display: none !important; }
+
+/* ---------- Comment box: extra BBCode buttons ---------- */
+.faw-bb { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 3px; margin-left: 10px; vertical-align: middle; }
+.faw-bb__sep { width: 1px; height: 18px; background: rgba(255,255,255,.15); margin: 0 4px; }
+.faw-bb__btn {
+  position: relative; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 3px;
+  border: 1px solid rgba(255,255,255,.18); background: #4a515c; color: #eee;
+  font: 600 12px/22px system-ui, sans-serif; cursor: pointer;
+}
+.faw-bb__btn:hover { background: #5a6270; }
+.faw-bb__btn.is-s { text-decoration: line-through; }
+.faw-bb__color { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; border: 0; padding: 0; }
+
+/* ---------- Quick view comments ---------- */
+.faw-qv__comments { border-top: 1px solid #333; padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.faw-qv__ch { margin: 0; font-size: 13px; color: #bbb; font-weight: 600; }
+.faw-qv__ch span { color: #777; font-weight: 400; }
+.faw-qv__clist { max-height: 38vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; }
+.faw-qv__cempty { color: #777; font-size: 12px; }
+.faw-qv__c { display: flex; gap: 8px; align-items: flex-start; }
+.faw-qv__c img { width: 32px; height: 32px; border-radius: 6px; object-fit: cover; flex: none; }
+.faw-qv__cbody { flex: 1; min-width: 0; background: rgba(255,255,255,.05); border-radius: 4px 10px 10px 10px; padding: 6px 10px; }
+.faw-qv__chead { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; color: #888; }
+.faw-qv__chead a { color: #9cf; font-weight: 600; text-decoration: none; }
+.faw-qv__ctext { font-size: 12.5px; color: #ddd; word-break: break-word; }
+.faw-qv__ctext img { max-width: 100%; height: auto; }
+.faw-qv__cform { display: flex; flex-direction: column; gap: 6px; }
+.faw-qv__cform[hidden] { display: none; }
+.faw-qv__cform textarea {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 54px; background: #15171b; color: #ddd;
+  border: 1px solid #3a3f4a; border-radius: 6px; padding: 7px 9px; font: inherit; font-size: 13px;
+}
+.faw-qv__crow { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.faw-qv__cstatus { font-size: 11.5px; color: #888; }
+
+/* ---------- Submission: "More from artist" (no comments yet) ---------- */
+.faw-more { margin-top: 18px; }
+.faw-more__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; font-size: 14px; }
+.faw-more__head span { font-weight: 600; color: #ddd; }
+.faw-more__head a { font-size: 12px; color: #9cf; }
+.faw-more__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+.faw-more__item { display: block; aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: rgba(255,255,255,.04); }
+.faw-more__item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .15s; }
+.faw-more__item:hover img { transform: scale(1.05); }
+
+/* ---------- Watchers / watching list as avatar tiles ---------- */
+.watch-list.faw-tiles {
+  display: grid !important; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px 8px; padding: 12px !important;
+}
+.watch-list.faw-tiles > * { float: none !important; width: auto !important; margin: 0 !important; clear: none !important; min-width: 0; }
+.watch-list.faw-tiles a[href^="/user/"] {
+  display: flex !important; flex-direction: column; align-items: center; gap: 5px; text-decoration: none; font-size: 12px; min-width: 0;
+}
+.watch-list.faw-tiles .faw-tile__img {
+  width: 64px; height: 64px; border-radius: 10px; object-fit: cover; background: rgba(255,255,255,.05); transition: transform .12s;
+}
+.watch-list.faw-tiles a:hover .faw-tile__img { transform: scale(1.06); }
+.watch-list.faw-tiles .c-usernameBlockSimple { display: block; max-width: 100%; text-align: center; }
+.watch-list.faw-tiles .c-usernameBlockSimple__displayName {
+  display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* Cards: soft rounded cards, round avatars */
-html.faw-cmt-cards :is(#comments-submission, #comments-journal) comment-container {
-  background: rgba(255,255,255,.035) !important; border-radius: 10px; padding: 12px 14px !important;
-  margin-bottom: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.25) !important;
+.faw-busy { opacity: .55; pointer-events: none; }
+form span.floatleft:has(> .faw-bb) {
+  float: none !important; display: flex; flex-wrap: wrap; align-items: center; gap: 3px;
+  justify-content: flex-start; width: 100%; margin-bottom: 6px; text-align: left;
 }
-html.faw-cmt-cards :is(#comments-submission, #comments-journal) .comment_useravatar {
-  width: 56px !important; height: 56px !important; border-radius: 50% !important; object-fit: cover;
-}
-
-/* Compact: dense list, small avatars, no custom titles */
-html.faw-cmt-compact :is(#comments-submission, #comments-journal) comment-container {
-  padding: 7px 4px !important; border-bottom: 1px solid rgba(255,255,255,.07) !important; gap: 10px; font-size: 12.5px;
-}
-html.faw-cmt-compact :is(#comments-submission, #comments-journal) .comment_useravatar {
-  width: 34px !important; height: 34px !important; border-radius: 8px !important;
-}
-html.faw-cmt-compact :is(#comments-submission, #comments-journal) comment-title { display: none !important; }
-html.faw-cmt-compact :is(#comments-submission, #comments-journal) comment-footer { font-size: 11px; opacity: .8; }
-
-/* Bubbles: chat style, text in a rounded bubble next to a small round avatar */
-html.faw-cmt-bubbles :is(#comments-submission, #comments-journal) comment-container { padding: 6px 2px !important; margin-bottom: 4px; }
-html.faw-cmt-bubbles :is(#comments-submission, #comments-journal) .comment_useravatar {
-  width: 40px !important; height: 40px !important; border-radius: 50% !important; object-fit: cover;
-}
-html.faw-cmt-bubbles :is(#comments-submission, #comments-journal) .comment-content {
-  background: rgba(255,255,255,.06); border-radius: 4px 16px 16px 16px; padding: 9px 14px !important;
-}
-html.faw-cmt-bubbles :is(#comments-submission, #comments-journal) comment-title { display: none !important; }
-
-/* Minimal: no boxes, a thin accent line, tiny avatars */
-html.faw-cmt-minimal :is(#comments-submission, #comments-journal) comment-container {
-  padding: 8px 0 8px 12px !important; border-left: 2px solid rgba(255,255,255,.1) !important; margin-bottom: 8px; gap: 10px;
-}
-html.faw-cmt-minimal :is(#comments-submission, #comments-journal) .comment_useravatar {
-  width: 28px !important; height: 28px !important; border-radius: 50% !important;
-}
-html.faw-cmt-minimal :is(#comments-submission, #comments-journal) comment-title { display: none !important; }
+form span.floatleft:has(> .faw-bb) > .faw-bb { margin-left: 8px; }
