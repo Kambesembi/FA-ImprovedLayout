@@ -15,6 +15,7 @@
   function run() {
     if (!loaded || !domReady) return;
     arrowButtons();
+    if (current.enabled) previewPlaceholder();
     splitSubmissionPanel();
     tagProfile();
   }
@@ -118,6 +119,21 @@
       if (!b.title) b.title = span.textContent.trim();
       b.classList.add("faw-arrow-btn");
     }
+  }
+  // Submission page: show FA's small preview under the full image until the full file has loaded
+  // (same idea as the quick view). Only a background on the <img>, removed once it has loaded.
+  function previewPlaceholder() {
+    const img = document.getElementById("submissionImg");
+    if (!img || img.complete || img.dataset.fawPh) return;
+    const pv = img.getAttribute("data-preview-src");
+    if (!pv) return;
+    img.dataset.fawPh = "1";
+    img.style.backgroundImage = `url("${new URL(pv, location.href).href}")`;
+    img.style.backgroundSize = "100% 100%";
+    img.style.backgroundRepeat = "no-repeat";
+    const done = () => { img.style.backgroundImage = ""; };
+    img.addEventListener("load", done, { once: true });
+    img.addEventListener("error", done, { once: true });
   }
   chrome.storage.sync.get(DEFAULTS, apply);
   chrome.storage.onChanged.addListener((changes, area) => {

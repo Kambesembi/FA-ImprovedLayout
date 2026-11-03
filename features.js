@@ -463,9 +463,28 @@
   }
 
   // ------------------------------------------------------------------ profile: "Archived Gallery" link
+  // Account removed/disabled: FA shows only a "System Message" box → offer the archive below it
+  function initArchiveUnavailable() {
+    const m = location.pathname.match(/^\/(?:user|gallery|scraps|favorites|journals|commissions|stats)\/([^/]+)/i);
+    if (!m || document.querySelector(".faw-archive-sys")) return;
+    const head = [...document.querySelectorAll("h1, h2, h3, .section-header, .notice-message, td.cat, th")]
+      .find((e) => /system message/i.test(e.textContent) && e.textContent.length < 200);
+    if (!head) return;
+    const box = head.closest("section, table, .notice-message") || head.parentElement;
+    const name = decodeURIComponent(m[1]).toLowerCase();
+    const url = "https://furarchiver.net/Artist/Gallery?artist=" + encodeURIComponent(name);
+    const wrap = el("div", "faw-archive-sys");
+    const btn = el("button", "button standard", "Archived Gallery");
+    btn.type = "button";
+    btn.title = "Backup of this gallery on furarchiver.net (external site)";
+    btn.addEventListener("click", () => confirmExternal(`Open the archived gallery of “${name}” on furarchiver.net?`, url));
+    wrap.append(el("span", null, "This account isn't available. An archived copy of the gallery may exist:"), btn);
+    box.after(wrap);
+  }
   function initArchiveLink() {
     const ul = document.querySelector(".user-nav-page-links");
-    if (!ul || ul.querySelector(".faw-archive")) return;
+    if (!ul) { initArchiveUnavailable(); return; }
+    if (ul.querySelector(".faw-archive")) return;
     const home = [...ul.querySelectorAll("a[href]")].map((a) => a.getAttribute("href").match(/^\/user\/([^/]+)/)).find(Boolean);
     const m = home || location.pathname.match(/^\/(?:user|gallery|scraps|favorites|journals|commissions|stats)\/([^/]+)/i);
     if (!m) return;
@@ -902,6 +921,8 @@
       if (bar.querySelector(".faw-bb")) continue;
       const ta = bar.closest("form").querySelector("textarea");
       if (!ta) continue;
+      // FA puts &nbsp; between its buttons; in the flex toolbar they become blank items that indent row 1
+      for (const n of [...bar.childNodes]) if (n.nodeType === 3) n.remove();
       const wrapBox = el("span", "faw-bb");
       for (const tool of BB_TOOLS) {
         if (tool.sep || tool.br) {
@@ -1044,7 +1065,7 @@
         grid.appendChild(t);
       }
       box.append(head, grid);
-      list.appendChild(box);
+      list.append(el("div", "faw-sep"), box);
     } catch (e) { /* optional extra, ignore failures */ }
   }
 

@@ -368,3 +368,40 @@ form span.floatleft:has(> .faw-bb) > .faw-bb { margin-left: 0; }
 
 /* ---------- Watcher avatars while their real URL is being looked up ---------- */
 img.faw-av-pending { background: rgba(255,255,255,.06); }
+
+/* ---------- More from artist: same rhythm & divider as stats → comments ---------- */
+.faw-sep { height: 1px; background: rgba(255,255,255,.08); margin: 22px 0 var(--faw-gap, 12px); }
+.faw-sep + .faw-more { margin-top: 0; }
+
+/* ---------- Comment toolbar: no stray indents ---------- */
+form span.floatleft:has(> .faw-bb) { padding-left: 0 !important; margin-left: 0 !important; }
+
+/* ---------- Unavailable account: archived gallery button ---------- */
+.faw-archive-sys {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin: 12px 0; padding: 12px 14px; border-radius: 10px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); color: #ccc; font-size: 13px;
+}
+
+/* ---------- Bubbles: buttons across the site ---------- */
+html.faw-design :is(button.button, a.button, input.button, input[type=submit].button, .button.standard):not(.faw-qv__btn):not(.bbcodeformat) {
+  border-radius: 8px !important;
+  background-color: rgba(255,255,255,.07) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  color: #e2e3e8 !important; text-shadow: none !important; box-shadow: none !important;
+  transition: background-color .12s, border-color .12s;
+}
+html.faw-design :is(button.button, a.button, input.button, input[type=submit].button, .button.standard):not(.faw-qv__btn):not(.bbcodeformat):not(:is(.nuke, .button-nuke)) {
+  background-image: none !important;
+}
+html.faw-design :is(button.button, a.button, input.button, .button.standard):not(.faw-qv__btn):not([disabled]):not(.disabled):hover {
+  background-color: rgba(255,255,255,.14) !important; border-color: rgba(255,255,255,.22) !important;
+}
+html.faw-design :is(button.button, a.button, input.button, .button.standard):is([disabled], .disabled) { opacity: .45; }
+html.faw-design :is(button, a, input).button:is(.nuke, .button-nuke, [name=nuke], [value*="Nuke" i]) {
+  background-color: rgba(200,50,50,.18) !important; border-color: rgba(220,80,80,.5) !important; color: #f3a3a3 !important;
+}
+html.faw-design :is(button, a, input).button:is(.nuke, .button-nuke):hover { background-color: rgba(200,50,50,.3) !important; }
+html.faw-design .button.standard.active {
+  background-color: rgba(224,166,75,.16) !important; border-color: rgba(224,166,75,.45) !important; color: #f0c27a !important;
+}

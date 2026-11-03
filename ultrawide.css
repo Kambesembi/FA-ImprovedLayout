@@ -334,3 +334,26 @@ html.faw-layout.faw-fit.faw-actual #pageid-submission #submissionImg {
 
 /* ---- Galleries, browse, favorites, message center thumbnails ---- */
 html.faw-layout section.gallery figure { zoom: var(--faw-thumb); }
+
+/* Placeholder preview: give the image its final shape before the full file has arrived */
+html.faw-layout.faw-fit #pageid-submission #submissionImg { aspect-ratio: auto var(--faw-ar); }
+
+/* ---- Ad slots: same layout with or without an ad blocker ----
+   Slots sit in fixed, predictable places (below the comment box, at the bottom of the aside
+   header, centered) instead of squeezing or shifting the layout. */
+html.faw-layout :is(.leaderboardAd, .rectangleAd, .sidebarAds, .comment-input-ads, .submission-ads) {
+  max-width: 100% !important; overflow: hidden; box-sizing: border-box; margin-left: auto !important; margin-right: auto !important;
+}
+html.faw-layout #pageid-submission .comment-input-space {
+  display: flex !important; flex-wrap: wrap !important; justify-content: center; gap: 10px;
+  width: auto !important; max-width: 100% !important;
+}
+html.faw-layout #pageid-submission .comment-input-space > #responsebox,
+html.faw-layout #pageid-submission .comment-input-space > :not(.comment-input-ads):not(script) {
+  flex: 1 1 100% !important; width: auto !important; max-width: none !important; order: 0;
+}
+html.faw-layout #pageid-submission .comment-input-space > .comment-input-ads { order: 1; flex: 0 1 auto !important; }
+html.faw-layout:not(.faw-sub-classic) #pageid-submission #submission-main-content > div:nth-child(2) > .sidebarAds {
+  order: 5 !important; width: 100%; justify-content: center; flex: none !important;
+}
+html.faw-layout #page-userpage > .leaderboardAd { justify-self: center; }
