@@ -1483,6 +1483,14 @@
         fitImage();
         qv.querySelector(".faw-qv__frame").classList.add("is-hq");
       });
+      // full file failed: try FA's download link once, otherwise keep the preview and drop the badge
+      $(".faw-qv__img").addEventListener("error", (e) => {
+        const src = e.target.getAttribute("src");
+        if (!src || !data) return;
+        if (data.download && abs(data.download) !== src) { e.target.src = abs(data.download); return; }
+        e.target.removeAttribute("src");
+        qv.querySelector(".faw-qv__frame").classList.add("is-failed");
+      });
       window.addEventListener("resize", () => { if (!qv.hidden) fitImage(); });
       document.addEventListener("keydown", (e) => {
         if (qv.hidden || e.ctrlKey || e.metaKey || e.altKey) return;           // leave browser shortcuts alone
@@ -1541,7 +1549,7 @@
       // Low-quality layer first: the (enlarged) thumbnail. Sized with the exact dimensions when the
       // page is already prefetched, otherwise from the thumbnail's aspect ratio. The previous image
       // is cleared first so it never shows stretched in the new frame.
-      frame.classList.remove("is-hq");
+      frame.classList.remove("is-hq", "is-failed");
       img.removeAttribute("src");
       low.removeAttribute("src");
       low.style.opacity = "0";
@@ -1607,8 +1615,10 @@
       }
       fitImage();
       img.alt = data.title;
-      if (data.full) { if (img.getAttribute("src") !== data.full) img.src = data.full; } // fades in over the thumbnail
-      else frame.classList.add("is-hq");
+      if (data.full) {                                            // fades in over the thumbnail
+        if (img.getAttribute("src") !== data.full) img.src = data.full;
+        else if (img.complete && img.naturalWidth) frame.classList.add("is-hq");
+      } else frame.classList.add("is-hq");
       // prefetch neighbours: page data, enlarged thumbnail, and the next full image
       for (const d of [1, -1]) {
         const nb = list[idx + d];

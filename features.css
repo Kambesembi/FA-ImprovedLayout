@@ -37,7 +37,7 @@
   position: absolute; right: 8px; bottom: 8px; padding: 2px 8px; border-radius: 3px;
   background: rgba(0,0,0,.6); color: #ccc; font-size: 11px; pointer-events: none; transition: opacity .2s;
 }
-.faw-qv__frame.is-hq .faw-qv__badge { opacity: 0; }
+.faw-qv__frame:is(.is-hq, .is-failed) .faw-qv__badge { opacity: 0; }
 .faw-qv__spinner { position: absolute; color: #aaa; font-size: 15px; }
 .faw-qv__nav {
   position: absolute; top: 50%; transform: translateY(-50%); z-index: 1;
@@ -317,10 +317,12 @@ html.faw-design #add_comment_form .button.go:hover { background: rgba(224,166,75
 html.faw-design #add_comment_form .button.go.post-comment { position: absolute !important; top: 0; right: 0; margin: 0 !important; }
 /* journals etc.: the comment form stands alone below the post → give it its own panel */
 html.faw-design body:not(#pageid-submission) #responsebox {
-  margin: 0 10px 10px; padding: 14px 16px; box-sizing: border-box; border-radius: 12px;   /* lines up with FA's section margins */
+  /* box edges line up with FA's journal box (10px section margin), content with the journal text */
+  margin: 0 10px 10px !important; padding: 12px 10px !important; box-sizing: border-box; border-radius: 12px;
+  width: auto !important; max-width: none !important;
   background: rgba(var(--faw-ink), .03); border: 1px solid rgba(var(--faw-ink), .08);
 }
-html.faw-design body:not(#pageid-submission) #add_comment_form .button.go.post-comment { top: 14px; right: 16px; }
+html.faw-design body:not(#pageid-submission) #add_comment_form .button.go.post-comment { top: 12px; right: 10px; }
 
 /* toolbar buttons (comments, journals, notes): FA's sprite icons redrawn in the same style as ours */
 html.faw-design form .floatleft:has(> .bbcodeformat) { display: flex !important; flex-wrap: wrap; gap: 3px; align-items: center; }
