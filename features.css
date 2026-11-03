@@ -130,3 +130,37 @@ html.faw-comic-h .submission-area { overflow: visible !important; }
   flex-basis: 100%; width: 100%; text-align: center; color: #777; font-size: 12px;
   margin: 14px 0 6px; letter-spacing: .04em;
 }
+
+/* ---------- Profile: justified Gallery box (features.js sets --w / --h per figure) ---------- */
+#gallery-latest-submissions.faw-justified {
+  display: flex !important; flex-wrap: wrap; align-content: flex-start; column-gap: 6px; row-gap: var(--faw-rowgap, 6px);
+  padding: 6px !important; box-sizing: border-box; overflow: hidden !important; text-align: left;
+}
+.faw-justified > figure {
+  display: block !important; flex: none; margin: 0 !important; zoom: 1 !important;
+  width: var(--w, 150px) !important; height: var(--h, 150px) !important;
+}
+.faw-justified > figure.faw-hide, .faw-justified > :not(figure) { display: none !important; }
+.faw-justified > figure > b, .faw-justified > figure > b > u, .faw-justified > figure a {
+  display: block !important; width: 100% !important; height: 100% !important;
+}
+.faw-justified > figure img {
+  width: 100% !important; height: 100% !important; max-width: none !important; max-height: none !important;
+  object-fit: cover; display: block;
+}
+.faw-justified figcaption { display: none !important; }
+
+/* ---------- External-link confirmation ---------- */
+.faw-confirm {
+  position: fixed; inset: 0; z-index: 2147483001; background: rgba(0,0,0,.55);
+  display: flex; align-items: center; justify-content: center;
+  font: 14px/1.45 "Open Sans", system-ui, sans-serif; color: #ddd;
+}
+.faw-confirm__box {
+  background: #1f2228; border: 1px solid #3a3f4a; border-radius: 6px; padding: 18px 20px;
+  max-width: 460px; box-shadow: 0 10px 40px rgba(0,0,0,.6);
+}
+.faw-confirm__box p { margin: 0 0 6px; color: #fff; }
+.faw-confirm__url { font-size: 12px; color: #889; word-break: break-all; margin-bottom: 14px; }
+.faw-confirm__row { display: flex; justify-content: flex-end; gap: 8px; }
+.faw-confirm__ok { background: #6b4a12 !important; border-color: #8a6420 !important; }

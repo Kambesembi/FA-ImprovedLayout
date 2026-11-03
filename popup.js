@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const RANGES = ["max", "gutter", "thumb"];
-const CHECKS = ["imageFit", "quickView", "comic", "comicHorizontal", "infinite"];
+const CHECKS = ["imageFit", "quickView", "comic", "comicHorizontal", "infinite", "archiveLink"];
 const SELECTS = ["layout"];
 const UNCAPPED_AT_MAX = { max: true }; // top slider position = no cap (stored as 0)
 

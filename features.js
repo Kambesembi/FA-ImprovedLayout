@@ -3,7 +3,10 @@
 (() => {
   "use strict";
 
-  const DEFAULTS = { enabled: true, imageFit: true, quickView: true, comic: true, comicHorizontal: false, infinite: true };
+  const DEFAULTS = {
+    enabled: true, imageFit: true, quickView: true, comic: true, comicHorizontal: false, infinite: true,
+    archiveLink: true, thumb: 1.25
+  };
   const root = document.documentElement;
   const page = document.body ? document.body.id : "";
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -29,6 +32,8 @@
       if (S.comic) initComic();
     }
     if (S.infinite) initInfinite();
+    if (S.archiveLink) initArchiveLink();
+    if (page === "pageid-userpage") initProfileGallery();
     if (S.quickView) initQuickView();
   });
   chrome.storage.onChanged.addListener((c, area) => {
@@ -394,6 +399,202 @@
     return [...byNum].sort((a, b) => a[0] - b[0]).map(([num, id]) => ({ num, id }));
   }
 
+  // ------------------------------------------------------------------ profile: "Archived Gallery" link
+  function initArchiveLink() {
+    const ul = document.querySelector(".user-nav-page-links");
+    if (!ul || ul.querySelector(".faw-archive")) return;
+    const home = [...ul.querySelectorAll("a[href]")].map((a) => a.getAttribute("href").match(/^\/user\/([^/]+)/)).find(Boolean);
+    const m = home || location.pathname.match(/^\/(?:user|gallery|scraps|favorites|journals|commissions|stats)\/([^/]+)/i);
+    if (!m) return;
+    const name = decodeURIComponent(m[1]).toLowerCase();
+    const url = "https://furarchiver.net/Artist/Gallery?artist=" + encodeURIComponent(name);
+
+    const li = el("li", "faw-archive");
+    const h3 = el("h3");
+    const a = el("a", null, "Archived Gallery");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.title = "Backup of this gallery on furarchiver.net (external site)";
+    const ask = (e) => {
+      if (e.type === "auxclick" && e.button !== 1) return;
+      e.preventDefault();
+      e.stopPropagation();
+      confirmExternal(`Open the archived gallery of “${name}” on furarchiver.net?`, url);
+    };
+    a.addEventListener("click", ask);
+    a.addEventListener("auxclick", ask);
+    h3.appendChild(a);
+    li.appendChild(h3);
+    const scraps = [...ul.children].find((x) => /^\/scraps\//.test(x.querySelector("a")?.getAttribute("href") || ""));
+    if (scraps) scraps.after(li); else ul.appendChild(li);
+  }
+
+  // Small in-page confirmation (a native confirm() would block the page)
+  function confirmExternal(text, url) {
+    const ov = el("div", "faw-confirm");
+    const box = el("div", "faw-confirm__box");
+    const p = el("p", null, text);
+    const host = el("div", "faw-confirm__url", url);
+    const row = el("div", "faw-confirm__row");
+    const cancel = el("button", "button standard", "Cancel");
+    const ok = el("button", "button standard faw-confirm__ok", "Open in new tab");
+    row.append(cancel, ok);
+    box.append(p, host, row);
+    ov.appendChild(box);
+    document.body.appendChild(ov);
+    ok.focus();
+    const done = (go) => {
+      ov.remove();
+      document.removeEventListener("keydown", onKey, true);
+      if (go) window.open(url, "_blank", "noopener,noreferrer");
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); done(false); }
+      else if (e.key === "Enter") { e.preventDefault(); done(true); }
+    };
+    document.addEventListener("keydown", onKey, true);
+    cancel.onclick = () => done(false);
+    ok.onclick = () => done(true);
+    ov.addEventListener("click", (e) => { if (e.target === ov) done(false); });
+  }
+
+  // ------------------------------------------------------------------ profile: gallery box
+  // Justified rows of larger thumbnails that exactly fill the Gallery box next to Featured;
+  // pulls more submissions from the gallery if the 20 on the profile aren't enough.
+  function initProfileGallery() {
+    const box = document.getElementById("gallery-latest-submissions");
+    const section = box && box.closest(".gallery_container");
+    if (!box || !section || !box.querySelector("figure")) return;
+    box.classList.add("faw-justified");
+
+    const GAP = 6, PAD = 6;
+    const home = location.pathname.match(/^\/user\/([^/]+)/);
+    let next = home ? { url: new URL(`/gallery/${home[1]}/`, location.origin).href } : null;
+    let pagesFetched = 0, fetching = false;
+    const seen = new Set([...box.querySelectorAll(":scope > figure")].map((f) => f.id));
+
+    const ratio = (f) => {
+      const i = f.querySelector("img");
+      if (!i) return 1;
+      const w = +i.getAttribute("data-width") || i.naturalWidth || 1;
+      const h = +i.getAttribute("data-height") || i.naturalHeight || 1;
+      return w / h;
+    };
+
+    // Break items into justified rows for a target row height; returns rows that fit into maxH
+    function plan(figs, W, maxH, target) {
+      const rows = [];
+      let row = [], sum = 0, y = 0;
+      for (const f of figs) {
+        row.push(f);
+        sum += ratio(f);
+        if (sum * target + GAP * (row.length - 1) >= W) {
+          const h = (W - GAP * (row.length - 1)) / sum;
+          if (y + h > maxH + 0.5) return { rows, used: y, complete: true };
+          rows.push({ items: row, h });
+          y += h + GAP;
+          row = []; sum = 0;
+        }
+      }
+      return { rows, used: y, complete: false, rest: row };
+    }
+
+    function layout() {
+      const figs = [...box.querySelectorAll(":scope > figure")];
+      const contained = getComputedStyle(section).contain.includes("size");
+      const W = box.clientWidth - 2 * PAD;
+      const base = Math.round(170 * (+S.thumb || 1.25));
+      const maxH = contained ? box.clientHeight - 2 * PAD : 2 * base + GAP;
+      if (W <= 0 || maxH <= 0) return;
+
+      // Try many row heights. Leftover space is absorbed by slightly wider row gaps (≤6px each)
+      // and then by cropping rows a little (object-fit). Prefer the largest thumbnails whose crop
+      // stays under 12%; otherwise take the layout with the least crop.
+      let best = null, fallback = null;
+      for (let k = 0.6; k <= 1.8; k += 0.01) {
+        const p = plan(figs, W, maxH, base * k);
+        if (!p.complete || !p.rows.length) { fallback = fallback || p; continue; }
+        const n = p.rows.length;
+        const left = Math.max(0, maxH - (p.used - GAP));
+        const avg = (p.used - GAP * n) / n;
+        const gapExtra = Math.min(left, (n - 1) * 6);
+        const crop = (left - gapExtra) / n / avg;
+        Object.assign(p, { left, avg, gapExtra, crop });
+        if (crop <= 0.12) { if (!best || best.crop > 0.12 || avg > best.avg) best = p; }
+        else if (!best || (best.crop > 0.12 && crop < best.crop)) best = p;
+      }
+      best = best || fallback;
+      if (!best) return;
+
+      // not enough submissions to fill the box → fetch more, then lay out again
+      if (!best.complete && next && pagesFetched < 4 && !fetching) loadMore();
+
+      figs.forEach((f) => f.classList.add("faw-hide"));
+      const n = best.rows.length;
+      box.style.setProperty("--faw-rowgap", (GAP + (best.complete && n > 1 ? best.gapExtra / (n - 1) : 0)) + "px");
+      const extra = best.complete ? Math.max(0, best.left - best.gapExtra) : 0;
+      best.rows.forEach((r) => {
+        const h = r.h + extra / n;
+        for (const f of r.items) {
+          f.classList.remove("faw-hide");
+          f.style.setProperty("--w", Math.floor(ratio(f) * r.h) + "px");
+          f.style.setProperty("--h", Math.floor(h) + "px");
+          upgradeThumb(f, h);
+        }
+      });
+      if (!best.complete && best.rest) {
+        const h = Math.min(base, maxH - best.used);
+        if (h > 40) for (const f of best.rest) {
+          f.classList.remove("faw-hide");
+          f.style.setProperty("--w", Math.floor(ratio(f) * h) + "px");
+          f.style.setProperty("--h", Math.floor(h) + "px");
+          upgradeThumb(f, h);
+        }
+      }
+    }
+
+    function upgradeThumb(f, h) {
+      const i = f.querySelector("img");
+      if (!i || i.dataset.fawUp || h <= 150) return;
+      const src = i.getAttribute("src") || "";
+      const m = src.match(/@(\d+)-/);
+      if (m && +m[1] < 400) { i.src = src.replace(/@\d+-/, "@400-"); }
+      i.dataset.fawUp = "1";
+    }
+
+    async function loadMore() {
+      fetching = true;
+      try {
+        const { doc, url } = await fetchDoc(next.url, next.init);
+        pagesFetched++;
+        let added = 0;
+        for (const f of doc.querySelectorAll("section.gallery figure")) {
+          if (!f.id || seen.has(f.id)) continue;
+          seen.add(f.id);
+          box.appendChild(document.adoptNode(f));
+          added++;
+        }
+        next = added ? findNext(doc, url) : null;
+      } catch (e) {
+        next = null;
+      }
+      fetching = false;
+      layout();
+    }
+
+    let lastW = 0, lastH = 0, timer = null;
+    new ResizeObserver(() => {
+      const contained = getComputedStyle(section).contain.includes("size");
+      const w = box.clientWidth, h = contained ? box.clientHeight : 0;
+      if (Math.abs(w - lastW) < 2 && Math.abs(h - lastH) < 2) return;
+      lastW = w; lastH = h;
+      clearTimeout(timer);
+      timer = setTimeout(layout, 60);
+    }).observe(box);
+    layout();
+  }
+
   // ------------------------------------------------------------------ infinite scroll
   let infinite = null;
 
@@ -499,6 +700,7 @@
   // ------------------------------------------------------------------ quick view
   function initQuickView() {
     let qv = null, list = [], idx = 0, token = 0;
+    const ready = new Map();   // id → parsed submission, for neighbours already prefetched
 
     const isQvAnchor = (a) =>
       a && a.matches("a[href]") && viewId(a.getAttribute("href")) &&
@@ -571,7 +773,7 @@
         $(".faw-qv__stage").classList.toggle("is-actual");
         fitImage();
       });
-      $(".faw-qv__low").addEventListener("load", fitImage);
+      $(".faw-qv__low").addEventListener("load", (e) => { fitImage(); e.target.style.opacity = "1"; });
       $(".faw-qv__low").addEventListener("error", (e) => {
         // larger thumbnail size not available → fall back to the one on the page
         const t = list[idx] && list[idx].thumb;
@@ -634,20 +836,24 @@
       $(".faw-qv__stage").classList.remove("is-actual");
       $(".faw-qv__nav--prev").disabled = idx === 0;
       $(".faw-qv__nav--next").disabled = idx >= list.length - 1 && !(infinite && !infinite.done);
-      // Low-quality layer first: the (enlarged) thumbnail, sized from its aspect ratio
+      // Low-quality layer first: the (enlarged) thumbnail. Sized with the exact dimensions when the
+      // page is already prefetched, otherwise from the thumbnail's aspect ratio. The previous image
+      // is cleared first so it never shows stretched in the new frame.
       frame.classList.remove("is-hq");
       img.removeAttribute("src");
-      img.dataset.w = item.tw || "";
-      img.dataset.h = item.th || "";
-      img.dataset.exact = "";
+      low.removeAttribute("src");
+      low.style.opacity = "0";
+      const known = ready.get(item.id);
+      img.dataset.w = known && known.res ? known.res.w : item.tw || "";
+      img.dataset.h = known && known.res ? known.res.h : item.th || "";
+      img.dataset.exact = known && known.res ? "1" : "";
       frame.style.visibility = item.thumb ? "" : "hidden";
       $(".faw-qv__spinner").hidden = !!item.thumb;
       if (item.thumb) {
+        fitImage(true);
         low.src = bigThumb(item.thumb);
-        fitImage();
-      } else {
-        low.removeAttribute("src");
       }
+      if (known && known.full) img.src = known.full;
       $(".faw-qv__title a").textContent = "";
       $(".faw-qv__title a").href = "/view/" + item.id + "/";
       $("[data-act=open]").href = "/view/" + item.id + "/";
@@ -662,6 +868,7 @@
         $(".faw-qv__spinner").textContent = "Couldn't load submission (" + err.message + ")";
         return;
       }
+      ready.set(item.id, data);
       if (t !== token) return;
       $(".faw-qv__spinner").textContent = "Loading…";
       $(".faw-qv__title a").textContent = data.title;
@@ -694,15 +901,23 @@
       }
       fitImage();
       img.alt = data.title;
-      if (data.full) img.src = data.full;   // fades in over the thumbnail once loaded
+      if (data.full) { if (img.getAttribute("src") !== data.full) img.src = data.full; } // fades in over the thumbnail
       else frame.classList.add("is-hq");
-      // prefetch neighbours' pages
-      for (const d of [1, -1]) if (list[idx + d]) getSubmission("/view/" + list[idx + d].id + "/").catch(() => {});
+      // prefetch neighbours: page data, enlarged thumbnail, and the next full image
+      for (const d of [1, -1]) {
+        const nb = list[idx + d];
+        if (!nb) continue;
+        if (nb.thumb) new Image().src = bigThumb(nb.thumb);
+        getSubmission("/view/" + nb.id + "/").then((nd) => {
+          ready.set(nb.id, nd);
+          if (d === 1 && nd.full) new Image().src = nd.full;
+        }).catch(() => {});
+      }
     }
 
     // Sizes the frame (both layers). Exact dimensions come from the submission page;
     // until then the thumbnail's aspect ratio is used.
-    function fitImage() {
+    function fitImage(force) {
       const img = qv.querySelector(".faw-qv__img");
       const low = qv.querySelector(".faw-qv__low");
       const frame = qv.querySelector(".faw-qv__frame");
@@ -723,8 +938,12 @@
       const aw = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
       const ah = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
       const scale = Math.min(aw / nw, ah / nh, exact ? 2 : Infinity);
-      frame.style.width = Math.round(nw * scale) + "px";
-      frame.style.height = Math.round(nh * scale) + "px";
+      const w = Math.round(nw * scale), h = Math.round(nh * scale);
+      // ignore sub-1.5% corrections (thumbnail vs. exact aspect rounding) to avoid a visible jump
+      const ow = parseFloat(frame.style.width) || 0, oh = parseFloat(frame.style.height) || 0;
+      if (!force && ow && Math.abs(w - ow) / ow < 0.015 && Math.abs(h - oh) / oh < 0.015) return;
+      frame.style.width = w + "px";
+      frame.style.height = h + "px";
     }
 
     function updateFavBtn() {
@@ -744,6 +963,7 @@
         const { doc } = await fetchDoc(new URL(cur.fav.href, location.origin).href);
         const fresh = parseSubmission(doc, "/view/" + cur.id + "/");
         docCache.set(cur.id, Promise.resolve(fresh));
+        ready.set(cur.id, fresh);
         if (data === cur) data = fresh;
       } catch (err) {
         b.textContent = "Fav failed";

@@ -9,5 +9,6 @@ const FAW_DEFAULTS = {
   quickView: true,    // click thumbnails to open a popup
   comic: true,        // comic series reader
   comicHorizontal: false, // comic reader scrolls left→right, comments move to the left
-  infinite: true      // infinite scroll in galleries
+  infinite: true,     // infinite scroll in galleries
+  archiveLink: true   // "Archived Gallery" (furarchiver.net) link in the profile header
 };
