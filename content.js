@@ -14,6 +14,7 @@
   // DOM work waits for both the settings and the parsed page, so a disabled extension never touches it
   function run() {
     if (!loaded || !domReady) return;
+    if (current.enabled) detectTheme();
     arrowButtons();
     if (current.enabled) previewPlaceholder();
     splitSubmissionPanel();
@@ -134,6 +135,18 @@
     const done = () => { img.style.backgroundImage = ""; };
     img.addEventListener("load", done, { once: true });
     img.addEventListener("error", done, { once: true });
+  }
+  // FA colour scheme (Dark, Dark retro, Light, …): light schemes flip the extension's palette
+  function detectTheme() {
+    const link = document.querySelector('link[href*="ui_theme_"]');
+    const name = link ? (link.getAttribute("href").match(/ui_theme_([a-z0-9_-]+)/i) || [])[1] || "" : "";
+    let light = /light/i.test(name);
+    if (!light && document.body) {
+      const m = getComputedStyle(document.body).backgroundColor.match(/\d+(\.\d+)?/g);
+      if (m && m.length >= 3 && (m[3] === undefined || +m[3] > 0)) light = (0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2]) > 150;
+    }
+    root.classList.toggle("faw-light", light);
+    if (name) root.dataset.fawTheme = name;
   }
   chrome.storage.sync.get(DEFAULTS, apply);
   chrome.storage.onChanged.addListener((changes, area) => {

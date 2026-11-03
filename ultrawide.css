@@ -1,3 +1,12 @@
+/* Theme palette: FA's dark themes by default, flipped for light themes (content.js sets html.faw-light) */
+:root {
+  --faw-ink: 255,255,255; --faw-text: rgba(255,255,255,.9); --faw-accent-text: #f0c27a; --faw-danger-text: #f3a3a3;
+  --faw-menu-bg: #1f2228; --faw-ok: #6fd38a; --faw-err: #f07a7a;
+}
+html.faw-light {
+  --faw-ink: 0,0,0; --faw-text: rgba(0,0,0,.85); --faw-accent-text: #8a5a0c; --faw-danger-text: #b42323;
+  --faw-menu-bg: #fff; --faw-ok: #1d8a3c; --faw-err: #c62828;
+}
 /* FA Ultrawide — layout rules only apply with html.faw-layout ("Ultrawide layout" switch);
    design rules (arrows, frame) only with html.faw-design ("Bubbles design" switch).
    Only site width, gutter and thumbnail scale are user settings; everything else derives
@@ -34,7 +43,7 @@ html.faw-layout body {
 
 /* Subtle frame around the page so the content doesn't just fade into the empty sides */
 html.faw-design body {
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 0 48px rgba(0, 0, 0, .45);
+  box-shadow: 0 0 0 1px rgba(var(--faw-ink), .06), 0 0 48px rgba(0, 0, 0, .45);
   min-height: 100vh;
 }
 html.faw-layout #ddmenu {
@@ -145,7 +154,7 @@ html.faw-layout #page-userpage .userpage-layout-left-col { container-type: inlin
   text-decoration: none; color: inherit; font-size: 11.5px;
 }
 .faw-watchrow img {
-  width: 56px; height: 56px; border-radius: 10px; object-fit: cover; background: rgba(255,255,255,.05);
+  width: 56px; height: 56px; border-radius: 10px; object-fit: cover; background: rgba(var(--faw-ink), .05);
   transition: transform .12s ease;
 }
 .faw-watchrow a:hover img { transform: scale(1.06); }
@@ -248,7 +257,7 @@ html.faw-layout:not(.faw-sub-classic) #pageid-submission #sidebar-lower-reverse:
 html.faw-layout:not(.faw-sub-classic) #pageid-submission #submission-main-content > div:nth-child(2) {
   background: transparent !important;
   padding: calc(var(--faw-gap) * 2) 2px 14px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  border-bottom: 1px solid rgba(var(--faw-ink), .08);
   flex-direction: column !important;
   flex-wrap: nowrap !important;
   align-items: center !important;
@@ -276,20 +285,20 @@ html.faw-layout:not(.faw-sub-classic) #pageid-submission .submission-controls-up
 }
 html.faw-layout:not(.faw-sub-classic) #pageid-submission .submission-controls-upper > * { margin: 0 !important; background: transparent !important; }
 html.faw-layout:not(.faw-sub-classic) #pageid-submission .submission-controls-upper .button {
-  background: rgba(255, 255, 255, .06) !important;
-  border: 1px solid rgba(255, 255, 255, .12) !important;
+  background: rgba(var(--faw-ink), .06) !important;
+  border: 1px solid rgba(var(--faw-ink), .12) !important;
   border-radius: 6px !important;
   padding: 6px 14px !important; margin: 0 !important; height: auto !important; line-height: 1.3 !important;
-  color: #ddd !important; box-shadow: none !important; transition: background .12s, border-color .12s;
+  color: var(--faw-text) !important; box-shadow: none !important; transition: background .12s, border-color .12s;
 }
 html.faw-layout:not(.faw-sub-classic) #pageid-submission .submission-controls-upper .button:hover {
-  background: rgba(255, 255, 255, .12) !important; border-color: rgba(255, 255, 255, .22) !important;
+  background: rgba(var(--faw-ink), .12) !important; border-color: rgba(var(--faw-ink), .22) !important;
 }
 html.faw-layout:not(.faw-sub-classic) #pageid-submission .submission-controls-upper .button.nuke,
 html.faw-layout:not(.faw-sub-classic) #pageid-submission .submission-controls-upper .button[href*="report"],
 html.faw-layout:not(.faw-sub-classic) #pageid-submission .submission-controls-upper .button.stop,
 html.faw-layout:not(.faw-sub-classic) #pageid-submission .submission-controls-upper .button[class*="red"] {
-  color: #f0a0a0 !important; border-color: rgba(230, 110, 110, .35) !important; background: rgba(200, 60, 60, .12) !important;
+  color: var(--faw-danger-text) !important; border-color: rgba(230, 110, 110, .35) !important; background: rgba(200, 60, 60, .12) !important;
 }
 html.faw-layout:not(.faw-sub-classic) #pageid-submission .comments-list { padding-top: 0 !important; }
 
@@ -306,7 +315,7 @@ html.faw-layout:not(.faw-sub-classic) #pageid-submission .submission-details {
 #faw-subinfo {
   display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px 16px;
   margin-top: var(--faw-gap, 12px); padding: 12px; box-sizing: border-box;
-  background: var(--faw-panel-bg, #20242a);
+  background: rgba(var(--faw-ink), .03);
 }
 #faw-subinfo > * { margin: 0 !important; max-width: none !important; min-width: 0; box-sizing: border-box; }
 #faw-subinfo > .submission-content-stats { flex: 0 0 auto !important; width: auto !important; order: 1; }
@@ -367,7 +376,7 @@ html.faw-layout:not(.faw-sub-classic) #pageid-submission #minigallery.faw-has-co
 html.faw-layout:not(.faw-sub-classic) #pageid-submission #submission-main-content > div:nth-child(1) > :is(.submission-details, #faw-subinfo)::before,
 html.faw-layout:not(.faw-sub-classic) #pageid-submission #minigallery.faw-has-comic::before {
   content: ""; position: absolute; left: 0; right: 0; top: calc(var(--faw-gap) * -1 - 1px);
-  height: 1px; background: rgba(255, 255, 255, .08); pointer-events: none;
+  height: 1px; background: rgba(var(--faw-ink), .08); pointer-events: none;
 }
 html.faw-layout:not(.faw-sub-classic) #pageid-submission .comments-list { border-top: 0; }
 
@@ -381,7 +390,7 @@ html.faw-layout #pageid-submission .submission-area { position: relative; }
 .faw-subnav {
   position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
   display: grid; place-items: center; width: 44px; height: 88px; border-radius: 12px;
-  color: rgba(255,255,255,.55); background: rgba(20,22,26,.35); text-decoration: none !important;
+  color: rgba(var(--faw-ink), .55); background: rgba(20,22,26,.35); text-decoration: none !important;
   transition: background .15s, color .15s;
 }
 .faw-subnav:hover { color: #fff; background: rgba(20,22,26,.7); }

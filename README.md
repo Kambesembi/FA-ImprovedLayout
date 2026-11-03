@@ -4,6 +4,8 @@ Chrome extension (Manifest V3) that adapts Fur Affinity's modern theme to ultraw
 
 ## Features
 
+Works with all of FA's colour schemes (dark and light variants).
+
 **Main switches** (popup): the master switch turns everything off (the page is left untouched); *Ultrawide layout* covers all layout changes; *Bubbles design* covers comment/shout bubbles, the comment box, buttons across the site, pagination arrows, avatar views for watchers and the page frame.
 
 **Layout**

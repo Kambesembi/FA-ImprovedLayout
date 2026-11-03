@@ -48,7 +48,7 @@
     initCommentToolbar();
     initExternalConfirm();
     indentReplies();
-    if (designOn()) applyArrowButtons();
+    if (designOn()) { applyArrowButtons(); classifySystemMessages(); }
     onDomChange(() => { if (designOn()) applyArrowButtons(); initCommentToolbar(); indentReplies(); });
     if (S.quickView) initQuickView();
   });
@@ -694,6 +694,29 @@
     "next": ">", "next page": ">",
     "last": ">>", "last page": ">>"
   };
+  // System messages: success → green, failure → red
+  function classifySystemMessages() {
+    for (const h of document.querySelectorAll(".section-header, h2")) {
+      if (!/system message/i.test(h.textContent) || h.textContent.length > 60) continue;
+      const box = h.closest("section") || h.parentElement;
+      if (!box || box.classList.contains("faw-msg-ok") || box.classList.contains("faw-msg-err")) continue;
+      const body = box.querySelector(".section-body") || box;
+      const text = body.textContent.replace(/continue\s*»?/i, "");
+      const err = /\b(error|fail(ed|ure)?|invalid|could not|couldn't|unable|denied|not (be |been )?(allowed|found|saved|valid)|must|incorrect|wrong|too (long|short|many))\b/i.test(text);
+      const ok = !err && /\b(updated|saved|success(ful(ly)?)?|has been (added|removed|changed|sent|submitted|deleted|created|posted)|thank you|completed?)\b/i.test(text);
+      if (!ok && !err) continue;
+      box.classList.add(ok ? "faw-msg-ok" : "faw-msg-err");
+      // colour the message itself, not the Continue button
+      for (const n of body.querySelectorAll("p, div, span, td")) {
+        if (n.children.length === 0 && n.textContent.trim().length > 3 && !n.closest("a, button, .button")) n.classList.add("faw-msg-text");
+      }
+      if (!body.querySelector(".faw-msg-text")) {
+        for (const t of [...body.childNodes]) {
+          if (t.nodeType === 3 && t.textContent.trim().length > 3) t.replaceWith(el("span", "faw-msg-text", t.textContent));
+        }
+      }
+    }
+  }
   function tidyPageSelects(scope) {
     for (const o of (scope || document).querySelectorAll("select.button option")) {
       if (/[⚞⚟]/.test(o.textContent)) o.textContent = o.textContent.replace(/[⚞⚟]/g, "").trim();
