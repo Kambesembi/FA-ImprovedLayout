@@ -4,32 +4,49 @@
 // keywords and folders move into a panel below the description.
 (() => {
   const DEFAULTS = {
-    enabled: true, max: 2800, gutter: 24, thumb: 1.25, layout: "comments-right", commentStyle: "bubbles"
+    enabled: true, ultrawide: true, design: true,
+    max: 2800, gutter: 24, thumb: 1.25, layout: "comments-right"
   };
-  // "classic" = FA's own look; older presets from v1.8 map onto the two that remain
-  const commentStyle = (v) => (v === "classic" || v === "default" ? "classic" : "bubbles");
   const root = document.documentElement;
   let current = DEFAULTS;
+  let loaded = false;            // settings read from storage
+  let domReady = document.readyState !== "loading";
+  // DOM work waits for both the settings and the parsed page, so a disabled extension never touches it
+  function run() {
+    if (!loaded || !domReady) return;
+    arrowButtons();
+    splitSubmissionPanel();
+    tagProfile();
+  }
+  const VARS = ["--faw-max", "--faw-gutter", "--faw-thumb", "--faw-read", "--faw-sidebar", "--faw-comments"];
+  const layoutOn = () => current.enabled && current.ultrawide;
+  const designOn = () => current.enabled && current.design;
 
+  // Master switch off → no classes, no variables, no DOM changes: FA as if the extension weren't there.
   function apply(s) {
     s = Object.assign({}, DEFAULTS, s);
     current = s;
-    root.classList.toggle("faw-off", !s.enabled);
-    root.classList.toggle("faw-sub-classic", s.layout === "classic");
-    root.classList.toggle("faw-cmt-bubbles", commentStyle(s.commentStyle) === "bubbles");
-    root.style.setProperty("--faw-max", s.max > 0 ? s.max + "px" : "100vw");
-    root.style.setProperty("--faw-gutter", s.gutter + "px");
-    root.style.setProperty("--faw-thumb", String(s.thumb));
-    // clean up variables from older versions
-    for (const v of ["--faw-read", "--faw-sidebar", "--faw-comments"]) root.style.removeProperty(v);
-    if (document.readyState !== "loading") splitSubmissionPanel();
+    root.classList.toggle("faw-layout", layoutOn());
+    root.classList.toggle("faw-design", designOn());
+    root.classList.toggle("faw-cmt-bubbles", designOn());
+    root.classList.toggle("faw-sub-classic", layoutOn() && s.layout === "classic");
+    root.classList.remove("faw-off");
+    if (layoutOn()) {
+      root.style.setProperty("--faw-max", s.max > 0 ? s.max + "px" : "100vw");
+      root.style.setProperty("--faw-gutter", s.gutter + "px");
+      root.style.setProperty("--faw-thumb", String(s.thumb));
+    } else {
+      for (const v of VARS) root.style.removeProperty(v);
+    }
+    loaded = true;
+    run();
   }
 
   // ---- submission page: move details/keywords/folders below the description (reversible)
   const moved = [];
   function splitSubmissionPanel() {
     if (!document.body || document.body.id !== "pageid-submission") return;
-    const want = current.enabled && current.layout !== "classic";
+    const want = layoutOn() && current.layout !== "classic";
     let panel = document.getElementById("faw-subinfo");
 
     if (!want) {                                   // put everything back where FA had it
@@ -62,7 +79,7 @@
 
   // ---- profile page: tag the left-column sections so CSS can pair Featured | Gallery reliably
   function tagProfile() {
-    if (!document.body || document.body.id !== "pageid-userpage") return;
+    if (!layoutOn() || !document.body || document.body.id !== "pageid-userpage") return;
     const lc = document.querySelector(".userpage-layout-left-col-content");
     if (!lc) return;
     let featured = null, gallery = null;
@@ -87,7 +104,7 @@
     "back": "<", "next": ">", "next page": ">", "last": ">>", "last page": ">>"
   };
   function arrowButtons() {
-    if (!current.enabled) return;
+    if (!designOn()) return;
     for (const b of document.querySelectorAll("button, a.button, .button > a")) {
       if (b.classList.contains("faw-arrow-btn") || b.children.length || b.closest("#ddmenu")) continue;
       const arrow = ARROWS[b.textContent.trim().toLowerCase()];
@@ -102,15 +119,11 @@
       b.classList.add("faw-arrow-btn");
     }
   }
-  const onReady = () => { arrowButtons(); splitSubmissionPanel(); tagProfile(); };
-
   chrome.storage.sync.get(DEFAULTS, apply);
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "sync") chrome.storage.sync.get(DEFAULTS, apply);
   });
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", onReady, { once: true });
-  } else {
-    tagProfile();
+  if (!domReady) {
+    document.addEventListener("DOMContentLoaded", () => { domReady = true; run(); }, { once: true });
   }
 })();

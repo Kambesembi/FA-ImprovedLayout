@@ -1,11 +1,12 @@
 // Shared defaults for the popup (content.js / features.js keep their own copies)
 const FAW_DEFAULTS = {
   enabled: true,
+  ultrawide: true,    // main switch: ultrawide layout
+  design: true,       // main switch: bubbles design
   max: 2800,          // px, 0 = no cap (full width)
   gutter: 24,         // px
   thumb: 1.25,        // thumbnail scale
   layout: "comments-right", // submission page: "comments-right" | "classic"
-  commentStyle: "bubbles",   // comments & shouts: "classic" | "bubbles"
   imageFit: true,     // fit submission image to available space
   quickView: true,    // click thumbnails to open a popup
   comic: true,        // comic series reader

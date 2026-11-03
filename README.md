@@ -4,6 +4,8 @@ Chrome extension (Manifest V3) that adapts Fur Affinity's modern theme to ultraw
 
 ## Features
 
+**Main switches** (popup): the master switch turns everything off (the page is left untouched); *Ultrawide layout* covers all layout changes; *Bubbles design* covers comment/shout bubbles, the comment box, pagination arrows, avatar views for watchers and the page frame.
+
 **Layout**
 - Centered, configurable site width (FA normally caps html *and* body at 1850px)
 - Submission page: image → description → details/keywords/folders panel on the left; stats and Fav/Note/Download above the comments in a right-hand column (or classic sidebar layout). Stacks into one column on narrow windows
@@ -23,8 +25,8 @@ Chrome extension (Manifest V3) that adapts Fur Affinity's modern theme to ultraw
 - Pagination buttons (shouts, search, browse) use compact << < > >> arrows
 - External links: in-page confirmation instead of FA's interstitial page
 - +Fav on submission pages without a page reload
-- "More from artist" next to submissions that have no comments yet
-- Every thumbnail without a visible caption gets a hover title that links straight to the submission page; Ctrl/Cmd+click a thumbnail also opens the page instead of the quick view
+- "More from artist" (9 submissions) below the comments
+- Ctrl/Cmd+click a thumbnail opens the submission page instead of the quick view
 - Recent watchers / recently watched: one row of avatars; full watcher lists as avatar tiles
 - Comment & shout style: Classic (FA) or Bubbles; extra BBCode buttons in comment boxes (strike, sup/sub, headings, colour, quote, spoiler, link, YouTube, user icons/links, line)
 

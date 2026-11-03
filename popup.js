@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const RANGES = ["max", "gutter", "thumb"];
-const CHECKS = ["imageFit", "quickView", "comic", "comicHorizontal", "infinite", "archiveLink"];
+const CHECKS = ["ultrawide", "design", "imageFit", "quickView", "comic", "comicHorizontal", "infinite", "archiveLink"];
 const UNCAPPED_AT_MAX = { max: true }; // top slider position = no cap (stored as 0)
 
 $("version").textContent = "v" + chrome.runtime.getManifest().version;
@@ -19,11 +19,15 @@ function render(s) {
     $(id + "-v").textContent = fmt(id, s[id]);
   }
   for (const id of CHECKS) $(id).checked = !!s[id];
-  const val = (k) => (k === "commentStyle" ? (s[k] === "classic" || s[k] === "default" ? "classic" : "bubbles") : s[k]);
   for (const seg of document.querySelectorAll(".seg")) {
-    for (const b of seg.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.val === val(seg.dataset.key)));
+    for (const b of seg.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.val === s[seg.dataset.key]));
   }
+  syncDependents(s);
+}
+
+function syncDependents(s) {
   $("comicHorizontal").disabled = !s.comic;
+  document.querySelector('[data-group="ultrawide"] .sub').classList.toggle("off", !s.ultrawide);
 }
 
 function readSlider(id) {
@@ -52,7 +56,7 @@ for (const id of RANGES) {
 for (const id of CHECKS) {
   $(id).addEventListener("change", (e) => {
     save({ [id]: e.target.checked });
-    if (id === "comic") $("comicHorizontal").disabled = !e.target.checked;
+    syncDependents({ comic: $("comic").checked, ultrawide: $("ultrawide").checked });
   });
 }
 for (const seg of document.querySelectorAll(".seg")) {

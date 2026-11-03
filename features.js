@@ -4,7 +4,8 @@
   "use strict";
 
   const DEFAULTS = {
-    enabled: true, imageFit: true, quickView: true, comic: true, comicHorizontal: false, infinite: true,
+    enabled: true, ultrawide: true, design: true,
+    imageFit: true, quickView: true, comic: true, comicHorizontal: false, infinite: true,
     archiveLink: false, thumb: 1.25
   };
   const root = document.documentElement;
@@ -24,30 +25,37 @@
 
   let S = Object.assign({}, DEFAULTS);
 
+  // Master switch off → nothing runs. "Ultrawide layout" and "Bubbles design" gate their own parts;
+  // the feature switches (quick view, comic reader, …) work with either.
+  const layoutOn = () => S.enabled && S.ultrawide;
+  const designOn = () => S.enabled && S.design;
   chrome.storage.sync.get(DEFAULTS, (s) => {
     S = s;
     if (!S.enabled) return;
     if (page === "pageid-submission") {
-      if (S.imageFit) initImageFit();
+      if (S.imageFit && layoutOn()) initImageFit();
       if (S.comic) initComic();
+      initAjaxFav();
+      if (layoutOn()) initMoreFromArtist();
     }
     if (S.infinite) initInfinite();
     if (S.archiveLink) initArchiveLink();
-    if (page === "pageid-userpage") { initProfileGallery(); initWatcherRows(); }
+    if (page === "pageid-userpage") {
+      if (layoutOn()) initProfileGallery();
+      if (designOn()) initWatcherRows();
+    }
     if (page === "pageid-watchlist") initWatchlistAll();
-    applyArrowButtons();
     initCommentToolbar();
     initExternalConfirm();
-    initFigureTitles();
     indentReplies();
-    onDomChange(() => { applyArrowButtons(); initCommentToolbar(); initFigureTitles(); indentReplies(); });
-    if (page === "pageid-submission") { initAjaxFav(); initMoreFromArtist(); }
+    if (designOn()) applyArrowButtons();
+    onDomChange(() => { if (designOn()) applyArrowButtons(); initCommentToolbar(); indentReplies(); });
     if (S.quickView) initQuickView();
   });
   chrome.storage.onChanged.addListener((c, area) => {
     if (area !== "sync") return;
     for (const k in c) S[k] = c[k].newValue;
-    root.classList.toggle("faw-fit", !!(S.enabled && S.imageFit && document.getElementById("submissionImg")));
+    root.classList.toggle("faw-fit", !!(S.enabled && S.ultrawide && S.imageFit && document.getElementById("submissionImg")));
   });
 
   // ------------------------------------------------------------------ fetching / parsing
@@ -559,17 +567,18 @@
       const figs = [...box.querySelectorAll(":scope > figure")];
       const contained = getComputedStyle(section).contain.includes("size");
       const W = box.clientWidth - 2 * PAD;
-      const base = Math.round(150 * (+S.thumb || 1.25));
+      const base = Math.round(170 * (+S.thumb || 1.25));
       const maxH = contained ? box.clientHeight - 2 * PAD : 2 * base + GAP;
       if (W <= 0 || maxH <= 0) return;
 
       // Try many row heights. Leftover space is absorbed by slightly wider row gaps (≤6px each)
-      // and then by cropping rows a little (object-fit). Among layouts whose crop stays under 12%
-      // and whose rows are at least ~120px tall, show as many submissions as possible.
+      // and then by cropping rows a little (object-fit). Among layouts that crop under 12% and still
+      // show at least 5 submissions, take the one with the LARGEST thumbnails (the gallery should
+      // stand out against Favorites); otherwise fall back to whatever shows the most.
       let best = null, fallback = null;
-      const minRow = Math.min(120, maxH);
+      const MIN_ITEMS = Math.min(5, figs.length);
       const count = (p) => p.rows.reduce((n, r) => n + r.items.length, 0);
-      for (let k = 0.5; k <= 1.8; k += 0.01) {
+      for (let k = 0.5; k <= 2.2; k += 0.01) {
         const p = plan(figs, W, maxH, base * k);
         if (!p.complete || !p.rows.length) { fallback = fallback || p; continue; }
         const n = p.rows.length;
@@ -578,16 +587,16 @@
         const gapExtra = Math.min(left, (n - 1) * 6);
         const crop = (left - gapExtra) / n / avg;
         Object.assign(p, { left, avg, gapExtra, crop, items: count(p) });
-        const good = crop <= 0.12 && avg >= minRow;
-        const bestGood = best && best.crop <= 0.12 && best.avg >= minRow;
-        if (good && (!bestGood || p.items > best.items || (p.items === best.items && p.crop < best.crop))) best = p;
-        else if (!good && !bestGood && (!best || crop < best.crop)) best = p;
+        const good = crop <= 0.12 && p.items >= MIN_ITEMS;
+        const bestGood = best && best.crop <= 0.12 && best.items >= MIN_ITEMS;
+        if (good && (!bestGood || p.avg > best.avg)) best = p;
+        else if (!good && !bestGood && (!best || p.items > best.items || (p.items === best.items && crop < best.crop))) best = p;
       }
       best = best || fallback;
       if (!best) return;
 
       // not enough submissions to fill the box → fetch more, then lay out again
-      if ((!best.complete || best.items >= figs.length - 1) && next && pagesFetched < 4 && !fetching) loadMore();
+      if ((!best.complete || best.items >= figs.length - 1) && figs.length < 40 && next && pagesFetched < 4 && !fetching) loadMore();
 
       figs.forEach((f) => f.classList.add("faw-hide"));
       const n = best.rows.length;
@@ -734,6 +743,7 @@
     return "https://a.furaffinity.net/" + encodeURIComponent(String(slug).toLowerCase()) + ".gif";
   }
   function decorateWatchlist(list) {
+    if (!designOn()) return;
     list.classList.add("faw-tiles");
     for (const it of list.children) {
       if (it.dataset.fawTile) continue;
@@ -864,27 +874,6 @@
     }
   }
 
-  // ------------------------------------------------------------------ submission titles on every thumbnail
-  // A small title link (straight to the page, bypassing the quick view) on thumbnails whose
-  // caption is hidden — FA's "titles off" setting, profile Gallery/Favorites, "More from artist".
-  function initFigureTitles() {
-    for (const f of document.querySelectorAll("section.gallery figure:not([data-faw-title])")) {
-      f.dataset.fawTitle = "1";
-      const a = f.querySelector("a[href*='/view/']");
-      if (!a || !viewId(a.getAttribute("href"))) continue;
-      const capLink = f.querySelector("figcaption a[href*='/view/']");
-      if (capLink && capLink.offsetParent !== null && getComputedStyle(capLink).visibility !== "hidden") continue;
-      const title = (capLink && (capLink.getAttribute("title") || capLink.textContent.trim())) ||
-        f.getAttribute("title") || (f.querySelector("img") || {}).alt || "";
-      if (!title) continue;
-      const t = el("a", "faw-figtitle", title);
-      t.href = "/view/" + viewId(a.getAttribute("href")) + "/";
-      t.title = "Open submission page";
-      f.classList.add("faw-has-figtitle");
-      f.appendChild(t);
-    }
-  }
-
   // ------------------------------------------------------------------ replies: depth for indentation
   function indentReplies() {
     for (const c of document.querySelectorAll(":is(#comments-submission, #comments-journal) .comment_container:not([data-faw-depth])")) {
@@ -953,10 +942,10 @@
     }, true);
   }
 
-  // ------------------------------------------------------------------ submission: "More from artist" when there are no comments
+  // ------------------------------------------------------------------ submission: "More from artist" below the comments
   async function initMoreFromArtist() {
     const list = document.querySelector(".comments-list");
-    if (!list || document.querySelector("#comments-submission comment-container")) return;
+    if (!list || document.querySelector(".faw-more")) return;
     const me = parseSubmission(document, location.pathname);
     const slug = me.artist && (me.artist.href.match(/^\/user\/([^/]+)/) || [])[1];
     if (!slug) return;
@@ -964,12 +953,12 @@
       const { doc } = await fetchDoc(new URL(`/gallery/${slug}/`, location.origin).href);
       const figs = [...doc.querySelectorAll("section.gallery figure")]
         .filter((f) => viewId(f.querySelector("a[href*='/view/']")?.getAttribute("href")) !== me.id)
-        .slice(0, 24);
+        .slice(0, 9);
       if (!figs.length) return;
       const box = el("section", "faw-more");
       const head = el("div", "faw-more__head");
       head.append(el("span", null, `More from ${me.artist.name}`));
-      const all = el("a", null, "View gallery");
+      const all = el("a", null, "View gallery →");
       all.href = `/gallery/${slug}/`;
       head.appendChild(all);
       const grid = el("div", "faw-more__grid");
@@ -977,22 +966,16 @@
         const a = f.querySelector("a[href*='/view/']");
         const img = f.querySelector("img");
         if (!a || !img) continue;
-        const cell = el("div", "faw-more__cell faw-has-figtitle");
         const t = el("a", "faw-more__item");
         t.href = a.getAttribute("href");
-        const name = (f.querySelector("figcaption a[title]") || {}).title || img.getAttribute("alt") || "";
+        t.title = (f.querySelector("figcaption a[title]") || {}).title || img.getAttribute("alt") || "";
         const im = el("img");
         im.loading = "lazy";
-        im.alt = name;
-        im.src = abs(img.getAttribute("src"));
+        im.alt = t.title;
+        im.src = abs(img.getAttribute("src")).replace(/@\d+-/, "@300-");
+        im.onerror = () => { im.onerror = null; im.src = abs(img.getAttribute("src")); };
         t.appendChild(im);
-        cell.appendChild(t);
-        if (name) {
-          const tl = el("a", "faw-figtitle", name);
-          tl.href = "/view/" + viewId(a.getAttribute("href")) + "/";
-          cell.appendChild(tl);
-        }
-        grid.appendChild(cell);
+        grid.appendChild(t);
       }
       box.append(head, grid);
       list.appendChild(box);

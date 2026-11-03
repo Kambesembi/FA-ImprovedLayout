@@ -29,7 +29,11 @@
   }
   .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
   .card h2 + .row { border-top: 0; }
-  .row.sub { padding-left: 14px; }
+  .row.sub-row { padding-left: 14px; }
+  .row.main { padding: 10px 0; }
+  .row.main b { font-size: 13.5px; font-weight: 650; }
+  .card .sub { border-top: 1px solid var(--line); transition: opacity .15s; }
+  .card .sub.off { opacity: .4; pointer-events: none; }
   .row.col { flex-direction: column; align-items: stretch; gap: 6px; }
   .label { display: flex; flex-direction: column; min-width: 0; }
   .label span { color: var(--muted); font-size: 11px; }
@@ -72,62 +76,63 @@
 <body>
   <header>
     <h1>FA Ultrawide<small id="version"></small></h1>
-    <label class="switch" title="Enable / disable everything"><input type="checkbox" id="enabled"><i></i></label>
+    <label class="switch" title="Turn the whole extension on / off"><input type="checkbox" id="enabled"><i></i></label>
   </header>
 
   <main>
   <fieldset id="opts">
-    <section class="card">
-      <h2>Layout</h2>
-      <div class="row col">
-        <div class="head"><span>Max site width</span><span class="val" id="max-v"></span></div>
-        <input type="range" id="max" min="1200" max="4000" step="50">
+    <section class="card" data-group="ultrawide">
+      <div class="row main">
+        <div class="label"><b>Ultrawide layout</b><span>Width, submission &amp; profile layout</span></div>
+        <label class="switch"><input type="checkbox" id="ultrawide"><i></i></label>
       </div>
-      <div class="row col">
-        <div class="head"><span>Side gutter</span><span class="val" id="gutter-v"></span></div>
-        <input type="range" id="gutter" min="0" max="300" step="4">
+      <div class="sub">
+        <div class="row col">
+          <div class="head"><span>Max site width</span><span class="val" id="max-v"></span></div>
+          <input type="range" id="max" min="1200" max="4000" step="50">
+        </div>
+        <div class="row col">
+          <div class="head"><span>Side gutter</span><span class="val" id="gutter-v"></span></div>
+          <input type="range" id="gutter" min="0" max="300" step="4">
+        </div>
+        <div class="row col">
+          <div class="head"><span>Thumbnail size</span><span class="val" id="thumb-v"></span></div>
+          <input type="range" id="thumb" min="0.8" max="2" step="0.05">
+        </div>
+        <div class="row col">
+          <span>Submission page</span>
+          <div class="seg" data-key="layout">
+            <button data-val="comments-right">Comments right</button>
+            <button data-val="classic">Classic sidebar</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="label">Fit image to screen<span>Click the image for actual size</span></div>
+          <label class="switch"><input type="checkbox" id="imageFit"><i></i></label>
+        </div>
       </div>
-      <div class="row col">
-        <div class="head"><span>Thumbnail size</span><span class="val" id="thumb-v"></span></div>
-        <input type="range" id="thumb" min="0.8" max="2" step="0.05">
+    </section>
+
+    <section class="card" data-group="design">
+      <div class="row main">
+        <div class="label"><b>Bubbles design</b><span>Comments, shouts, comment box, arrows, avatars for watchers, page frame</span></div>
+        <label class="switch"><input type="checkbox" id="design"><i></i></label>
       </div>
     </section>
 
     <section class="card">
-      <h2>Submission page</h2>
-      <div class="row col">
-        <span>Layout</span>
-        <div class="seg" data-key="layout">
-          <button data-val="comments-right">Comments right</button>
-          <button data-val="classic">Classic sidebar</button>
-        </div>
-      </div>
-      <div class="row col">
-        <span>Comment &amp; shout style</span>
-        <div class="seg" data-key="commentStyle">
-          <button data-val="classic">Classic</button>
-          <button data-val="bubbles">Bubbles</button>
-        </div>
-      </div>
+      <h2>Features</h2>
       <div class="row">
-        <div class="label">Fit image to screen<span>Click the image for actual size</span></div>
-        <label class="switch"><input type="checkbox" id="imageFit"><i></i></label>
+        <div class="label">Quick view<span>Click thumbnails to open a popup</span></div>
+        <label class="switch"><input type="checkbox" id="quickView"><i></i></label>
       </div>
       <div class="row">
         <div class="label">Comic reader<span>Loads every page of a series</span></div>
         <label class="switch"><input type="checkbox" id="comic"><i></i></label>
       </div>
-      <div class="row sub">
+      <div class="row sub-row">
         <div class="label">Horizontal reading<span>Pages side by side, wheel or ← → to turn</span></div>
         <label class="switch"><input type="checkbox" id="comicHorizontal"><i></i></label>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>Browsing</h2>
-      <div class="row">
-        <div class="label">Quick view<span>Click thumbnails to open a popup</span></div>
-        <label class="switch"><input type="checkbox" id="quickView"><i></i></label>
       </div>
       <div class="row">
         <div class="label">Infinite scroll<span>Galleries, favorites, browse, search</span></div>
@@ -142,7 +147,7 @@
   </main>
 
   <footer>
-    <span>Feature switches apply on next page load</span>
+    <span>Changes apply on next page load</span>
     <button id="reset">Reset</button>
   </footer>
   <script src="settings.js"></script>

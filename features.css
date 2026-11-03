@@ -228,11 +228,28 @@ html.faw-cmt-bubbles form textarea#JSMessage {
   border: 1px solid rgba(255,255,255,.12) !important; padding: 10px 14px !important;
 }
 html.faw-cmt-bubbles #add_comment_form textarea:focus { border-color: rgba(224,166,75,.6) !important; outline: none; }
-html.faw-cmt-bubbles form span.floatleft:has(> .faw-bb) { gap: 3px; }
-html.faw-cmt-bubbles form span.floatleft:has(> .faw-bb) > .bbcodeformat,
-html.faw-cmt-bubbles .faw-bb__btn { border-radius: 6px !important; overflow: hidden; }
-html.faw-cmt-bubbles .faw-bb__btn { background: rgba(255,255,255,.1); }
-html.faw-cmt-bubbles .faw-bb__btn:hover { background: rgba(255,255,255,.18); }
+/* Bubbles design: FA's own B / I / U / alignment icons redrawn in the same style as ours */
+html.faw-design form span.floatleft:has(> .bbcodeformat) { gap: 3px; }
+html.faw-design form span.floatleft > i.bbcodeformat {
+  background-image: none !important; background-color: rgba(255,255,255,.1) !important;
+  border-radius: 6px !important; width: 25px !important; height: 25px !important;
+  display: inline-flex !important; align-items: center; justify-content: center;
+  color: #fff; font: normal 700 13px/1 "Open Sans", system-ui, sans-serif; position: relative;
+}
+html.faw-design form span.floatleft > i.bbcodeformat:hover { background-color: rgba(255,255,255,.18) !important; }
+html.faw-design i.bbcodeformat.b::before { content: "B"; }
+html.faw-design i.bbcodeformat.i::before { content: "I"; font-style: italic; font-family: Georgia, serif; }
+html.faw-design i.bbcodeformat.u::before { content: "U"; text-decoration: underline; }
+html.faw-design i.bbcodeformat:is(.align_left, .align_center, .align_right)::before {
+  content: ""; width: 13px; height: 11px; background: currentColor;
+  -webkit-mask: var(--faw-align) no-repeat center / contain; mask: var(--faw-align) no-repeat center / contain;
+}
+html.faw-design i.bbcodeformat.align_left { --faw-align: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 11'%3E%3Cpath d='M0 0h13v2H0zM0 3h8v2H0zM0 6h13v2H0zM0 9h8v2H0z'/%3E%3C/svg%3E"); }
+html.faw-design i.bbcodeformat.align_center { --faw-align: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 11'%3E%3Cpath d='M0 0h13v2H0zM2.5 3h8v2h-8zM0 6h13v2H0zM2.5 9h8v2h-8z'/%3E%3C/svg%3E"); }
+html.faw-design i.bbcodeformat.align_right { --faw-align: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 11'%3E%3Cpath d='M0 0h13v2H0zM5 3h8v2H5zM0 6h13v2H0zM5 9h8v2H5z'/%3E%3C/svg%3E"); }
+html.faw-design .faw-bb__btn { background: rgba(255,255,255,.1); border-radius: 6px; }
+html.faw-design .faw-bb__btn:hover { background: rgba(255,255,255,.18); }
+html.faw-design .faw-bb__sep { width: 6px; }
 html.faw-cmt-bubbles #add_comment_form .button.go {
   border-radius: 8px !important; padding: 6px 16px !important;
   background: rgba(224,166,75,.18) !important; border: 1px solid rgba(224,166,75,.45) !important; color: #f0c27a !important;
@@ -247,7 +264,7 @@ html.faw-cmt-bubbles :is(#comments-submission, #comments-journal) .comment_conta
 
 /* ---------- Quick view comments ---------- */
 .faw-qv__comments {
-  display: flex; flex-direction: column; gap: 10px;
+  margin-top: auto; display: flex; flex-direction: column; gap: 10px;
   background: #181a1f; border: 1px solid #2c3038; border-radius: 10px; padding: 12px;
 }
 .faw-qv__ch { margin: 0; font-size: 13px; color: #ddd; font-weight: 600; display: flex; gap: 6px; align-items: baseline; }
@@ -264,7 +281,12 @@ html.faw-cmt-bubbles :is(#comments-submission, #comments-journal) .comment_conta
 .faw-qv__chead a { color: #9cf; font-weight: 600; text-decoration: none; }
 .faw-qv__ctext { font-size: 12.5px; color: #ddd; word-break: break-word; }
 .faw-qv__ctext img { max-width: 100%; height: auto; }
-.faw-qv__cform { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #2c3038; padding-top: 10px; }
+/* the write box stays pinned to the bottom of the panel while the rest scrolls */
+.faw-qv__cform {
+  display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #2c3038; padding: 10px 12px 12px;
+  position: sticky; bottom: -24px; margin: 0 -12px -12px; background: #181a1f; border-radius: 0 0 10px 10px;
+  z-index: 1;
+}
 .faw-qv__cform[hidden] { display: none; }
 .faw-qv__cform textarea {
   width: 100%; box-sizing: border-box; resize: vertical; min-height: 60px;
@@ -278,16 +300,23 @@ html.faw-cmt-bubbles :is(#comments-submission, #comments-journal) .comment_conta
 }
 .faw-qv__cstatus { font-size: 11.5px; color: #888; }
 
-/* ---------- Submission: "More from artist" (no comments yet) ---------- */
-.faw-more { margin-top: 18px; }
-.faw-more__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; font-size: 14px; }
-.faw-more__head span { font-weight: 600; color: #ddd; }
-.faw-more__head a { font-size: 12px; color: #9cf; }
-.faw-more__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
-.faw-more__cell { position: relative; min-width: 0; }
-.faw-more__item { display: block; aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: rgba(255,255,255,.04); }
-.faw-more__item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .15s; }
-.faw-more__item:hover img { transform: scale(1.05); }
+/* ---------- Submission: "More from artist" (below the comments) ---------- */
+.faw-more {
+  margin-top: 18px; padding: 12px; border-radius: 14px;
+  background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 4px 18px rgba(0,0,0,.25);
+}
+.faw-more__head { display: flex; justify-content: space-between; align-items: baseline; margin: 0 2px 10px; font-size: 14px; }
+.faw-more__head span { font-weight: 600; color: #e6e6ea; }
+.faw-more__head a { font-size: 12px; color: #e0a64b; text-decoration: none; }
+.faw-more__head a:hover { text-decoration: underline; }
+.faw-more__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.faw-more__item {
+  display: block; aspect-ratio: 1; overflow: hidden; border-radius: 10px;
+  background: rgba(255,255,255,.04); outline: 1px solid rgba(255,255,255,.06); outline-offset: -1px;
+}
+.faw-more__item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s ease; }
+.faw-more__item:hover img { transform: scale(1.06); }
 
 /* ---------- Watchers / watching list as avatar tiles ---------- */
 .watch-list.faw-tiles {
@@ -313,20 +342,11 @@ form span.floatleft:has(> .faw-bb) {
 }
 form span.floatleft:has(> .faw-bb) > .faw-bb { margin-left: 8px; }
 
-/* ---------- Title link on thumbnails without a visible caption ---------- */
-.faw-has-figtitle { position: relative !important; }
-a.faw-figtitle, .faw-justified > figure a.faw-figtitle {
-  position: absolute !important; left: 0 !important; right: 0 !important; bottom: 0 !important; top: auto !important;
-  width: auto !important; height: auto !important; display: block !important; z-index: 2;
-  padding: 3px 7px !important; font-size: 11.5px; line-height: 1.35; color: #fff !important; text-decoration: none;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  background: linear-gradient(transparent, rgba(0,0,0,.8)); opacity: 0; transition: opacity .12s;
-  border-radius: 0 0 6px 6px;
-}
-.faw-has-figtitle:hover > a.faw-figtitle, a.faw-figtitle:focus { opacity: 1; }
-a.faw-figtitle:hover { text-decoration: underline; }
-
 /* ---------- Watchers / watching tiles: no "~"/badge line, no page buttons ---------- */
 .watch-list.faw-tiles .c-usernameBlockSimple > :not(a) { display: none !important; }
+/* the "~" before each name is a bare text node: hide text at item level, restore it on the link */
+.watch-list.faw-tiles > * { font-size: 0 !important; line-height: 0; }
+.watch-list.faw-tiles > * a[href^="/user/"] { font-size: 12px !important; line-height: 1.3; }
 .watch-list.faw-tiles > * > :not(.c-usernameBlockSimple) { display: none !important; }
 .watch-list.faw-tiles ~ .watchlist-navigation { display: none !important; }
+.faw-qv__hint { display: none !important; }
