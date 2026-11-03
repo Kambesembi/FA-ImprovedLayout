@@ -480,6 +480,9 @@
     btn.addEventListener("click", () => confirmExternal(`Open the archived gallery of “${name}” on furarchiver.net?`, url));
     wrap.append(el("span", null, "This account isn't available. An archived copy of the gallery may exist:"), btn);
     box.after(wrap);
+    const match = () => { wrap.style.width = box.getBoundingClientRect().width + "px"; };
+    match();
+    new ResizeObserver(match).observe(box);
   }
   function initArchiveLink() {
     const ul = document.querySelector(".user-nav-page-links");
@@ -691,7 +694,13 @@
     "next": ">", "next page": ">",
     "last": ">>", "last page": ">>"
   };
+  function tidyPageSelects(scope) {
+    for (const o of (scope || document).querySelectorAll("select.button option")) {
+      if (/[⚞⚟]/.test(o.textContent)) o.textContent = o.textContent.replace(/[⚞⚟]/g, "").trim();
+    }
+  }
   function applyArrowButtons(scope) {
+    tidyPageSelects(scope);
     for (const b of (scope || document).querySelectorAll("button, a.button, .button > a")) {
       if (b.classList.contains("faw-arrow-btn") || b.closest("#ddmenu, .faw-qv, .faw-confirm")) continue;
       const label = b.textContent.trim().toLowerCase();
@@ -800,22 +809,18 @@
     if (!avPending.has(slug)) avPending.set(slug, new Promise((resolve) => { avQueue.push({ slug, resolve }); avPump(); }));
     return avPending.get(slug);
   }
-  let avObserver = null;
+  // Fast path: the short avatar address loads instantly. A real (timestamped) URL from an earlier
+  // lookup is preferred when cached; only avatars that fail to load are looked up on the profile.
   function attachAvatar(img, slug) {
-    img.dataset.fawAv = slug;
-    img.classList.add("faw-av-pending");
-    img.onerror = () => { img.onerror = null; img.src = AV_DEFAULT; };
-    const cached = avCacheGet(String(slug).toLowerCase());
-    if (cached) { img.src = cached; img.classList.remove("faw-av-pending"); return; }
-    avObserver = avObserver || new IntersectionObserver((entries) => {
-      for (const e of entries) {
-        if (!e.isIntersecting) continue;
-        avObserver.unobserve(e.target);
-        const t = e.target;
-        resolveAvatar(t.dataset.fawAv).then((u) => { t.src = u; t.classList.remove("faw-av-pending"); });
-      }
-    }, { rootMargin: "300px" });
-    avObserver.observe(img);
+    const key = String(slug).toLowerCase();
+    img.loading = "lazy";
+    img.decoding = "async";
+    const cached = avCacheGet(key);
+    img.onerror = () => {
+      img.onerror = () => { img.onerror = null; img.src = AV_DEFAULT; };
+      resolveAvatar(key).then((u) => { if (u !== img.src) img.src = u; else img.onerror(); });
+    };
+    img.src = cached || "https://a.furaffinity.net/" + encodeURIComponent(key) + ".gif";
   }
   function decorateWatchlist(list) {
     if (!designOn()) return;

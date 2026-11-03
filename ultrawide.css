@@ -247,7 +247,7 @@ html.faw-layout:not(.faw-sub-classic) #pageid-submission #sidebar-lower-reverse:
    no boxed backgrounds, a hairline divider towards the comments, compact uniform buttons */
 html.faw-layout:not(.faw-sub-classic) #pageid-submission #submission-main-content > div:nth-child(2) {
   background: transparent !important;
-  padding: 2px 2px 14px !important;
+  padding: var(--faw-gap) 2px 14px !important;
   border-bottom: 1px solid rgba(255, 255, 255, .08);
   flex-direction: column !important;
   flex-wrap: nowrap !important;
@@ -357,3 +357,16 @@ html.faw-layout:not(.faw-sub-classic) #pageid-submission #submission-main-conten
   order: 5 !important; width: 100%; justify-content: center; flex: none !important;
 }
 html.faw-layout #page-userpage > .leaderboardAd { justify-self: center; }
+
+/* ---- Submission page: subtle dividers between the sections (image, mini gallery, description,
+   info panel); the aside already has one between stats/buttons and the comments ---- */
+html.faw-layout:not(.faw-sub-classic) #pageid-submission #submission-main-content > div:nth-child(1) > :is(.submission-details, #faw-subinfo),
+html.faw-layout:not(.faw-sub-classic) #pageid-submission #minigallery:has(*) {
+  position: relative; margin-top: calc(var(--faw-gap) * 2) !important;
+}
+html.faw-layout:not(.faw-sub-classic) #pageid-submission #submission-main-content > div:nth-child(1) > :is(.submission-details, #faw-subinfo)::before,
+html.faw-layout:not(.faw-sub-classic) #pageid-submission #minigallery:has(*)::before {
+  content: ""; position: absolute; left: 0; right: 0; top: calc(var(--faw-gap) * -1 - 1px);
+  height: 1px; background: rgba(255, 255, 255, .08); pointer-events: none;
+}
+html.faw-layout:not(.faw-sub-classic) #pageid-submission .comments-list { border-top: 0; }

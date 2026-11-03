@@ -367,7 +367,6 @@ form span.floatleft:has(> .faw-bb) > .faw-bb { margin-left: 0; }
 .faw-qv__clist { max-height: none; overflow: visible; padding-right: 0; }
 
 /* ---------- Watcher avatars while their real URL is being looked up ---------- */
-img.faw-av-pending { background: rgba(255,255,255,.06); }
 
 /* ---------- More from artist: same rhythm & divider as stats → comments ---------- */
 .faw-sep { height: 1px; background: rgba(255,255,255,.08); margin: 22px 0 var(--faw-gap, 12px); }
@@ -405,3 +404,31 @@ html.faw-design :is(button, a, input).button:is(.nuke, .button-nuke):hover { bac
 html.faw-design .button.standard.active {
   background-color: rgba(224,166,75,.16) !important; border-color: rgba(224,166,75,.45) !important; color: #f0c27a !important;
 }
+
+/* ---------- Comment form: Post Comment at the top right, next to the help line ---------- */
+html.faw-cmt-bubbles #responsebox { position: relative; }
+html.faw-cmt-bubbles #responsebox > p:first-child { min-height: 34px; display: flex; align-items: center; margin: 0 0 8px; padding-right: 150px; }
+html.faw-cmt-bubbles #add_comment_form .button.go.post-comment { position: absolute !important; top: 0; right: 0; margin: 0 !important; }
+html.faw-cmt-bubbles #add_comment_form .section-footer { min-height: 0 !important; padding-bottom: 0 !important; }
+
+/* ---------- Shouts: Leave Shout spacing, page selector in the bubbles look ---------- */
+html.faw-design #c-shoutBox__submitContainer { margin-top: 8px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+html.faw-design #c-shoutBox__button {
+  padding: 6px 16px !important; border-radius: 8px !important;
+  background-color: rgba(224,166,75,.18) !important; border-color: rgba(224,166,75,.45) !important; color: #f0c27a !important;
+}
+html.faw-design form.c-shoutPaginationForm { display: flex !important; justify-content: center; align-items: stretch; gap: 6px; flex-wrap: wrap; }
+html.faw-design form.c-shoutPaginationForm > .button { margin: 0 !important; min-height: 34px; box-sizing: border-box; }
+html.faw-design form.c-shoutPaginationForm select.button,
+html.faw-design select.button {
+  -webkit-appearance: none; appearance: none; cursor: pointer;
+  border-radius: 8px !important; padding: 0 14px !important; min-width: 52px; text-align: center; text-align-last: center;
+  background: rgba(224,166,75,.16) !important; border: 1px solid rgba(224,166,75,.45) !important; color: #f0c27a !important;
+  font-weight: 600; box-shadow: none !important;
+}
+html.faw-design select.button option { background: #1f2228; color: #e2e3e8; }
+
+/* ---------- Unavailable account: info box centered like the system message ---------- */
+.faw-archive-sys { margin: 14px auto; max-width: 100%; box-sizing: border-box; }
+html.faw-cmt-bubbles #responsebox #add_comment_form,
+html.faw-cmt-bubbles #responsebox #add_comment_form .section-footer { position: static !important; }
