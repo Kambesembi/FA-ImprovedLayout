@@ -33,7 +33,8 @@
     }
     if (S.infinite) initInfinite();
     if (S.archiveLink) initArchiveLink();
-    if (page === "pageid-userpage") initProfileGallery();
+    if (page === "pageid-userpage") { initProfileGallery(); initShoutArrows(); }
+    if (page === "pageid-watchlist") initWatchlistAll();
     if (S.quickView) initQuickView();
   });
   chrome.storage.onChanged.addListener((c, area) => {
@@ -595,6 +596,54 @@
     layout();
   }
 
+  // ------------------------------------------------------------------ profile: shout pagination arrows
+  function initShoutArrows() {
+    const map = { "first page": "<<", "prev page": "<", "next page": ">", "last page": ">>" };
+    for (const b of document.querySelectorAll("form.c-shoutPaginationForm button")) {
+      const k = b.textContent.trim().toLowerCase();
+      if (!map[k]) continue;
+      b.title = b.textContent.trim();
+      b.setAttribute("aria-label", b.title);
+      b.textContent = map[k];
+      b.classList.add("faw-arrow-btn");
+    }
+  }
+
+  // ------------------------------------------------------------------ watchers / watching: all on one page
+  async function initWatchlistAll() {
+    const list = document.querySelector(".watch-list");
+    const nav = document.querySelector(".watchlist-navigation");
+    if (!list) return;
+    let next = findNext(document, location.href);
+    if (!next) return;
+    const status = el("div", "faw-inf-status", "Loading all entries…");
+    list.after(status);
+    if (nav) nav.style.display = "none";
+    const seen = new Set([...list.querySelectorAll("a[href]")].map((a) => a.getAttribute("href")));
+    let pages = 1;
+    try {
+      while (next && pages < 100) {
+        const { doc, url } = await fetchDoc(next.url, next.init);
+        const items = [...doc.querySelectorAll(".watch-list > *")].filter((it) => {
+          const h = it.querySelector("a[href]")?.getAttribute("href");
+          if (!h || seen.has(h)) return false;
+          seen.add(h);
+          return true;
+        });
+        if (!items.length) break;
+        for (const it of items) list.appendChild(document.adoptNode(it));
+        pages++;
+        status.textContent = `Loading all entries… ${list.children.length} so far`;
+        next = findNext(doc, url);
+        if (next) await sleep(250);
+      }
+      status.textContent = `${list.children.length} entries`;
+    } catch (err) {
+      status.textContent = `Stopped after ${list.children.length} entries (${err.message})`;
+      if (nav) nav.style.display = "";
+    }
+  }
+
   // ------------------------------------------------------------------ infinite scroll
   let infinite = null;
 
@@ -614,12 +663,25 @@
     };
     lastSection().after(status);
 
+    // The next page is always fetched ahead of time, so appending is instant when it's needed
+    let pending = null;
+    const prefetch = () => {
+      if (next && !pending) {
+        pending = fetchDoc(next.url, next.init);
+        pending.catch(() => {});
+      }
+    };
+    prefetch();
+
     async function loadMore() {
       if (loading || done) return;
       loading = true;
       status.textContent = `Loading page ${pageNo + 1}…`;
       try {
-        const { doc, url } = await fetchDoc(next.url, next.init);
+        prefetch();
+        const req = pending;
+        pending = null;
+        const { doc, url } = await req;
         const secs = [...doc.querySelectorAll("section.gallery")];
         let added = 0;
         for (const sec of secs) {
@@ -644,6 +706,7 @@
         pageNo++;
         lastSection().after(status);
         next = findNext(doc, url);
+        if (next && added) prefetch();
         if (!next || !added) {
           done = true;
           status.textContent = added ? `End · ${pageNo} pages loaded` : "No more submissions";
@@ -653,7 +716,7 @@
       } catch (err) {
         status.textContent = `Couldn't load page ${pageNo + 1} (${err.message}) `;
         const retry = el("button", null, "Retry");
-        retry.onclick = () => loadMore();
+        retry.onclick = () => { pending = null; loadMore(); };
         status.appendChild(retry);
         loading = false;
         return;
@@ -661,13 +724,17 @@
       loading = false;
       // keep filling if the sentinel is still on screen (very wide screens)
       requestAnimationFrame(() => {
-        if (!done && status.getBoundingClientRect().top < innerHeight + 1600) loadMore();
+        if (!done && status.getBoundingClientRect().top < innerHeight * 3.5) loadMore();
       });
     }
 
+    // Append while the end of the list is still ~2.5 screens away
     new IntersectionObserver((entries) => {
       if (entries.some((e) => e.isIntersecting)) loadMore();
-    }, { rootMargin: "0px 0px 1600px 0px" }).observe(status);
+    }, { rootMargin: "0px 0px 250% 0px" }).observe(status);
+    window.addEventListener("scroll", () => {
+      if (!loading && !done && status.getBoundingClientRect().top < innerHeight * 3.5) loadMore();
+    }, { passive: true });
 
     infinite = { loadMore, get done() { return done; }, get loading() { return loading; } };
   }
@@ -676,7 +743,7 @@
   function findNext(doc, baseUrl) {
     const cands = [...doc.querySelectorAll("a[href], button")].filter((e) => {
       const t = e.textContent.trim();
-      return /^next\b/i.test(t) && !e.closest(".faw-qv, #ddmenu, .submission-description");
+      return /^next\b/i.test(t) && !e.disabled && !e.closest(".faw-qv, #ddmenu, .submission-description");
     });
     const n = cands[cands.length - 1];
     if (!n) return null;

@@ -93,7 +93,8 @@
 
 /* --faw-comic-h: height available for one page (viewport minus menu, label, gaps) */
 :root { --faw-comic-h: calc(100vh - var(--faw-nav, 50px) - 46px); }
-.faw-comic { display: flex; flex-direction: column; align-items: center; gap: 18px; margin: 12px 0; }
+.faw-comic { display: flex; flex-direction: column; align-items: center; gap: 18px; margin: 12px 0; width: 100%; max-width: 100%; box-sizing: border-box; }
+.faw-comic[hidden] { display: none !important; }
 .faw-comic__page { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .faw-comic__label { font-size: 12.5px; color: #999; line-height: 16px; }
 .faw-comic__label a { color: #9cf; }
@@ -105,16 +106,24 @@
 }
 html.faw-comic-open #submissionImg { display: none !important; }
 
-/* Horizontal reader: pages side by side, scroll left/right */
+/* Horizontal reader: pages side by side, scroll left/right. The strip is exactly one screen tall
+   (menu + gaps subtracted, room for the scrollbar), page labels sit on top of the pages. */
 html.faw-comic-h .faw-comic {
   flex-direction: row; align-items: flex-start; gap: 14px;
+  height: calc(100vh - var(--faw-nav, 50px) - 2 * var(--faw-gap, 12px));
   overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity;
-  overscroll-behavior-x: contain; padding-bottom: 8px;
+  overscroll-behavior-x: contain; padding-bottom: 14px; margin: var(--faw-gap, 12px) 0 0;
 }
-html.faw-comic-h .faw-comic__page { width: auto; flex: none; scroll-snap-align: start; }
+html.faw-comic-h .faw-comic__page {
+  width: auto; height: 100%; flex: none; scroll-snap-align: start; position: relative; gap: 0;
+}
+html.faw-comic-h .faw-comic__label {
+  position: absolute; top: 6px; left: 6px; z-index: 1; padding: 2px 8px; border-radius: 3px;
+  background: rgba(0,0,0,.65); opacity: .9;
+}
 html.faw-comic-h .faw-comic__page img {
-  height: min(var(--faw-comic-h), calc(var(--natw, 99999px) * 2 / var(--ar, .7)));
-  width: auto; aspect-ratio: auto;
+  height: min(100%, calc(var(--natw, 99999px) * 2 / var(--ar, .7)));
+  width: auto; max-width: none;
 }
 html.faw-comic-h .submission-area { overflow: visible !important; }
 
@@ -171,3 +180,6 @@ html.faw-comic-h .submission-area { overflow: visible !important; }
   .faw-qv__stage { padding: 24px 64px; }
   .faw-qv__panel { flex: 0 0 auto; max-height: 38vh; border-left: 0; border-top: 1px solid #333; }
 }
+
+/* Shout pagination: arrow-only buttons */
+.faw-arrow-btn { min-width: 2.6em; font-weight: 700; letter-spacing: -.05em; }
