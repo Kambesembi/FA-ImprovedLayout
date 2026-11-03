@@ -12,5 +12,6 @@ const FAW_DEFAULTS = {
   comicHorizontal: false, // comic reader scrolls left→right, comments move to the left
   infinite: true,     // infinite scroll in galleries
   archiveLink: false, // "Archived Gallery" (furarchiver.net) link in the profile header
+  bbExtra: true,      // extra BBCode buttons in comment boxes
   lang: "auto"        // extension language: auto | en | de | ru
 };

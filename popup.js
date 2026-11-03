@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const RANGES = ["max", "gutter", "thumb"];
-const CHECKS = ["ultrawide", "design", "imageFit", "quickView", "comic", "comicHorizontal", "infinite", "archiveLink"];
+const CHECKS = ["ultrawide", "design", "imageFit", "quickView", "comic", "comicHorizontal", "infinite", "bbExtra", "archiveLink"];
 const UNCAPPED_AT_MAX = { max: true }; // top slider position = no cap (stored as 0)
 
 $("version").textContent = "v" + chrome.runtime.getManifest().version;

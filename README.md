@@ -12,7 +12,7 @@ Works with all of FA's colour schemes (dark and light variants). Extension langu
 - Centered, configurable site width (FA normally caps html *and* body at 1850px)
 - Submission page: image → description → details/keywords/folders panel on the left; stats and Fav/Note/Download above the comments in a right-hand column. Stacks into one column on narrow windows
 - Submission page: FA's Main Gallery box under the image is replaced by small newer/older arrow buttons below the image
-- Submission image shows FA's small preview until the full file has loaded, and scales to fill the available width/height without clipping (click to zoom in at the cursor, drag to pan)
+- Submission image shows FA's small preview until the full file has loaded, and scales to fill the available width/height without clipping (click for a full-screen view; click there to zoom in at the cursor, drag to pan)
 - Profile pages split: profile text on the left above the galleries, stats/contact/shouts start at the top on the right
 - Profile: Featured and Gallery side by side; the Gallery box is filled edge to edge with justified rows of larger thumbnails (more are fetched if needed); Favorites shows only its thumbnail grid; empty panels hidden
 - Profile header: optional "Archived Gallery" link next to Gallery, to the artist's backup on furarchiver.net (off by default, asks for confirmation); on removed/disabled accounts the same link appears as a button below the system message
@@ -31,7 +31,7 @@ Works with all of FA's colour schemes (dark and light variants). Extension langu
 - "More from artist" (9 submissions) below the comments
 - Ctrl/Cmd+click a thumbnail opens the submission page instead of the quick view
 - Recent watchers / recently watched: one row of avatars; full watcher lists as avatar tiles (real avatars, looked up as they scroll into view and cached)
-- Comment & shout style: Classic (FA) or Bubbles; two-row comment toolbar with extra BBCode buttons (strike, sup/sub, headings, colour, quote, spoiler, link, YouTube, user icons/links, line)
+- Comment & shout style: Classic (FA) or Bubbles; two-row comment toolbar with extra BBCode buttons (can be switched off) (strike, sup/sub, headings, colour, quote, spoiler, link, YouTube, user icons/links, line)
 
 ## Install
 

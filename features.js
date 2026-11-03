@@ -6,7 +6,7 @@
   const DEFAULTS = {
     enabled: true, ultrawide: true, design: true,
     imageFit: true, quickView: true, comic: true, comicHorizontal: false, infinite: true,
-    archiveLink: false, thumb: 1.25, lang: "auto"
+    archiveLink: false, bbExtra: true, thumb: 1.25, lang: "auto"
   };
   const root = document.documentElement;
   const page = document.body ? document.body.id : "";
@@ -35,6 +35,7 @@
     fawSetLang(S.lang);
     if (page === "pageid-submission") {
       if (S.imageFit && layoutOn()) initImageFit();
+      initLightbox();
       if (S.comic) initComic();
       initAjaxFav();
       if (layoutOn()) { initMoreFromArtist(); initSubmissionNav(); }
@@ -219,35 +220,65 @@
     if (img.complete) ensureFull();
     window.addEventListener("resize", ensureFull);
 
-    // Click zooms in at the cursor (at least native size, ≥1.75× the fitted size); drag to pan
-    // while zoomed, click again to fit. Replaces FA's preview/full toggle.
-    const area = img.closest(".submission-area") || img.parentElement;
-    const pan = makePannable(img, {
-      x: area, y: null, active: () => root.classList.contains("faw-actual"), hostClass: area
-    });
+  }
+
+  // ------------------------------------------------------------------ submission: full-screen image viewer
+  // Click the submission image → just the image, centered, full screen. Click in it to zoom at the
+  // cursor (drag to pan), click again to fit; click the backdrop or press Esc to close.
+  function initLightbox() {
+    const img = document.getElementById("submissionImg");
+    if (!img) return;
+    let lb = null;
+    const open = () => {
+      const full = abs(img.getAttribute("data-fullview-src")) || img.currentSrc || img.src;
+      lb = el("div", "faw-lb");
+      const stage = el("div", "faw-lb__stage");
+      const pic = el("img", "faw-lb__img");
+      pic.alt = img.alt || "";
+      pic.src = img.currentSrc || img.src;                    // already loaded → shows instantly
+      if (full && full !== pic.src) { const hi = new Image(); hi.onload = () => { pic.src = full; }; hi.src = full; }
+      const closeBtn = el("button", "faw-lb__close", "×");
+      closeBtn.title = T("close");
+      stage.appendChild(pic);
+      lb.append(stage, closeBtn);
+      document.body.appendChild(lb);
+      document.documentElement.classList.add("faw-lb-open");
+      const pan = makePannable(pic, { x: stage, y: stage, active: () => lb.classList.contains("is-zoom"), hostClass: stage });
+      pic.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (pan.consumeDrag()) return;
+        const r = pic.getBoundingClientRect();
+        const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+        const zoomIn = !lb.classList.contains("is-zoom");
+        if (zoomIn) {
+          const w = Math.round(Math.max(pic.naturalWidth || 0, r.width * 1.75));
+          pic.style.width = w + "px";
+          pic.style.height = Math.round(w * r.height / r.width) + "px";
+        } else { pic.style.width = pic.style.height = ""; }
+        lb.classList.toggle("is-zoom", zoomIn);
+        stage.classList.toggle("faw-pannable", zoomIn);
+        if (zoomIn) {
+          const r2 = pic.getBoundingClientRect();
+          stage.scrollLeft += r2.left + fx * r2.width - e.clientX;
+          stage.scrollTop += r2.top + fy * r2.height - e.clientY;
+        }
+      });
+      stage.addEventListener("click", (e) => { if (e.target === stage) close(); });
+      closeBtn.addEventListener("click", close);
+      document.addEventListener("keydown", onKey, true);
+    };
+    const close = () => {
+      if (!lb) return;
+      lb.remove(); lb = null;
+      document.documentElement.classList.remove("faw-lb-open");
+      document.removeEventListener("keydown", onKey, true);
+    };
+    const onKey = (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } };
     window.addEventListener("click", (e) => {
-      if (e.target !== img || !S.imageFit || !S.enabled) return;
+      if (e.target !== img || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
       e.stopImmediatePropagation();
       e.preventDefault();
-      if (pan.consumeDrag()) return;
-      const r = img.getBoundingClientRect();
-      const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
-      const zoomIn = !root.classList.contains("faw-actual");
-      if (zoomIn) {
-        const nat = parseFloat(img.style.getPropertyValue("--faw-natw")) || img.naturalWidth || r.width;
-        img.style.setProperty("--faw-zoomw", Math.round(Math.max(nat, r.width * 1.75)) + "px");
-      }
-      root.classList.toggle("faw-actual", zoomIn);
-      area.classList.toggle("faw-pannable", zoomIn);
-      ensureFull();
-      if (zoomIn) {
-        const r2 = img.getBoundingClientRect();
-        area.scrollLeft += r2.left + fx * r2.width - e.clientX;
-        window.scrollBy(0, r2.top + fy * r2.height - e.clientY);
-      } else {
-        area.scrollLeft = 0;
-        img.scrollIntoView({ block: "nearest" });
-      }
+      open();
     }, true);
   }
 
@@ -1023,12 +1054,13 @@
     ta.dispatchEvent(new Event("input", { bubbles: true }));
   }
   function initCommentToolbar() {
-    for (const bar of document.querySelectorAll("form span.floatleft:has(> .bbcodeformat)")) {
-      if (bar.querySelector(".faw-bb")) continue;
+    for (const bar of document.querySelectorAll("form .floatleft:has(> .bbcodeformat)")) {
+      if (bar.querySelector(".faw-bb") || bar.classList.contains("faw-bb-plain")) continue;
       const ta = bar.closest("form").querySelector("textarea");
       if (!ta) continue;
       // FA puts &nbsp; between its buttons; in the flex toolbar they become blank items that indent row 1
       for (const n of [...bar.childNodes]) if (n.nodeType === 3) n.remove();
+      if (!S.bbExtra) { bar.classList.add("faw-bb-plain"); continue; }
       const wrapBox = el("span", "faw-bb");
       for (const tool of BB_TOOLS) {
         if (tool.sep || tool.br) {
@@ -1364,6 +1396,7 @@
       qv = el("div", "faw-qv");
       qv.hidden = true;
       qv.innerHTML = `
+        <div class="faw-qv__view">
         <div class="faw-qv__stage">
           <span class="faw-qv__spinner">Loading…</span>
           <div class="faw-qv__frame">
@@ -1371,6 +1404,7 @@
             <img class="faw-qv__img" alt="">
             <span class="faw-qv__badge">${T("loadingFull")}</span>
           </div>
+        </div>
           <button class="faw-qv__nav faw-qv__nav--prev" title="${T("prev")}"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
           <button class="faw-qv__nav faw-qv__nav--next" title="${T("next")}"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
         </div>
