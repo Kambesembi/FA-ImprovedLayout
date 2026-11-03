@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root { color-scheme: dark; }
+  body { width: 300px; margin: 0; padding: 14px 16px; font: 13px/1.4 system-ui, sans-serif;
+         background: #1b1b1d; color: #ddd; }
+  h1 { font-size: 14px; margin: 0 0 8px; display: flex; justify-content: space-between; align-items: center; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #888; margin: 16px 0 4px; }
+  label.row { display: block; margin: 10px 0 2px; }
+  label.check { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .head { display: flex; justify-content: space-between; }
+  .val { color: #e0a64b; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; accent-color: #e0a64b; }
+  input[type=checkbox] { accent-color: #e0a64b; }
+  select { width: 100%; background: #2a2a2e; color: #ddd; border: 1px solid #444; padding: 3px; }
+  .hint { color: #888; font-size: 11px; }
+  button { margin-top: 14px; background: #2a2a2e; color: #ccc; border: 1px solid #444; padding: 4px 10px; cursor: pointer; }
+  fieldset { border: 0; padding: 0; margin: 0; }
+  fieldset:disabled { opacity: .45; }
+</style>
+</head>
+<body>
+  <h1>FA Ultrawide <label><input type="checkbox" id="enabled"> on</label></h1>
+  <fieldset id="opts">
+    <h2>Layout</h2>
+    <label class="row"><div class="head">Max site width <span class="val" id="max-v"></span></div>
+      <input type="range" id="max" min="1200" max="4000" step="50">
+      <div class="hint">Slide fully right for no cap (fill screen).</div></label>
+
+    <label class="row"><div class="head">Side gutter <span class="val" id="gutter-v"></span></div>
+      <input type="range" id="gutter" min="0" max="300" step="4"></label>
+
+    <label class="row"><div class="head">Thumbnail scale <span class="val" id="thumb-v"></span></div>
+      <input type="range" id="thumb" min="0.8" max="2" step="0.05"></label>
+
+    <label class="row">Submission page
+      <select id="layout">
+        <option value="comments-right">Comments right, info below image</option>
+        <option value="classic">Classic (sidebar right)</option>
+      </select></label>
+
+
+    <h2>Features</h2>
+    <label class="check"><input type="checkbox" id="imageFit"> Fit submission image to screen</label>
+    <label class="check"><input type="checkbox" id="quickView"> Quick view popup on thumbnails</label>
+    <label class="check"><input type="checkbox" id="comic"> Comic reader (load all pages)</label>
+    <label class="check"><input type="checkbox" id="infinite"> Infinite scroll in galleries</label>
+    <div class="hint">Feature changes apply on the next page load.</div>
+  </fieldset>
+  <button id="reset">Reset to defaults</button>
+  <script src="settings.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

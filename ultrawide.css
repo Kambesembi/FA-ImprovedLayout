@@ -1,0 +1,162 @@
+/* FA Ultrawide — all rules are skipped when the extension is switched off (html.faw-off).
+   Only site width, gutter and thumbnail scale are user settings; everything else derives
+   from the layout so pages stay uniform. */
+
+:root {
+  --faw-max: 2800px;      /* maximum site width (popup) */
+  --faw-gutter: 24px;     /* minimum space left/right (popup) */
+  --faw-thumb: 1.25;      /* thumbnail scale in galleries (popup) */
+  --faw-w: min(var(--faw-max), calc(100vw - 2 * var(--faw-gutter)));
+  --faw-nav: 50px;        /* FA's fixed top menu */
+  --faw-gap: 12px;
+}
+
+/* ---- Core layout: FA caps html AND body at 1850px. Lift html, center body. ---- */
+html:not(.faw-off) { max-width: none !important; }
+html:not(.faw-off) body {
+  max-width: var(--faw-w) !important;
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+html:not(.faw-off) #ddmenu {
+  max-width: var(--faw-w) !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+html:not(.faw-off) userpage-nav-header,
+html:not(.faw-off) .newsBlock,
+html:not(.faw-off) .systemMode,
+html:not(.faw-off) .generic-message-block {
+  max-width: none !important;
+}
+
+/* ---- Banner ---- */
+html:not(.faw-off) #header { max-height: none !important; }
+/* Banners: always centered at native size, whatever alignment the profile owner chose */
+html:not(.faw-off) site-banner {
+  display: flex !important;
+  justify-content: center !important;
+}
+html:not(.faw-off) site-banner a { margin: 0 auto; }
+
+/* ---- Profile pages: profile text on the left above featured/gallery/favorites,
+   stats/contact/shouts start at the top of the right column ---- */
+html:not(.faw-off) #page-userpage {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: "profile right" "left right";
+  grid-template-rows: auto 1fr;
+  align-items: start;
+}
+html:not(.faw-off) #page-userpage > .userpage-layout { display: contents !important; }
+html:not(.faw-off) #page-userpage > .userpage-layout-profile {
+  grid-area: profile;
+  display: block !important;
+  width: auto !important;
+  min-width: 0;
+}
+html:not(.faw-off) #page-userpage .userpage-layout-left-col { grid-area: left; width: auto !important; min-width: 0; }
+html:not(.faw-off) #page-userpage .userpage-layout-right-col { grid-area: right; width: auto !important; min-width: 0; }
+html:not(.faw-off) #page-userpage > :not(.userpage-layout):not(.userpage-layout-profile):not(script):not(style) {
+  grid-column: 1 / -1;
+}
+
+/* ---- Submission page ---- */
+/* Sidebar boxes are capped at 340px internally; let them follow their container */
+html:not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(2) div { max-width: none !important; }
+html:not(.faw-off) #responsebox { max-width: 100% !important; }
+/* +Fav/Note/Download under the image duplicate the info panel; keep only the mini gallery nav */
+html:not(.faw-off) #pageid-submission #submission-options { display: none !important; }
+
+/* Classic layout: sidebar right of the image, width follows site width */
+html.faw-sub-classic:not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(1) {
+  flex: 1 1 auto !important; width: auto !important; max-width: none !important; min-width: 0 !important;
+}
+html.faw-sub-classic:not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(2) {
+  flex: 0 0 clamp(340px, 17%, 520px) !important;
+  width: clamp(340px, 17%, 520px) !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
+
+/* Comments-right layout: image → description → info panel on the left, comments on the right.
+   Wrapper divs become display:contents so their children share one grid. Wide screens only. */
+@media (min-width: 1400px) {
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-page-content {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) clamp(420px, 24%, 760px);
+    grid-template-areas: "ads com" "img com" "desc com" "side com";
+    grid-template-rows: auto auto auto 1fr;
+    column-gap: var(--faw-gap);
+    align-items: start;
+  }
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content,
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(1),
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #sidebar-collapsible,
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #sidebar-upper {
+    display: contents !important;
+  }
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-ads { grid-area: ads; }
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-content { grid-area: img; min-width: 0; }
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-details { grid-area: desc; min-width: 0; }
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .comments-list { grid-area: com; min-width: 0; }
+
+  /* Description and info panel share exact left/right edges */
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-description {
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    max-width: none !important;
+  }
+
+  /* Former sidebar → horizontal info panel: stats/buttons/info | keywords | folders */
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(2) {
+    grid-area: side;
+    display: grid !important;
+    grid-template-columns: minmax(340px, max-content) minmax(0, 1fr) minmax(220px, max-content);
+    grid-template-areas:
+      "ads   ads  ads"
+      "stats tags lower"
+      "ctrl  tags lower"
+      "info  tags lower"
+      ".     tags lower";
+    grid-template-rows: auto auto auto auto 1fr;
+    gap: 10px 16px;
+    align-items: start;
+    width: auto !important;
+    max-width: none !important;
+    flex: none !important;
+    margin: var(--faw-gap) 0 0 !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+  }
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(2) > * { min-width: 0; margin-left: 0 !important; margin-right: 0 !important; }
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .sidebarAds { grid-area: ads; }
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(2) > div:has(.submission-page-stats) { grid-area: stats; }
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-controls-upper { grid-area: ctrl; }
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-content-stats { grid-area: info; }
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-tags { grid-area: tags; }
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #sidebar-lower-reverse { grid-area: lower; }
+}
+
+/* Image fit (features.js sets --faw-ar / --faw-natw and html.faw-fit):
+   as wide as the column allows, as tall as the viewport allows, never more than 2× native. */
+html.faw-fit:not(.faw-off) #pageid-submission .submission-area { overflow-x: auto; }
+html.faw-fit:not(.faw-off) #pageid-submission #submissionImg {
+  width: min(100%, calc((100vh - var(--faw-nav) - 2 * var(--faw-gap)) * var(--faw-ar, 1)), calc(var(--faw-natw, 99999px) * 2)) !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  cursor: zoom-in !important;
+  display: block;
+  margin: var(--faw-gap) auto 0;
+}
+html.faw-fit.faw-actual:not(.faw-off) #pageid-submission #submissionImg {
+  width: var(--faw-natw, auto) !important;
+  cursor: zoom-out !important;
+}
+
+/* ---- Galleries, browse, favorites, message center thumbnails ---- */
+html:not(.faw-off) section.gallery figure { zoom: var(--faw-thumb); }
