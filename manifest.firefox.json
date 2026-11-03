@@ -1,0 +1,71 @@
+{
+  "manifest_version": 3,
+  "name": "FA-ImprovedLayout",
+  "version": "2.1.0",
+  "description": "Fur Affinity for wide screens: centered wide layout, modern design, quick view, comic reader, infinite scroll and more.",
+  "permissions": [
+    "storage",
+    "downloads"
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.furaffinity.net/*"
+      ],
+      "css": [
+        "ultrawide.css"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://*.furaffinity.net/*"
+      ],
+      "css": [
+        "features.css"
+      ],
+      "js": [
+        "i18n.js",
+        "features.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "FA-ImprovedLayout",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png",
+      "48": "icon48.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "host_permissions": [
+    "*://*.furaffinity.net/*"
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "fa-improvedlayout@kambesembi.github",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    }
+  }
+}

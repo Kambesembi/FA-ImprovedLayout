@@ -1,4 +1,4 @@
-// FA Ultrawide — everything that needs scripting after the page has loaded: image fit + full-screen
+// FA-ImprovedLayout — everything that needs scripting after the page has loaded: image fit + full-screen
 // viewer, quick view, comic reader, infinite scroll, profile gallery, watcher avatars, comment toolbar,
 // pagination arrows, system message colours. Runs at document_idle; texts come from i18n.js (T()).
 (() => {
@@ -58,8 +58,21 @@
 
   // ------------------------------------------------------------------ fetching / parsing
   const docCache = new Map();
+  // Requests run in the page's context so FA sees a normal same-site request with the user's login.
+  // Chrome's content-script fetch already does; Firefox needs content.fetch (bodies passed as strings).
+  const pageFetch = typeof content !== "undefined" && content && typeof content.fetch === "function"
+    ? (url, init = {}) => {
+      const o = Object.assign({}, init);
+      if (o.body instanceof URLSearchParams) {
+        o.headers = { "Content-Type": "application/x-www-form-urlencoded" };
+        o.body = o.body.toString();
+      }
+      return content.fetch(new URL(url, location.href).href, o);
+    }
+    : (url, init) => fetch(url, init);
+
   async function fetchDoc(url, init) {
-    const res = await fetch(url, Object.assign({ credentials: "same-origin" }, init));
+    const res = await pageFetch(url, Object.assign({ credentials: "same-origin" }, init));
     if (!res.ok) throw new Error("HTTP " + res.status);
     const html = await res.text();
     return { doc: new DOMParser().parseFromString(html, "text/html"), url: res.url };
@@ -905,7 +918,7 @@
     while (avActive < 2 && avQueue.length) {
       const { slug, resolve } = avQueue.shift();
       avActive++;
-      fetch("/user/" + encodeURIComponent(slug) + "/", { credentials: "same-origin" })
+      pageFetch("/user/" + encodeURIComponent(slug) + "/", { credentials: "same-origin" })
         .then((r) => r.text())
         .then((html) => {
           const esc = slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -1704,7 +1717,7 @@
         const body = new URLSearchParams(cur.commentForm.fields);
         body.set("reply", text);
         const url = new URL(cur.commentForm.action || `/view/${cur.id}/`, location.origin).href;
-        const res = await fetch(url, { method: "POST", body, credentials: "same-origin" });
+        const res = await pageFetch(url, { method: "POST", body, credentials: "same-origin" });
         if (!res.ok) throw new Error("HTTP " + res.status);
         const doc = new DOMParser().parseFromString(await res.text(), "text/html");
         const fresh = parseSubmission(doc, `/view/${cur.id}/`);

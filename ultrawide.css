@@ -1,4 +1,4 @@
-/* FA Ultrawide — layout rules apply only with html.faw-layout ("Ultrawide layout" switch), design
+/* FA-ImprovedLayout — layout rules apply only with html.faw-layout ("Ultrawide layout" switch), design
    rules only with html.faw-design ("Bubbles design" switch); content.js sets both on <html>.
    Only site width, gutter and thumbnail scale are user settings; the rest derives from the layout. */
 

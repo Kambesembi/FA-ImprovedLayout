@@ -1,57 +1,31 @@
-# FA Improved Layout (FA Ultrawide)
+# FA-ImprovedLayout
 
-Chrome extension (Manifest V3) that adapts Fur Affinity's modern theme to ultrawide screens and adds a few quality-of-life features.
+Browser extension that adapts Fur Affinity's modern theme to wide and ultrawide screens and adds quality-of-life features. Works with all FA colour schemes. Languages: English, Deutsch, Русский.
 
 ## Features
 
-Works with all of FA's colour schemes (dark and light variants). Extension language: English, Deutsch, Русский (follows the browser, or pick a flag in the popup).
+- **Ultrawide layout** – centered, adjustable site width; submission page with comments beside the image; profile split into two columns with a justified gallery box
+- **Bubbles design** – rounded panels and buttons, chat-bubble comments and shouts, avatar tiles for watchers, coloured system messages
+- **Quick view** – click a thumbnail to open it in an overlay (fav, download, comments, ← → to browse)
+- **Full-screen viewer** – click a submission image; click again to zoom at the cursor, drag to pan
+- **Comic reader** – loads a whole series on one page (vertical or horizontal)
+- **Infinite scroll** – galleries, favorites, browse, search and the submission inbox
+- **Extras** – extra BBCode buttons, +Fav without reload, "More from this artist", full watcher lists, in-page link warnings, optional link to archived galleries
 
-**Main switches** (popup): the master switch turns everything off (the page is left untouched); *Ultrawide layout* covers all layout changes; *Bubbles design* covers comment/shout bubbles, the comment box, buttons across the site, pagination arrows, avatar views for watchers and the page frame.
-
-**Layout**
-- Centered, configurable site width (FA normally caps html *and* body at 1850px)
-- Submission page: image → description → details/keywords/folders panel on the left; stats and Fav/Note/Download above the comments in a right-hand column. Stacks into one column on narrow windows
-- Submission page: FA's Main Gallery box under the image is replaced by small newer/older arrow buttons below the image
-- Submission image shows FA's small preview until the full file has loaded, and scales to fill the available width/height without clipping (click for a full-screen view; click there to zoom in at the cursor, drag to pan)
-- Profile pages split: profile text on the left above the galleries, stats/contact/shouts start at the top on the right
-- Profile: Featured and Gallery side by side; the Gallery box is filled edge to edge with justified rows of larger thumbnails (more are fetched if needed); Favorites shows only its thumbnail grid; empty panels hidden
-- Profile header: optional "Archived Gallery" link next to Gallery, to the artist's backup on furarchiver.net (off by default, asks for confirmation); on removed/disabled accounts the same link appears as a button below the system message
-- Banners always centered
-- Adjustable thumbnail scale in galleries
-- Responsive: every layout adapts to the window size (single column below ~1100px); the top menu stays on one line
-
-**Features** (each can be toggled in the popup)
-- Quick view: click a thumbnail to open the submission in an overlay (fav, download, open page, ← → to browse). Shows the thumbnail instantly and fades in the full image when loaded; neighbours are prefetched so browsing doesn't flicker. Includes a scrollable comment list and a box to post comments (e.g. auction bids).
-- Comic reader: assembles a whole series on one page, via prev/next/first links in the description or via numbered titles ("Name - Page 9") found with FA's search. Each page is scaled to fit the screen; optional horizontal mode (comments move left, scroll pages left→right with wheel or ← →)
-- Infinite scroll in galleries, scraps, favorites, browse, search and the submission inbox (next page is prefetched and appended well before the end)
-- Watchers / watching lists load completely on one page
-- Pagination buttons (shouts, search, browse) use compact arrow icons
-- External links: in-page confirmation instead of FA's interstitial page
-- +Fav on submission pages without a page reload
-- "More from artist" (9 submissions) below the comments
-- Ctrl/Cmd+click a thumbnail opens the submission page instead of the quick view
-- Recent watchers / recently watched: one row of avatars; full watcher lists as avatar tiles (real avatars, looked up as they scroll into view and cached)
-- Two-row comment toolbar with extra BBCode buttons: strike, sup/sub, headings, colour, quote, spoiler, link, YouTube, user icons/links, line (can be switched off)
-- Bubbles design: chat-bubble comments and shouts, rounded panels and buttons, success/error colours for system messages
+Everything can be switched on or off in the popup.
 
 ## Install
 
-1. Download / clone this repository
-2. Open `chrome://extensions` and enable **Developer mode**
-3. **Load unpacked** → select the folder
+Download the latest package from [Releases](../../releases/latest).
 
-Disable overlapping features in other FA extensions (e.g. "FurAffinity Features" infinite gallery / quick view) to avoid duplicates.
+**Chrome / Edge / Brave:** unzip `…-chrome.zip`, open `chrome://extensions`, enable **Developer mode**, click **Load unpacked** and select the `FA-ImprovedLayout` folder. To update, replace the folder's contents and click the reload icon.
 
-## Files
+**Firefox:** open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on** and pick `…-firefox.zip` (removed again when Firefox closes). Permanent installation needs a version signed by Mozilla.
 
-| File | Purpose |
-|---|---|
-| `manifest.json` | Extension manifest |
-| `content.js` / `ultrawide.css` | Switch classes, layout and palette, applied at `document_start` (no flash) |
-| `features.js` / `features.css` | Everything scripted: viewer, quick view, comic reader, infinite scroll, profile gallery, avatars, comment toolbar, Bubbles design |
-| `i18n.js` | Texts in English, German and Russian (popup and page) |
-| `background.js` | Downloads for the quick view |
-| `popup.html` / `popup.js` / `settings.js` | Settings popup and defaults |
-| `icon*.png` | Extension icon |
+## Privacy
 
-All settings are stored with `chrome.storage.sync`; the extension only talks to furaffinity.net (and opens furarchiver.net only after you confirm).
+No data is collected. Settings are stored in the browser's own sync storage; the extension only talks to furaffinity.net and opens furarchiver.net only after you confirm.
+
+## Building
+
+`./build.sh` creates both packages in `dist/` (`manifest.firefox.json` becomes the Firefox manifest).

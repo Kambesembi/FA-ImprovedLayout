@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "FA Ultrawide",
-  "version": "2.0.3",
+  "name": "FA-ImprovedLayout",
+  "version": "2.1.0",
   "description": "Fur Affinity for wide screens: centered wide layout, modern design, quick view, comic reader, infinite scroll and more.",
   "permissions": [
     "storage",
@@ -38,7 +38,7 @@
     }
   ],
   "action": {
-    "default_title": "FA Ultrawide",
+    "default_title": "FA-ImprovedLayout",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icon16.png",
