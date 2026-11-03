@@ -6,7 +6,7 @@
   const DEFAULTS = {
     enabled: true, ultrawide: true, design: true,
     imageFit: true, quickView: true, comic: true, comicHorizontal: false, infinite: true,
-    archiveLink: false, thumb: 1.25
+    archiveLink: false, thumb: 1.25, lang: "auto"
   };
   const root = document.documentElement;
   const page = document.body ? document.body.id : "";
@@ -32,6 +32,7 @@
   chrome.storage.sync.get(DEFAULTS, (s) => {
     S = s;
     if (!S.enabled) return;
+    fawSetLang(S.lang);
     if (page === "pageid-submission") {
       if (S.imageFit && layoutOn()) initImageFit();
       if (S.comic) initComic();
@@ -218,15 +219,65 @@
     if (img.complete) ensureFull();
     window.addEventListener("resize", ensureFull);
 
-    // Click toggles fit / actual size (replaces FA's preview/full toggle)
+    // Click zooms in at the cursor (at least native size, ≥1.75× the fitted size); drag to pan
+    // while zoomed, click again to fit. Replaces FA's preview/full toggle.
+    const area = img.closest(".submission-area") || img.parentElement;
+    const pan = makePannable(img, {
+      x: area, y: null, active: () => root.classList.contains("faw-actual"), hostClass: area
+    });
     window.addEventListener("click", (e) => {
       if (e.target !== img || !S.imageFit || !S.enabled) return;
       e.stopImmediatePropagation();
       e.preventDefault();
-      root.classList.toggle("faw-actual");
+      if (pan.consumeDrag()) return;
+      const r = img.getBoundingClientRect();
+      const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+      const zoomIn = !root.classList.contains("faw-actual");
+      if (zoomIn) {
+        const nat = parseFloat(img.style.getPropertyValue("--faw-natw")) || img.naturalWidth || r.width;
+        img.style.setProperty("--faw-zoomw", Math.round(Math.max(nat, r.width * 1.75)) + "px");
+      }
+      root.classList.toggle("faw-actual", zoomIn);
+      area.classList.toggle("faw-pannable", zoomIn);
       ensureFull();
-      if (!root.classList.contains("faw-actual")) img.scrollIntoView({ block: "nearest" });
+      if (zoomIn) {
+        const r2 = img.getBoundingClientRect();
+        area.scrollLeft += r2.left + fx * r2.width - e.clientX;
+        window.scrollBy(0, r2.top + fy * r2.height - e.clientY);
+      } else {
+        area.scrollLeft = 0;
+        img.scrollIntoView({ block: "nearest" });
+      }
     }, true);
+  }
+
+  // Drag-to-pan for a zoomed image. x / y: elements to scroll (null = the window).
+  function makePannable(target, { x, y, active, hostClass }) {
+    let start = null, dragged = false;
+    const scrollBy = (el, dx, dy) => { if (el) { el.scrollLeft -= dx; el.scrollTop -= dy; } else window.scrollBy(-dx, -dy); };
+    target.addEventListener("mousedown", (e) => {
+      if (e.button !== 0 || !active()) return;
+      e.preventDefault();
+      start = { x: e.clientX, y: e.clientY, moved: false };
+      dragged = false;
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!start) return;
+      const dx = e.clientX - start.x, dy = e.clientY - start.y;
+      if (!start.moved && Math.hypot(dx, dy) < 4) return;
+      start.moved = true;
+      if (hostClass) hostClass.classList.add("faw-panning");
+      if (x === y) scrollBy(x, dx, dy);
+      else { scrollBy(x, dx, 0); scrollBy(y, 0, dy); }
+      start.x = e.clientX; start.y = e.clientY;
+    });
+    window.addEventListener("mouseup", () => {
+      if (!start) return;
+      dragged = start.moved;
+      start = null;
+      if (hostClass) hostClass.classList.remove("faw-panning");
+    });
+    return { consumeDrag: () => { const d = dragged; dragged = false; return d; } };
   }
 
   // ------------------------------------------------------------------ comic reader
@@ -240,7 +291,7 @@
     if (!byLinks && !(titled && current.artist)) return;
 
     const bar = el("div", "faw-comic-bar");
-    const btn = el("button", "button standard", "Read as comic");
+    const btn = el("button", "button standard", T("readComic"));
     const status = el("span");
     bar.append(btn, status);
     const area = img.closest(".submission-area") || img.parentElement;
@@ -257,7 +308,7 @@
       findTitledSeries(titled, current).then((m) => {
         if (m.length < 2) return;
         titleMatches = m;
-        btn.textContent = `Read as comic (${m.length} pages)`;
+        btn.textContent = T("readComicN", m.length);
         placeBar();
       }).catch(() => {});
     } else {
@@ -271,7 +322,7 @@
       root.classList.toggle("faw-comic-open", open);
       root.classList.toggle("faw-comic-h", open && !!S.comicHorizontal);
       container.hidden = !open;
-      btn.textContent = open ? "Show single page" : `Read as comic (${container.children.length} pages)`;
+      btn.textContent = open ? T("singlePage") : T("readComicN", container.children.length);
       if (open) showCurrent();
     };
     const showCurrent = () => {
@@ -294,15 +345,15 @@
       btn.disabled = true;
       try {
         const pages = titleMatches
-          ? await loadTitled(titleMatches, (n, total) => { status.textContent = `Loading… ${n} pages found`; })
-          : await loadSeries(current, (n, dir) => { status.textContent = `Loading… ${n} pages found`; });
+          ? await loadTitled(titleMatches, (n, total) => { status.textContent = T("loadingPagesFound", n); })
+          : await loadSeries(current, (n, dir) => { status.textContent = T("loadingPagesFound", n); });
         container = renderComic(pages, current.id);
         area.appendChild(container);
         if (S.comicHorizontal) enableHorizontal(container);
         status.textContent = "";
         setOpen(true);
       } catch (err) {
-        status.textContent = "Couldn't load series: " + err.message;
+        status.textContent = T("seriesFailed", err.message);
       } finally {
         loading = false;
         btn.disabled = false;
@@ -368,9 +419,9 @@
       pages.forEach((p, i) => {
         const wrap = el("div", "faw-comic__page" + (p.id === currentId ? " is-current" : ""));
         const label = el("div", "faw-comic__label");
-        const a = el("a", null, p.title || "Untitled");
+        const a = el("a", null, p.title || T("untitled"));
         a.href = "/view/" + p.id + "/";
-        label.append(`Page ${i + 1}/${pages.length} · `, a);
+        label.append(T("pageOf", i + 1, pages.length), a);
         const im = el("img");
         im.loading = i === 0 || p.id === currentId ? "eager" : "lazy";
         im.decoding = "async";
@@ -474,11 +525,11 @@
     const name = decodeURIComponent(m[1]).toLowerCase();
     const url = "https://furarchiver.net/Artist/Gallery?artist=" + encodeURIComponent(name);
     const wrap = el("div", "faw-archive-sys");
-    const btn = el("button", "button standard", "Archived Gallery");
+    const btn = el("button", "button standard", T("archivedGallery"));
     btn.type = "button";
-    btn.title = "Backup of this gallery on furarchiver.net (external site)";
-    btn.addEventListener("click", () => confirmExternal(`Open the archived gallery of “${name}” on furarchiver.net?`, url));
-    wrap.append(el("span", null, "This account isn't available. An archived copy of the gallery may exist:"), btn);
+    btn.title = T("archiveTitle");
+    btn.addEventListener("click", () => confirmExternal(T("openArchive", name), url));
+    wrap.append(el("span", null, T("accountUnavailable")), btn);
     box.after(wrap);
     const match = () => { wrap.style.width = box.getBoundingClientRect().width + "px"; };
     match();
@@ -496,16 +547,16 @@
 
     const li = el("li", "faw-archive");
     const h3 = el("h3");
-    const a = el("a", null, "Archived Gallery");
+    const a = el("a", null, T("archivedGallery"));
     a.href = url;
     a.target = "_blank";
     a.rel = "noopener noreferrer";
-    a.title = "Backup of this gallery on furarchiver.net (external site)";
+    a.title = T("archiveTitle");
     const ask = (e) => {
       if (e.type === "auxclick" && e.button !== 1) return;
       e.preventDefault();
       e.stopPropagation();
-      confirmExternal(`Open the archived gallery of “${name}” on furarchiver.net?`, url);
+      confirmExternal(T("openArchive", name), url);
     };
     a.addEventListener("click", ask);
     a.addEventListener("auxclick", ask);
@@ -522,8 +573,8 @@
     const p = el("p", null, text);
     const host = el("div", "faw-confirm__url", url);
     const row = el("div", "faw-confirm__row");
-    const cancel = el("button", "button standard", "Cancel");
-    const ok = el("button", "button standard faw-confirm__ok", "Open in new tab");
+    const cancel = el("button", "button standard", T("cancel"));
+    const ok = el("button", "button standard faw-confirm__ok", T("openNewTab"));
     row.append(cancel, ok);
     box.append(p, host, row);
     ov.appendChild(box);
@@ -897,7 +948,7 @@
     decorateWatchlist(list);
     let next = findNext(document, location.href);
     if (!next) return;
-    const status = el("div", "faw-inf-status", "Loading all entries…");
+    const status = el("div", "faw-inf-status", T("loadingEntries"));
     list.after(status);
     if (nav) nav.style.display = "none";
     const seen = new Set([...list.querySelectorAll("a[href]")].map((a) => a.getAttribute("href")));
@@ -923,13 +974,13 @@
         for (const it of items) list.appendChild(document.adoptNode(it));
         decorateWatchlist(list);
         pages++;
-        status.textContent = `Loading all entries… ${list.children.length} so far`;
+        status.textContent = T("loadingEntriesN", list.children.length);
         next = findNext(doc, url);
         if (next) await sleep(250);
       }
-      status.textContent = `${list.children.length} entries`;
+      status.textContent = T("entriesN", list.children.length);
     } catch (err) {
-      status.textContent = `Stopped after ${list.children.length} entries (${err.message})`;
+      status.textContent = T("stoppedAfter", list.children.length, err.message);
       if (nav) nav.style.display = "";
     }
   }
@@ -940,25 +991,25 @@
   // because FA's own buttons and ours share one flex container.
   const BB_TOOLS = [
     { row: 2, sep: true },
-    { row: 2, t: "S", title: "Strikethrough", wrap: ["[s]", "[/s]"], cls: "s" },
-    { row: 2, t: "x²", title: "Superscript", wrap: ["[sup]", "[/sup]"] },
-    { row: 2, t: "x₂", title: "Subscript", wrap: ["[sub]", "[/sub]"] },
+    { row: 2, t: "S", tk: "bbStrike", wrap: ["[s]", "[/s]"], cls: "s" },
+    { row: 2, t: "x²", tk: "bbSup", wrap: ["[sup]", "[/sup]"] },
+    { row: 2, t: "x₂", tk: "bbSub", wrap: ["[sub]", "[/sub]"] },
     { row: 2, sep: true },
-    { row: 2, t: "H1", title: "Heading 1", wrap: ["[h1]", "[/h1]"] },
-    { row: 2, t: "H2", title: "Heading 2", wrap: ["[h2]", "[/h2]"] },
-    { row: 2, t: "H3", title: "Heading 3", wrap: ["[h3]", "[/h3]"] },
+    { row: 2, t: "H1", tk: "bbH1", wrap: ["[h1]", "[/h1]"] },
+    { row: 2, t: "H2", tk: "bbH2", wrap: ["[h2]", "[/h2]"] },
+    { row: 2, t: "H3", tk: "bbH3", wrap: ["[h3]", "[/h3]"] },
     { row: 2, sep: true },
-    { row: 2, t: "A", title: "Text colour", color: true },
+    { row: 2, t: "A", tk: "bbColor", color: true },
     { row: 3, br: true },
     { row: 5, sep: true },
-    { row: 5, t: "❝", title: "Quote", wrap: ["[quote]", "[/quote]"] },
-    { row: 5, t: "◼", title: "Spoiler", wrap: ["[spoiler]", "[/spoiler]"] },
-    { row: 5, t: "🔗", title: "Link (select a URL or text)", url: true },
-    { row: 5, t: "▶", title: "YouTube video", wrap: ["[yt]", "[/yt]"] },
+    { row: 5, t: "❝", tk: "bbQuote", wrap: ["[quote]", "[/quote]"] },
+    { row: 5, t: "◼", tk: "bbSpoiler", wrap: ["[spoiler]", "[/spoiler]"] },
+    { row: 5, t: "🔗", tk: "bbLink", url: true },
+    { row: 5, t: "▶", tk: "bbYt", wrap: ["[yt]", "[/yt]"] },
     { row: 5, sep: true },
-    { row: 5, t: "@i", title: "User icon  :iconname:", wrap: [":icon", ":"] },
-    { row: 5, t: "@l", title: "User link  :linkname:", wrap: [":link", ":"] },
-    { row: 5, t: "—", title: "Horizontal line", insert: "\n-----\n" }
+    { row: 5, t: "@i", tk: "bbIcon", wrap: [":icon", ":"] },
+    { row: 5, t: "@l", tk: "bbUlink", wrap: [":link", ":"] },
+    { row: 5, t: "—", tk: "bbHr", insert: "\n-----\n" }
   ];
   function insertBB(ta, open, close, placeholder) {
     const a = ta.selectionStart, b = ta.selectionEnd, v = ta.value;
@@ -989,7 +1040,7 @@
         const btn = el("button", "faw-bb__btn" + (tool.cls ? " is-" + tool.cls : ""), tool.t);
         btn.style.order = tool.row;
         btn.type = "button";
-        btn.title = tool.title;
+        btn.title = T(tool.tk);
         if (tool.color) {
           const picker = el("input");
           picker.type = "color";
@@ -1040,7 +1091,7 @@
       if (/(^|\.)(furaffinity\.net|facdn\.net)$/i.test(url.hostname)) return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      confirmExternal("You are leaving Fur Affinity for:", url.href);
+      confirmExternal(T("leavingFA"), url.href);
     };
     window.addEventListener("click", handler, true);
     window.addEventListener("auxclick", handler, true);
@@ -1101,8 +1152,8 @@
       if (a) x.href = a.getAttribute("href");
       row.appendChild(x);
     };
-    mk(newer, "<", "Newer submission");
-    mk(older, ">", "Older submission");
+    mk(newer, "<", T("newerSub"));
+    mk(older, ">", T("olderSub"));
     area.appendChild(row);
     document.documentElement.classList.add("faw-subnav-on");
   }
@@ -1122,8 +1173,8 @@
       if (!figs.length) return;
       const box = el("section", "faw-more");
       const head = el("div", "faw-more__head");
-      head.append(el("span", null, `More from ${me.artist.name}`));
-      const all = el("a", null, "View gallery");
+      head.append(el("span", null, T("moreFrom", me.artist.name)));
+      const all = el("a", null, T("viewGallery"));
       all.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>');
       all.href = `/gallery/${slug}/`;
       head.appendChild(all);
@@ -1160,7 +1211,7 @@
 
     let pageNo = 1, loading = false, done = false;
     const isMsgCenter = page === "pageid-messagecenter-submissions";
-    const status = el("div", "faw-inf-status", "Scroll for more");
+    const status = el("div", "faw-inf-status", T("scrollMore"));
     const lastSection = () => {
       const all = document.querySelectorAll("section.gallery");
       return all[all.length - 1];
@@ -1180,7 +1231,7 @@
     async function loadMore() {
       if (loading || done) return;
       loading = true;
-      status.textContent = `Loading page ${pageNo + 1}…`;
+      status.textContent = T("loadingPage", pageNo + 1);
       try {
         prefetch();
         const req = pending;
@@ -1213,13 +1264,13 @@
         if (next && added) prefetch();
         if (!next || !added) {
           done = true;
-          status.textContent = added ? `End · ${pageNo} pages loaded` : "No more submissions";
+          status.textContent = added ? T("endPages", pageNo) : T("noMore");
         } else {
           status.textContent = `${pageNo} pages loaded · scroll for more`;
         }
       } catch (err) {
-        status.textContent = `Couldn't load page ${pageNo + 1} (${err.message}) `;
-        const retry = el("button", null, "Retry");
+        status.textContent = T("pageFailed", pageNo + 1, err.message);
+        const retry = el("button", null, T("retry"));
         retry.onclick = () => { pending = null; loadMore(); };
         status.appendChild(retry);
         loading = false;
@@ -1318,30 +1369,30 @@
           <div class="faw-qv__frame">
             <img class="faw-qv__low" alt="">
             <img class="faw-qv__img" alt="">
-            <span class="faw-qv__badge">loading full quality…</span>
+            <span class="faw-qv__badge">${T("loadingFull")}</span>
           </div>
-          <button class="faw-qv__nav faw-qv__nav--prev" title="Previous (←)"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
-          <button class="faw-qv__nav faw-qv__nav--next" title="Next (→)"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+          <button class="faw-qv__nav faw-qv__nav--prev" title="${T("prev")}"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button class="faw-qv__nav faw-qv__nav--next" title="${T("next")}"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
         </div>
         <aside class="faw-qv__panel">
           <div class="faw-qv__top">
             <div><h2 class="faw-qv__title"><a></a></h2><div class="faw-qv__by"></div></div>
-            <button class="faw-qv__close" title="Close (Esc)">×</button>
+            <button class="faw-qv__close" title="${T("close")}">×</button>
           </div>
           <div class="faw-qv__actions">
             <button class="faw-qv__btn" data-act="fav">+Fav</button>
-            <button class="faw-qv__btn" data-act="dl">Download</button>
-            <a class="faw-qv__btn" data-act="open">Open page</a>
+            <button class="faw-qv__btn" data-act="dl">${T("download")}</button>
+            <a class="faw-qv__btn" data-act="open">${T("openPage")}</a>
           </div>
           <dl class="faw-qv__meta"></dl>
           <div class="faw-qv__tags"></div>
           <div class="faw-qv__desc"></div>
           <section class="faw-qv__comments">
-            <h3 class="faw-qv__ch">Comments <span></span></h3>
+            <h3 class="faw-qv__ch">${T("comments")} <span></span></h3>
             <div class="faw-qv__clist"></div>
             <form class="faw-qv__cform">
-              <textarea placeholder="Write a comment…" rows="3"></textarea>
-              <div class="faw-qv__crow"><span class="faw-qv__cstatus"></span><button class="faw-qv__btn" type="submit">Post</button></div>
+              <textarea placeholder="${T("writeComment")}" rows="3"></textarea>
+              <div class="faw-qv__crow"><span class="faw-qv__cstatus"></span><button class="faw-qv__btn" type="submit">${T("post")}</button></div>
             </form>
           </section>
           <div class="faw-qv__hint">← → browse · F fav · D download · click image for actual size · Esc close</div>
@@ -1359,9 +1410,21 @@
       });
       $("[data-act=dl]").onclick = download;
       $(".faw-qv__stage").addEventListener("click", (e) => { if (e.target === e.currentTarget) close(); });
-      $(".faw-qv__frame").addEventListener("click", () => {
-        $(".faw-qv__stage").classList.toggle("is-actual");
-        fitImage();
+      const qvStage = $(".faw-qv__stage"), qvFrame = $(".faw-qv__frame");
+      const qvPan = makePannable(qvFrame, { x: qvStage, y: qvStage, active: () => qvStage.classList.contains("is-actual"), hostClass: qvFrame });
+      qvFrame.addEventListener("click", (e) => {
+        if (qvPan.consumeDrag()) return;
+        const r = qvFrame.getBoundingClientRect();
+        const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+        const zoomIn = !qvStage.classList.contains("is-actual");
+        qvStage.classList.toggle("is-actual", zoomIn);
+        qvFrame.classList.toggle("faw-pannable", zoomIn);
+        fitImage(true);
+        if (zoomIn) {
+          const r2 = qvFrame.getBoundingClientRect();
+          qvStage.scrollLeft += r2.left + fx * r2.width - e.clientX;
+          qvStage.scrollTop += r2.top + fy * r2.height - e.clientY;
+        }
       });
       $(".faw-qv__low").addEventListener("load", (e) => { fitImage(); e.target.style.opacity = "1"; });
       $(".faw-qv__low").addEventListener("error", (e) => {
@@ -1424,6 +1487,7 @@
       const low = $(".faw-qv__low");
       const frame = $(".faw-qv__frame");
       $(".faw-qv__stage").classList.remove("is-actual");
+      $(".faw-qv__frame").classList.remove("faw-pannable");
       $(".faw-qv__nav--prev").disabled = idx === 0;
       $(".faw-qv__nav--next").disabled = idx >= list.length - 1 && !(infinite && !infinite.done);
       // Low-quality layer first: the (enlarged) thumbnail. Sized with the exact dimensions when the
@@ -1458,12 +1522,12 @@
         data = await getSubmission("/view/" + item.id + "/");
       } catch (err) {
         if (t !== token) return;
-        $(".faw-qv__spinner").textContent = "Couldn't load submission (" + err.message + ")";
+        $(".faw-qv__spinner").textContent = T("loadFailed", err.message);
         return;
       }
       ready.set(item.id, data);
       if (t !== token) return;
-      $(".faw-qv__spinner").textContent = "Loading…";
+      $(".faw-qv__spinner").textContent = T("loading");
       $(".faw-qv__title a").textContent = data.title;
       const by = $(".faw-qv__by");
       if (data.artist) {
@@ -1523,15 +1587,17 @@
       if (!nw || !nh) return;
       qv.querySelector(".faw-qv__spinner").hidden = true;
       frame.style.visibility = "";
-      if (stage.classList.contains("is-actual") && exact) {
-        frame.style.width = nw + "px";
-        frame.style.height = nh + "px";
-        return;
-      }
       const cs = getComputedStyle(stage);
       const aw = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
       const ah = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
       const scale = Math.min(aw / nw, ah / nh, exact ? 2 : Infinity);
+      if (stage.classList.contains("is-actual")) {
+        // zoomed: native size, but always noticeably larger than the fitted view
+        const z = Math.max(1, scale * 1.75);
+        frame.style.width = Math.round(nw * z) + "px";
+        frame.style.height = Math.round(nh * z) + "px";
+        return;
+      }
       const w = Math.round(nw * scale), h = Math.round(nh * scale);
       // ignore sub-1.5% corrections (thumbnail vs. exact aspect rounding) to avoid a visible jump
       const ow = parseFloat(frame.style.width) || 0, oh = parseFloat(frame.style.height) || 0;
@@ -1545,7 +1611,7 @@
       list.textContent = "";
       const cs = (data && data.comments) || [];
       qv.querySelector(".faw-qv__ch span").textContent = cs.length ? `(${cs.length})` : "";
-      if (!cs.length) list.appendChild(el("div", "faw-qv__cempty", "No comments yet."));
+      if (!cs.length) list.appendChild(el("div", "faw-qv__cempty", T("noComments")));
       for (const c of cs) {
         const item = el("div", "faw-qv__c");
         item.style.marginLeft = Math.min(c.depth, 6) * 14 + "px";
@@ -1575,7 +1641,7 @@
       const text = ta.value.trim();
       if (!cur || !cur.commentForm || !text) return;
       btn.disabled = true;
-      st.textContent = "Posting…";
+      st.textContent = T("posting");
       try {
         const body = new URLSearchParams(cur.commentForm.fields);
         body.set("reply", text);
@@ -1593,9 +1659,9 @@
           if (panel) panel.scrollTop = panel.scrollHeight;
         }
         ta.value = "";
-        st.textContent = "Posted";
+        st.textContent = T("posted");
       } catch (err) {
-        st.textContent = "Couldn't post (" + err.message + ")";
+        st.textContent = T("postFailed", err.message);
       } finally {
         btn.disabled = false;
       }
@@ -1621,7 +1687,7 @@
         ready.set(cur.id, fresh);
         if (data === cur) data = fresh;
       } catch (err) {
-        b.textContent = "Fav failed";
+        b.textContent = T("favFailed");
         setTimeout(updateFavBtn, 1500);
         return;
       }

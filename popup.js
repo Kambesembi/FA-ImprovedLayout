@@ -5,12 +5,21 @@ const UNCAPPED_AT_MAX = { max: true }; // top slider position = no cap (stored a
 
 $("version").textContent = "v" + chrome.runtime.getManifest().version;
 
+function translate() {
+  for (const n of document.querySelectorAll("[data-i18n]")) n.textContent = T(n.dataset.i18n);
+  for (const n of document.querySelectorAll("[data-i18n-title]")) n.title = T(n.dataset.i18nTitle);
+  document.documentElement.lang = FAW_LANG;
+}
+
 function fmt(id, v) {
-  if (UNCAPPED_AT_MAX[id] && v === 0) return "no cap";
+  if (UNCAPPED_AT_MAX[id] && v === 0) return T("noCap");
   return id === "thumb" ? Number(v).toFixed(2) + "×" : v + " px";
 }
 
 function render(s) {
+  fawSetLang(s.lang);
+  translate();
+  $("lang").value = s.lang || "auto";
   $("enabled").checked = s.enabled;
   $("opts").disabled = !s.enabled;
   for (const id of RANGES) {
@@ -70,6 +79,10 @@ for (const seg of document.querySelectorAll(".seg")) {
 $("enabled").addEventListener("change", (e) => {
   $("opts").disabled = !e.target.checked;
   save({ enabled: e.target.checked });
+});
+$("lang").addEventListener("change", (e) => {
+  save({ lang: e.target.value });
+  chrome.storage.sync.get(FAW_DEFAULTS, (s) => render(Object.assign(s, { lang: e.target.value })));
 });
 $("reset").addEventListener("click", () => {
   chrome.storage.sync.clear(() => chrome.storage.sync.set(FAW_DEFAULTS, () => render(FAW_DEFAULTS)));

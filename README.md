@@ -4,7 +4,7 @@ Chrome extension (Manifest V3) that adapts Fur Affinity's modern theme to ultraw
 
 ## Features
 
-Works with all of FA's colour schemes (dark and light variants).
+Works with all of FA's colour schemes (dark and light variants). Extension language: English, Deutsch, Русский (automatic or chosen in the popup).
 
 **Main switches** (popup): the master switch turns everything off (the page is left untouched); *Ultrawide layout* covers all layout changes; *Bubbles design* covers comment/shout bubbles, the comment box, buttons across the site, pagination arrows, avatar views for watchers and the page frame.
 
@@ -12,7 +12,7 @@ Works with all of FA's colour schemes (dark and light variants).
 - Centered, configurable site width (FA normally caps html *and* body at 1850px)
 - Submission page: image → description → details/keywords/folders panel on the left; stats and Fav/Note/Download above the comments in a right-hand column. Stacks into one column on narrow windows
 - Submission page: FA's Main Gallery box under the image is replaced by small newer/older arrow buttons below the image
-- Submission image shows FA's small preview until the full file has loaded, and scales to fill the available width/height without clipping (click for actual size)
+- Submission image shows FA's small preview until the full file has loaded, and scales to fill the available width/height without clipping (click to zoom in at the cursor, drag to pan)
 - Profile pages split: profile text on the left above the galleries, stats/contact/shouts start at the top on the right
 - Profile: Featured and Gallery side by side; the Gallery box is filled edge to edge with justified rows of larger thumbnails (more are fetched if needed); Favorites shows only its thumbnail grid; empty panels hidden
 - Profile header: optional "Archived Gallery" link next to Gallery, to the artist's backup on furarchiver.net (off by default, asks for confirmation); on removed/disabled accounts the same link appears as a button below the system message

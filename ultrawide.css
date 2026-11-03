@@ -337,7 +337,7 @@ html.faw-layout.faw-fit #pageid-submission #submissionImg {
   margin: var(--faw-gap) auto 0;
 }
 html.faw-layout.faw-fit.faw-actual #pageid-submission #submissionImg {
-  width: var(--faw-natw, auto) !important;
+  width: var(--faw-zoomw, var(--faw-natw, auto)) !important;
   cursor: zoom-out !important;
 }
 

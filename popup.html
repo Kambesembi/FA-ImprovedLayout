@@ -65,6 +65,8 @@
   .seg button[aria-pressed=true] { background: var(--accent-dim); color: var(--accent); font-weight: 600; }
   .seg.wrap { grid-auto-flow: row; grid-template-columns: repeat(3, 1fr); }
 
+  .label i { font-style: normal; }
+  select.lang { background: #15161a; color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 4px 8px; font: inherit; font-size: 12px; }
   footer { display: flex; justify-content: space-between; align-items: center; padding: 4px 16px 14px; color: var(--muted); font-size: 11px; }
   footer button {
     background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 6px;
@@ -76,31 +78,31 @@
 <body>
   <header>
     <h1>FA Ultrawide<small id="version"></small></h1>
-    <label class="switch" title="Turn the whole extension on / off"><input type="checkbox" id="enabled"><i></i></label>
+    <label class="switch" data-i18n-title="masterTitle"><input type="checkbox" id="enabled"><i></i></label>
   </header>
 
   <main>
   <fieldset id="opts">
     <section class="card" data-group="ultrawide">
       <div class="row main">
-        <div class="label"><b>Ultrawide layout</b><span>Width, comments beside the image, profile layout</span></div>
+        <div class="label"><b data-i18n="ultrawide"></b><span data-i18n="ultrawideSub"></span></div>
         <label class="switch"><input type="checkbox" id="ultrawide"><i></i></label>
       </div>
       <div class="sub">
         <div class="row col">
-          <div class="head"><span>Max site width</span><span class="val" id="max-v"></span></div>
+          <div class="head"><span data-i18n="maxWidth"></span><span class="val" id="max-v"></span></div>
           <input type="range" id="max" min="1200" max="4000" step="50">
         </div>
         <div class="row col">
-          <div class="head"><span>Side gutter</span><span class="val" id="gutter-v"></span></div>
+          <div class="head"><span data-i18n="gutter"></span><span class="val" id="gutter-v"></span></div>
           <input type="range" id="gutter" min="0" max="300" step="4">
         </div>
         <div class="row col">
-          <div class="head"><span>Thumbnail size</span><span class="val" id="thumb-v"></span></div>
+          <div class="head"><span data-i18n="thumbSize"></span><span class="val" id="thumb-v"></span></div>
           <input type="range" id="thumb" min="0.8" max="2" step="0.05">
         </div>
         <div class="row">
-          <div class="label">Fit image to screen<span>Click the image for actual size</span></div>
+          <div class="label"><i data-i18n="imageFit"></i><span data-i18n="imageFitSub"></span></div>
           <label class="switch"><input type="checkbox" id="imageFit"><i></i></label>
         </div>
       </div>
@@ -108,31 +110,43 @@
 
     <section class="card" data-group="design">
       <div class="row main">
-        <div class="label"><b>Bubbles design</b><span>Comments, shouts, buttons, comment box, arrows, avatars for watchers, page frame</span></div>
+        <div class="label"><b data-i18n="design"></b><span data-i18n="designSub"></span></div>
         <label class="switch"><input type="checkbox" id="design"><i></i></label>
       </div>
     </section>
 
     <section class="card">
-      <h2>Features</h2>
       <div class="row">
-        <div class="label">Quick view<span>Click thumbnails to open a popup</span></div>
+        <div class="label"><i data-i18n="language"></i></div>
+        <select id="lang" class="lang">
+          <option value="auto" data-i18n="langAuto"></option>
+          <option value="en">English</option>
+          <option value="de">Deutsch</option>
+          <option value="ru">Русский</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 data-i18n="features"></h2>
+      <div class="row">
+        <div class="label"><i data-i18n="quickView"></i><span data-i18n="quickViewSub"></span></div>
         <label class="switch"><input type="checkbox" id="quickView"><i></i></label>
       </div>
       <div class="row">
-        <div class="label">Comic reader<span>Loads every page of a series</span></div>
+        <div class="label"><i data-i18n="comic"></i><span data-i18n="comicSub"></span></div>
         <label class="switch"><input type="checkbox" id="comic"><i></i></label>
       </div>
       <div class="row sub-row">
-        <div class="label">Horizontal reading<span>Pages side by side, wheel or ← → to turn</span></div>
+        <div class="label"><i data-i18n="comicH"></i><span data-i18n="comicHSub"></span></div>
         <label class="switch"><input type="checkbox" id="comicHorizontal"><i></i></label>
       </div>
       <div class="row">
-        <div class="label">Infinite scroll<span>Galleries, favorites, browse, search</span></div>
+        <div class="label"><i data-i18n="infinite"></i><span data-i18n="infiniteSub"></span></div>
         <label class="switch"><input type="checkbox" id="infinite"><i></i></label>
       </div>
       <div class="row">
-        <div class="label">Archived Gallery link<span>furarchiver.net, in profile headers &amp; on unavailable accounts</span></div>
+        <div class="label"><i data-i18n="archive"></i><span data-i18n="archiveSub"></span></div>
         <label class="switch"><input type="checkbox" id="archiveLink"><i></i></label>
       </div>
     </section>
@@ -140,9 +154,10 @@
   </main>
 
   <footer>
-    <span>Changes apply on next page load</span>
-    <button id="reset">Reset</button>
+    <span data-i18n="applyNote"></span>
+    <button id="reset" data-i18n="reset"></button>
   </footer>
+  <script src="i18n.js"></script>
   <script src="settings.js"></script>
   <script src="popup.js"></script>
 </body>

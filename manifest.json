@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FA Ultrawide",
-  "version": "1.17.0",
+  "version": "1.18.0",
   "description": "Centered wide layout for Fur Affinity (modern theme) with quick view, comic reader and infinite scroll.",
   "permissions": [
     "storage",
@@ -31,6 +31,7 @@
         "features.css"
       ],
       "js": [
+        "i18n.js",
         "features.js"
       ],
       "run_at": "document_idle"

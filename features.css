@@ -390,7 +390,7 @@ html.faw-design :is(button.button, a.button, input.button, input[type=submit].bu
   color: var(--faw-text) !important; text-shadow: none !important; box-shadow: none !important;
   transition: background-color .12s, border-color .12s;
 }
-html.faw-design :is(button.button, a.button, input.button, input[type=submit].button, .button.standard):not(.faw-qv__btn):not(.bbcodeformat):not(:is(.nuke, .button-nuke)) {
+html.faw-design :is(button.button, a.button, input.button, input[type=submit].button, .button.standard):not(.faw-qv__btn):not(.bbcodeformat):not(:is(.nuke, .button-nuke)):not(button:empty):not(a:empty):not(.c-searchQueryInput__button) {
   background-image: none !important;
 }
 html.faw-design :is(button.button, a.button, input.button, .button.standard):not(.faw-qv__btn):not([disabled]):not(.disabled):hover {
@@ -446,7 +446,7 @@ html.faw-design :where(section, .stats-page, .submission-preview, .fa-plus-subsc
 html.faw-design :is(section, .userpage-section-left, .userpage-section-right, .userpage-profile) section:not([class^="faw-"]) {
   border: 0 !important; border-radius: 0 !important;
 }
-html.faw-design section:not([class^="faw-"]):has(> .section-header),
+html.faw-design section:not([class^="faw-"]):is(.gallery-section, :has(> .section-header), :has(> .section-body)),
 html.faw-design #page-userpage :is(.userpage-section-left, .userpage-section-right) { overflow: hidden; }
 html.faw-design .section-header {
   background-image: none !important;
@@ -474,3 +474,23 @@ html.faw-design .faw-archive-sys { border-radius: 12px; }
 .faw-subnav-row { display: flex; justify-content: center; gap: 6px; margin: 10px 0 0; }
 .faw-subnav-row .faw-arrow-btn { min-width: 40px; min-height: 30px; display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; text-decoration: none !important; }
 .faw-subnav-row .faw-arrow-btn.is-off { opacity: .3; pointer-events: none; }
+
+/* Nuke buttons everywhere (journals, comments, notes…): red icon like on submissions */
+html.faw-design .button.nuke svg, html.faw-design .button.nuke svg * { fill: #e5484d !important; color: #e5484d !important; }
+html.faw-design .button.nuke i, html.faw-design .button.nuke .bi { color: #e5484d !important; }
+
+/* Shouts pager: number box exactly as tall as the arrow buttons */
+html.faw-design form.c-shoutPaginationForm > .button {
+  height: 34px !important; min-height: 34px; padding-top: 0 !important; padding-bottom: 0 !important;
+  line-height: 32px !important; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
+}
+
+/* Comic view open: newer/older buttons are not needed */
+html.faw-comic-open .faw-subnav-row { display: none !important; }
+
+/* Zoomed submission image: drag to pan */
+html.faw-actual #pageid-submission .submission-area.faw-pannable { cursor: grab; }
+html.faw-actual #pageid-submission .submission-area.faw-panning { cursor: grabbing; user-select: none; }
+html.faw-actual #pageid-submission .submission-area.faw-pannable #submissionImg { cursor: inherit !important; }
+.faw-qv__frame.faw-pannable { cursor: grab; }
+.faw-qv__frame.faw-panning { cursor: grabbing; user-select: none; }
