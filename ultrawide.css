@@ -71,37 +71,34 @@ html:not(.faw-off) #page-userpage > :not(.userpage-layout):not(.userpage-layout-
   grid-column: 1 / -1;
 }
 
-/* Left column: Featured | Gallery side by side, Favorites and the rest full width below.
-   Gallery/Favorites show only their thumbnail grid (no big "latest" preview); empty ones are hidden. */
+/* Left column: Featured | Gallery side by side (only when both exist and have content — content.js
+   tags the sections), Favorites and the rest full width below. Gallery/Favorites show only their
+   thumbnail grid (no big "latest" preview); empty ones are hidden. */
 html:not(.faw-off) #page-userpage .userpage-layout-left-col-content {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: start;
 }
 html:not(.faw-off) #page-userpage .userpage-layout-left-col-content > * { grid-column: 1 / -1; min-width: 0; }
-html:not(.faw-off) #page-userpage .userpage-layout-left-col-content > .gallery_container:not(:has(#gallery-latest-submissions, #gallery-latest-favorites)) {
-  grid-column: 1;            /* Featured */
-}
-/* Gallery: as tall as Featured (contain:size keeps it from growing the row), thumbnails scroll inside */
-html:not(.faw-off) #page-userpage .userpage-layout-left-col-content > .gallery_container:has(#gallery-latest-submissions) {
+html:not(.faw-off) #page-userpage .userpage-layout-left-col-content.faw-pair > .faw-featured { grid-column: 1; }
+/* Gallery next to Featured: as tall as Featured (contain:size keeps it from growing the row) */
+html:not(.faw-off) #page-userpage .userpage-layout-left-col-content.faw-pair > .faw-gallery {
   grid-column: 2;
   contain: size;
   align-self: stretch;
   display: flex !important;
   flex-direction: column;
 }
-html:not(.faw-off) #page-userpage .gallery_container:has(#gallery-latest-submissions) > .userpage-section-left {
+html:not(.faw-off) #page-userpage .faw-pair > .faw-gallery > .userpage-section-left {
   flex: 1; min-height: 0; display: flex; flex-direction: column; box-sizing: border-box;
 }
-html:not(.faw-off) #page-userpage #gallery-latest-submissions { flex: 1; min-height: 0; overflow-y: auto; }
+html:not(.faw-off) #page-userpage .faw-pair #gallery-latest-submissions { flex: 1; min-height: 0; }
 html:not(.faw-off) #page-userpage #gallery-latest-submissions figure,
 html:not(.faw-off) #page-userpage #gallery-latest-favorites figure { zoom: 1; }
-/* only one of the pair present → it takes the full width */
-html:not(.faw-off) #page-userpage .userpage-layout-left-col-content:not(:has(> .gallery_container #gallery-latest-submissions figure)) > .gallery_container:not(:has(#gallery-latest-submissions, #gallery-latest-favorites)),
-html:not(.faw-off) #page-userpage .userpage-layout-left-col-content:not(:has(> .gallery_container:not(:has(#gallery-latest-submissions, #gallery-latest-favorites)))) > .gallery_container:has(#gallery-latest-submissions) {
-  grid-column: 1 / -1;
-  contain: none;
-}
+html:not(.faw-off) #page-userpage .userpage-layout-left-col-content > .faw-empty,
+html:not(.faw-off) #page-userpage #gallery-preview,
+html:not(.faw-off) #page-userpage #favorite-preview { display: none !important; }
+
 /* Narrow windows: profile columns stack; the Featured|Gallery pair stacks when its column gets tight */
 @media (max-width: 1100px) {
   html:not(.faw-off) #page-userpage {
@@ -116,12 +113,23 @@ html:not(.faw-off) #page-userpage .userpage-layout-left-col { container-type: in
     contain: none !important;
   }
 }
-html:not(.faw-off) #page-userpage #gallery-preview,
-html:not(.faw-off) #page-userpage #favorite-preview { display: none !important; }
-html:not(.faw-off) #page-userpage .gallery_container:has(#gallery-latest-submissions):not(:has(#gallery-latest-submissions figure)),
-html:not(.faw-off) #page-userpage .gallery_container:has(#gallery-latest-favorites):not(:has(#gallery-latest-favorites figure)) {
-  display: none !important;
+
+/* Recent watchers / recently watched: one row of avatars (features.js builds .faw-watchrow) */
+.faw-watchrow {
+  display: flex; flex-wrap: wrap; gap: 6px 10px; padding: 10px 12px;
+  height: calc(56px + 2.6em); overflow: hidden; box-sizing: content-box;
 }
+.faw-watchrow a {
+  flex: 0 0 76px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  text-decoration: none; color: inherit; font-size: 11.5px; min-width: 0;
+}
+.faw-watchrow img {
+  width: 56px; height: 56px; border-radius: 10px; object-fit: cover; background: rgba(255,255,255,.05);
+  transition: transform .12s ease;
+}
+.faw-watchrow a:hover img { transform: scale(1.06); }
+.faw-watchrow span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .85; }
+.faw-watchrow + table { display: none !important; }
 
 /* ---- Submission page ---- */
 /* Sidebar boxes are capped at 340px internally; let them follow their container */
@@ -215,6 +223,54 @@ html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .sidebarAds { flex: 
 html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(2) > div:has(.submission-page-stats) { flex: 1 1 300px; order: 1; }
 html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-controls-upper { flex: 1 1 300px; order: 2; display: flex; justify-content: center; align-items: center; }
 html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #sidebar-lower-reverse:not(:has(.submission-controls-lower *)) { display: none !important; }
+/* Aside header (stats + Fav/Note/Download): one flat panel that blends into the page —
+   no boxed backgrounds, a hairline divider towards the comments, compact uniform buttons */
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(2) {
+  background: transparent !important;
+  padding: 2px 2px 14px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  align-items: center !important;
+  justify-content: space-between;
+  gap: 12px 20px !important;
+}
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(2) > div:has(.submission-page-stats) {
+  flex: 1 1 auto !important;
+}
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-page-stats {
+  background: transparent !important; padding: 0 !important; margin: 0 !important;
+  display: flex !important; justify-content: flex-start !important; gap: 22px; flex-wrap: wrap;
+}
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-page-stats > div {
+  flex: none !important; width: auto !important; text-align: left !important; line-height: 1.15;
+}
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-page-stats > div > div:first-child {
+  font-size: 17px; font-weight: 700;
+}
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-page-stats .highlight {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; opacity: .55;
+}
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-controls-upper {
+  flex: 0 0 auto !important; display: flex !important; gap: 6px; flex-wrap: wrap; justify-content: flex-end;
+}
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-controls-upper > * { margin: 0 !important; background: transparent !important; }
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-controls-upper .button {
+  background: rgba(255, 255, 255, .06) !important;
+  border: 1px solid rgba(255, 255, 255, .12) !important;
+  border-radius: 6px !important;
+  padding: 6px 14px !important; margin: 0 !important; height: auto !important; line-height: 1.3 !important;
+  color: #ddd !important; box-shadow: none !important; transition: background .12s, border-color .12s;
+}
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-controls-upper .button:hover {
+  background: rgba(255, 255, 255, .12) !important; border-color: rgba(255, 255, 255, .22) !important;
+}
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-controls-upper .button.nuke,
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-controls-upper .button[href*="report"],
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-controls-upper .button.stop,
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-controls-upper .button[class*="red"] {
+  color: #f0a0a0 !important; border-color: rgba(230, 110, 110, .35) !important; background: rgba(200, 60, 60, .12) !important;
+}
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .comments-list { padding-top: 0 !important; }
+
 /* the main column and its wrappers may shrink below their content width (comic strip scrolls instead) */
 html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-content,
 html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-content-inner,

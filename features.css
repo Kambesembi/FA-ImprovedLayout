@@ -182,4 +182,54 @@ html.faw-comic-h .submission-area { overflow: visible !important; }
 }
 
 /* Shout pagination: arrow-only buttons */
-.faw-arrow-btn { min-width: 2.6em; font-weight: 700; letter-spacing: -.05em; }
+.faw-arrow-btn { font-size: 0 !important; min-width: 36px; padding: 6px 10px !important; }
+.faw-arrow-btn::before { content: attr(data-faw-arrow); font-size: 13px; font-weight: 700; letter-spacing: -.04em; line-height: 1.3; }
+
+/* ---------- Comment style presets (html.faw-cmt-*) ---------- */
+:is(html.faw-cmt-cards, html.faw-cmt-compact, html.faw-cmt-bubbles, html.faw-cmt-minimal) :is(#comments-submission, #comments-journal) comment-container {
+  border: 0 !important; background: transparent; box-shadow: none; gap: 12px; align-items: flex-start;
+}
+:is(html.faw-cmt-cards, html.faw-cmt-compact, html.faw-cmt-bubbles, html.faw-cmt-minimal) :is(#comments-submission, #comments-journal) comment-container > .avatar {
+  width: auto !important; flex: none !important; padding: 0 !important; margin: 0 !important;
+}
+:is(html.faw-cmt-cards, html.faw-cmt-compact, html.faw-cmt-bubbles, html.faw-cmt-minimal) :is(#comments-submission, #comments-journal) .comment-content {
+  flex: 1 1 auto; min-width: 0;
+}
+
+/* Cards: soft rounded cards, round avatars */
+html.faw-cmt-cards :is(#comments-submission, #comments-journal) comment-container {
+  background: rgba(255,255,255,.035) !important; border-radius: 10px; padding: 12px 14px !important;
+  margin-bottom: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.25) !important;
+}
+html.faw-cmt-cards :is(#comments-submission, #comments-journal) .comment_useravatar {
+  width: 56px !important; height: 56px !important; border-radius: 50% !important; object-fit: cover;
+}
+
+/* Compact: dense list, small avatars, no custom titles */
+html.faw-cmt-compact :is(#comments-submission, #comments-journal) comment-container {
+  padding: 7px 4px !important; border-bottom: 1px solid rgba(255,255,255,.07) !important; gap: 10px; font-size: 12.5px;
+}
+html.faw-cmt-compact :is(#comments-submission, #comments-journal) .comment_useravatar {
+  width: 34px !important; height: 34px !important; border-radius: 8px !important;
+}
+html.faw-cmt-compact :is(#comments-submission, #comments-journal) comment-title { display: none !important; }
+html.faw-cmt-compact :is(#comments-submission, #comments-journal) comment-footer { font-size: 11px; opacity: .8; }
+
+/* Bubbles: chat style, text in a rounded bubble next to a small round avatar */
+html.faw-cmt-bubbles :is(#comments-submission, #comments-journal) comment-container { padding: 6px 2px !important; margin-bottom: 4px; }
+html.faw-cmt-bubbles :is(#comments-submission, #comments-journal) .comment_useravatar {
+  width: 40px !important; height: 40px !important; border-radius: 50% !important; object-fit: cover;
+}
+html.faw-cmt-bubbles :is(#comments-submission, #comments-journal) .comment-content {
+  background: rgba(255,255,255,.06); border-radius: 4px 16px 16px 16px; padding: 9px 14px !important;
+}
+html.faw-cmt-bubbles :is(#comments-submission, #comments-journal) comment-title { display: none !important; }
+
+/* Minimal: no boxes, a thin accent line, tiny avatars */
+html.faw-cmt-minimal :is(#comments-submission, #comments-journal) comment-container {
+  padding: 8px 0 8px 12px !important; border-left: 2px solid rgba(255,255,255,.1) !important; margin-bottom: 8px; gap: 10px;
+}
+html.faw-cmt-minimal :is(#comments-submission, #comments-journal) .comment_useravatar {
+  width: 28px !important; height: 28px !important; border-radius: 50% !important;
+}
+html.faw-cmt-minimal :is(#comments-submission, #comments-journal) comment-title { display: none !important; }

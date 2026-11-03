@@ -33,7 +33,7 @@
     }
     if (S.infinite) initInfinite();
     if (S.archiveLink) initArchiveLink();
-    if (page === "pageid-userpage") { initProfileGallery(); initShoutArrows(); }
+    if (page === "pageid-userpage") { initProfileGallery(); initShoutArrows(); initWatcherRows(); }
     if (page === "pageid-watchlist") initWatchlistAll();
     if (S.quickView) initQuickView();
   });
@@ -598,14 +598,40 @@
 
   // ------------------------------------------------------------------ profile: shout pagination arrows
   function initShoutArrows() {
+    // Only the visible label changes (CSS ::before); the button text stays as FA's script expects it
     const map = { "first page": "<<", "prev page": "<", "next page": ">", "last page": ">>" };
     for (const b of document.querySelectorAll("form.c-shoutPaginationForm button")) {
       const k = b.textContent.trim().toLowerCase();
       if (!map[k]) continue;
       b.title = b.textContent.trim();
-      b.setAttribute("aria-label", b.title);
-      b.textContent = map[k];
+      b.dataset.fawArrow = map[k];
       b.classList.add("faw-arrow-btn");
+    }
+  }
+
+  // ------------------------------------------------------------------ profile: recent watchers as avatars
+  function initWatcherRows() {
+    for (const block of document.querySelectorAll(".watched-by-block, .is-watching-block")) {
+      const table = block.querySelector(".section-body table");
+      if (!table || block.querySelector(".faw-watchrow")) continue;
+      const links = [...table.querySelectorAll("a[href^='/user/']")];
+      if (!links.length) continue;
+      const row = el("div", "faw-watchrow");
+      for (const a of links) {
+        const slug = (a.getAttribute("href").match(/^\/user\/([^/]+)/) || [])[1];
+        if (!slug) continue;
+        const item = el("a");
+        item.href = a.getAttribute("href");
+        item.title = a.textContent.trim();
+        const img = el("img");
+        img.loading = "lazy";
+        img.alt = "";
+        img.src = "https://a.furaffinity.net/" + encodeURIComponent(slug.toLowerCase()) + ".gif";
+        img.onerror = () => { img.onerror = null; img.src = "https://a.furaffinity.net/default.gif"; };
+        item.append(img, el("span", null, a.textContent.trim()));
+        row.appendChild(item);
+      }
+      table.before(row);
     }
   }
 
@@ -631,6 +657,14 @@
           return true;
         });
         if (!items.length) break;
+        // FA starts a new row ("new-section") at each new initial letter; a page boundary inside the
+        // same letter must not start one
+        const initial = (it) => (it.textContent.replace(/[^a-z0-9]/gi, "")[0] || "").toLowerCase();
+        const last = list.lastElementChild;
+        if (last && items[0].classList.contains("new-section") && initial(items[0]) === initial(last)) {
+          items[0].classList.remove("new-section");
+          items[0].classList.add("inline");
+        }
         for (const it of items) list.appendChild(document.adoptNode(it));
         pages++;
         status.textContent = `Loading all entries… ${list.children.length} so far`;

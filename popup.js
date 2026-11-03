@@ -1,8 +1,9 @@
 const $ = (id) => document.getElementById(id);
 const RANGES = ["max", "gutter", "thumb"];
 const CHECKS = ["imageFit", "quickView", "comic", "comicHorizontal", "infinite", "archiveLink"];
-const SELECTS = ["layout"];
 const UNCAPPED_AT_MAX = { max: true }; // top slider position = no cap (stored as 0)
+
+$("version").textContent = "v" + chrome.runtime.getManifest().version;
 
 function fmt(id, v) {
   if (UNCAPPED_AT_MAX[id] && v === 0) return "no cap";
@@ -18,7 +19,10 @@ function render(s) {
     $(id + "-v").textContent = fmt(id, s[id]);
   }
   for (const id of CHECKS) $(id).checked = !!s[id];
-  for (const id of SELECTS) $(id).value = s[id];
+  for (const seg of document.querySelectorAll(".seg")) {
+    for (const b of seg.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.val === s[seg.dataset.key]));
+  }
+  $("comicHorizontal").disabled = !s.comic;
 }
 
 function readSlider(id) {
@@ -44,8 +48,20 @@ for (const id of RANGES) {
     save({ [id]: v });
   });
 }
-for (const id of CHECKS) $(id).addEventListener("change", (e) => save({ [id]: e.target.checked }));
-for (const id of SELECTS) $(id).addEventListener("change", (e) => save({ [id]: e.target.value }));
+for (const id of CHECKS) {
+  $(id).addEventListener("change", (e) => {
+    save({ [id]: e.target.checked });
+    if (id === "comic") $("comicHorizontal").disabled = !e.target.checked;
+  });
+}
+for (const seg of document.querySelectorAll(".seg")) {
+  seg.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    for (const x of seg.querySelectorAll("button")) x.setAttribute("aria-pressed", String(x === b));
+    save({ [seg.dataset.key]: b.dataset.val });
+  });
+}
 $("enabled").addEventListener("change", (e) => {
   $("opts").disabled = !e.target.checked;
   save({ enabled: e.target.checked });

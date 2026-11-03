@@ -4,8 +4,9 @@
 // keywords and folders move into a panel below the description.
 (() => {
   const DEFAULTS = {
-    enabled: true, max: 2800, gutter: 24, thumb: 1.25, layout: "comments-right"
+    enabled: true, max: 2800, gutter: 24, thumb: 1.25, layout: "comments-right", commentStyle: "cards"
   };
+  const COMMENT_STYLES = ["default", "cards", "compact", "bubbles", "minimal"];
   const root = document.documentElement;
   let current = DEFAULTS;
 
@@ -14,6 +15,7 @@
     current = s;
     root.classList.toggle("faw-off", !s.enabled);
     root.classList.toggle("faw-sub-classic", s.layout === "classic");
+    for (const c of COMMENT_STYLES) root.classList.toggle("faw-cmt-" + c, s.commentStyle === c);
     root.style.setProperty("--faw-max", s.max > 0 ? s.max + "px" : "100vw");
     root.style.setProperty("--faw-gutter", s.gutter + "px");
     root.style.setProperty("--faw-thumb", String(s.thumb));
@@ -57,11 +59,35 @@
     if (panel.children.length) details.after(panel);
   }
 
+  // ---- profile page: tag the left-column sections so CSS can pair Featured | Gallery reliably
+  function tagProfile() {
+    if (!document.body || document.body.id !== "pageid-userpage") return;
+    const lc = document.querySelector(".userpage-layout-left-col-content");
+    if (!lc) return;
+    let featured = null, gallery = null;
+    for (const sec of lc.children) {
+      if (!sec.classList.contains("gallery_container")) continue;
+      const g = sec.querySelector("#gallery-latest-submissions");
+      const f = sec.querySelector("#gallery-latest-favorites");
+      if (g) { sec.classList.add("faw-gallery"); gallery = sec; }
+      else if (f) sec.classList.add("faw-favs");
+      else { sec.classList.add("faw-featured"); featured = sec; }
+      const grid = g || f;
+      if (grid && !grid.querySelector("figure")) sec.classList.add("faw-empty");
+      if (!grid && !sec.querySelector("img")) sec.classList.add("faw-empty");
+    }
+    const pair = featured && gallery && !featured.classList.contains("faw-empty") && !gallery.classList.contains("faw-empty");
+    lc.classList.toggle("faw-pair", !!pair);
+  }
+  const onReady = () => { splitSubmissionPanel(); tagProfile(); };
+
   chrome.storage.sync.get(DEFAULTS, apply);
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "sync") chrome.storage.sync.get(DEFAULTS, apply);
   });
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", splitSubmissionPanel, { once: true });
+    document.addEventListener("DOMContentLoaded", onReady, { once: true });
+  } else {
+    tagProfile();
   }
 })();

@@ -5,6 +5,7 @@ const FAW_DEFAULTS = {
   gutter: 24,         // px
   thumb: 1.25,        // thumbnail scale
   layout: "comments-right", // submission page: "comments-right" | "classic"
+  commentStyle: "cards",     // comments: "default" | "cards" | "compact" | "bubbles" | "minimal"
   imageFit: true,     // fit submission image to available space
   quickView: true,    // click thumbnails to open a popup
   comic: true,        // comic series reader

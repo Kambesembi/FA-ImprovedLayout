@@ -21,6 +21,8 @@ Chrome extension (Manifest V3) that adapts Fur Affinity's modern theme to ultraw
 - Infinite scroll in galleries, scraps, favorites, browse, search and the submission inbox (next page is prefetched and appended well before the end)
 - Watchers / watching lists load completely on one page
 - Profile shout pagination uses compact << < > >> buttons
+- Recent watchers / recently watched: one row of avatars
+- Comment style presets: Cards, Bubbles, Compact, Minimal or FA default
 
 ## Install
 
@@ -38,4 +40,4 @@ Disable overlapping features in other FA extensions (e.g. "FurAffinity Features"
 | `ultrawide.css` / `content.js` | Layout (applied at `document_start`) |
 | `features.css` / `features.js` | Image fit, quick view, comic reader, infinite scroll |
 | `background.js` | Downloads for the quick view |
-| `popup.html` / `popup.js` / `settings.js` | Settings popup |
+| `popup.html` / `popup.js` / `settings.js` | Settings popup (switches, presets) |
