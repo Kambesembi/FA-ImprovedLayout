@@ -37,6 +37,7 @@ const FAW_I18N = {
     newerSub: "Newer submission", olderSub: "Older submission", moreFrom: "More from {0}", viewGallery: "View gallery",
     // infinite scroll
     pageDivider: "— page {0} —", pagesLoaded: "{0} pages loaded · scroll for more", by: "by", category: "Category", species: "Species", resolution: "Resolution", rating: "Rating",
+    qvHint: "← → browse · F fav · D download · click image to zoom · Esc close",
     scrollMore: "Scroll for more", loadingPage: "Loading page {0}…", endPages: "End · {0} pages loaded",
     noMore: "No more submissions", pageFailed: "Couldn't load page {0} ({1}) ", retry: "Retry",
     // quick view
@@ -74,6 +75,7 @@ const FAW_I18N = {
     bbYt: "YouTube-Video", bbIcon: "Nutzer-Icon  :iconname:", bbUlink: "Nutzer-Link  :linkname:", bbHr: "Trennlinie",
     newerSub: "Neuere Einreichung", olderSub: "Ältere Einreichung", moreFrom: "Mehr von {0}", viewGallery: "Zur Galerie",
     pageDivider: "— Seite {0} —", pagesLoaded: "{0} Seiten geladen · scrollen für mehr", by: "von", category: "Kategorie", species: "Spezies", resolution: "Auflösung", rating: "Einstufung",
+    qvHint: "← → blättern · F Fav · D Download · Klick ins Bild zum Zoomen · Esc schließen",
     scrollMore: "Scrollen für mehr", loadingPage: "Lade Seite {0}…", endPages: "Ende · {0} Seiten geladen",
     noMore: "Keine weiteren Einreichungen", pageFailed: "Seite {0} konnte nicht geladen werden ({1}) ", retry: "Erneut versuchen",
     prev: "Zurück (←)", next: "Weiter (→)", close: "Schließen (Esc)", download: "Herunterladen", openPage: "Seite öffnen",
@@ -110,6 +112,7 @@ const FAW_I18N = {
     bbYt: "Видео YouTube", bbIcon: "Иконка пользователя  :iconname:", bbUlink: "Ссылка на пользователя  :linkname:", bbHr: "Горизонтальная линия",
     newerSub: "Более новая работа", olderSub: "Более старая работа", moreFrom: "Ещё от {0}", viewGallery: "Открыть галерею",
     pageDivider: "— страница {0} —", pagesLoaded: "Загружено страниц: {0} · прокрутите дальше", by: "автор", category: "Категория", species: "Вид", resolution: "Разрешение", rating: "Рейтинг",
+    qvHint: "← → листать · F избранное · D скачать · клик по изображению — масштаб · Esc закрыть",
     scrollMore: "Прокрутите, чтобы увидеть больше", loadingPage: "Загрузка страницы {0}…", endPages: "Конец · загружено страниц: {0}",
     noMore: "Больше работ нет", pageFailed: "Не удалось загрузить страницу {0} ({1}) ", retry: "Повторить",
     prev: "Назад (←)", next: "Вперёд (→)", close: "Закрыть (Esc)", download: "Скачать", openPage: "Открыть страницу",

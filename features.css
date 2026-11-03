@@ -110,6 +110,7 @@
 .faw-qv__crow { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .faw-qv__crow .faw-qv__btn { border-radius: 8px; background: rgba(224,166,75,.18); border-color: rgba(224,166,75,.45); color: var(--faw-accent-text); }
 .faw-qv__cstatus { font-size: 11.5px; color: #888; }
+.faw-qv__hint { color: #777; font-size: 11px; text-align: center; }
 
 @media (max-width: 1000px) {
   .faw-qv { flex-direction: column; }
@@ -125,12 +126,12 @@ html.faw-lb-open { overflow: hidden; }
   position: absolute; inset: 0; overflow: auto; padding: 16px; box-sizing: border-box;
   display: flex; align-items: center; justify-content: center; cursor: zoom-out;
 }
-.faw-lb__img {
-  display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;
+.faw-lb__img {   /* features.js sizes it to fit the screen */
+  display: block; flex: none; object-fit: contain;
   cursor: zoom-in; box-shadow: 0 6px 40px rgba(0,0,0,.6); user-select: none; -webkit-user-drag: none;
 }
 .faw-lb.is-zoom .faw-lb__stage { align-items: flex-start; justify-content: flex-start; }
-.faw-lb.is-zoom .faw-lb__img { max-width: none; max-height: none; margin: auto; flex: none; cursor: grab; }
+.faw-lb.is-zoom .faw-lb__img { margin: auto; cursor: grab; }
 .faw-lb__stage.faw-panning .faw-lb__img { cursor: grabbing; }
 .faw-lb__close {
   position: absolute; top: 10px; right: 14px; z-index: 1; width: 40px; height: 40px; border: 0; border-radius: 10px;
@@ -304,7 +305,7 @@ html.faw-design form textarea#JSMessage {
 }
 html.faw-design #add_comment_form textarea:focus { border-color: rgba(224,166,75,.6) !important; outline: none; }
 html.faw-design #responsebox { position: relative; }
-html.faw-design #responsebox > p:first-child { min-height: 34px; display: flex; align-items: center; margin: 0 0 8px; padding-right: 150px; }
+html.faw-design #responsebox > p:first-child { min-height: 34px; line-height: 34px; margin: 0 0 8px; padding-right: 150px; }
 html.faw-design #responsebox #add_comment_form,
 html.faw-design #responsebox #add_comment_form .section-footer { position: static !important; }
 html.faw-design #add_comment_form .section-footer { min-height: 0 !important; padding-bottom: 0 !important; }
@@ -314,6 +315,12 @@ html.faw-design #add_comment_form .button.go {
 }
 html.faw-design #add_comment_form .button.go:hover { background: rgba(224,166,75,.28) !important; }
 html.faw-design #add_comment_form .button.go.post-comment { position: absolute !important; top: 0; right: 0; margin: 0 !important; }
+/* journals etc.: the comment form stands alone below the post → give it its own panel */
+html.faw-design body:not(#pageid-submission) #responsebox {
+  margin-top: 12px; padding: 14px 16px; box-sizing: border-box; border-radius: 12px;
+  background: rgba(var(--faw-ink), .03); border: 1px solid rgba(var(--faw-ink), .08);
+}
+html.faw-design body:not(#pageid-submission) #add_comment_form .button.go.post-comment { top: 14px; right: 16px; }
 
 /* toolbar buttons (comments, journals, notes): FA's sprite icons redrawn in the same style as ours */
 html.faw-design form .floatleft:has(> .bbcodeformat) { display: flex !important; flex-wrap: wrap; gap: 3px; align-items: center; }

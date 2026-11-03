@@ -225,7 +225,7 @@
   function initLightbox() {
     const img = document.getElementById("submissionImg");
     if (!img) return;
-    let lb = null;
+    let lb = null, offResize = null;
     const open = () => {
       const full = abs(img.getAttribute("data-fullview-src")) || img.currentSrc || img.src;
       lb = el("div", "faw-lb");
@@ -240,6 +240,17 @@
       lb.append(stage, closeBtn);
       document.body.appendChild(lb);
       document.documentElement.classList.add("faw-lb-open");
+      // fitted view: as large as the screen allows (small images are scaled up too)
+      const fit = () => {
+        if (!lb || lb.classList.contains("is-zoom") || !pic.naturalWidth) return;
+        const s = Math.min((stage.clientWidth - 32) / pic.naturalWidth, (stage.clientHeight - 32) / pic.naturalHeight);
+        pic.style.width = Math.round(pic.naturalWidth * s) + "px";
+        pic.style.height = Math.round(pic.naturalHeight * s) + "px";
+      };
+      pic.addEventListener("load", fit);
+      window.addEventListener("resize", fit);
+      offResize = () => window.removeEventListener("resize", fit);
+      if (pic.complete) fit();
       const pan = makePannable(pic, { x: stage, y: stage, active: () => lb.classList.contains("is-zoom"), hostClass: stage });
       pic.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -251,8 +262,9 @@
           const w = Math.round(Math.max(pic.naturalWidth || 0, r.width * 1.75));
           pic.style.width = w + "px";
           pic.style.height = Math.round(w * r.height / r.width) + "px";
-        } else { pic.style.width = pic.style.height = ""; }
+        }
         lb.classList.toggle("is-zoom", zoomIn);
+        if (!zoomIn) fit();
         stage.classList.toggle("faw-pannable", zoomIn);
         if (zoomIn) {
           const r2 = pic.getBoundingClientRect();
@@ -267,6 +279,7 @@
     const close = () => {
       if (!lb) return;
       lb.remove(); lb = null;
+      if (offResize) offResize();
       document.documentElement.classList.remove("faw-lb-open");
       document.removeEventListener("keydown", onKey, true);
     };
@@ -1420,14 +1433,15 @@
           <dl class="faw-qv__meta"></dl>
           <div class="faw-qv__tags"></div>
           <div class="faw-qv__desc"></div>
-          <section class="faw-qv__comments">
+          <div class="faw-qv__comments">
             <h3 class="faw-qv__ch">${T("comments")} <span></span></h3>
             <div class="faw-qv__clist"></div>
             <form class="faw-qv__cform">
               <textarea placeholder="${T("writeComment")}" rows="3"></textarea>
               <div class="faw-qv__crow"><span class="faw-qv__cstatus"></span><button class="faw-qv__btn" type="submit">${T("post")}</button></div>
             </form>
-          </section>
+          </div>
+          <div class="faw-qv__hint">${T("qvHint")}</div>
         </aside>`;
       document.body.appendChild(qv);
       const $ = (s) => qv.querySelector(s);
