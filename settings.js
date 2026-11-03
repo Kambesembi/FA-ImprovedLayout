@@ -10,5 +10,5 @@ const FAW_DEFAULTS = {
   comic: true,        // comic series reader
   comicHorizontal: false, // comic reader scrolls left→right, comments move to the left
   infinite: true,     // infinite scroll in galleries
-  archiveLink: true   // "Archived Gallery" (furarchiver.net) link in the profile header
+  archiveLink: false  // "Archived Gallery" (furarchiver.net) link in the profile header
 };

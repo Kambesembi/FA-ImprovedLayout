@@ -93,6 +93,20 @@ html:not(.faw-off) #page-userpage .userpage-layout-left-col-content:not(:has(> .
   grid-column: 1 / -1;
   contain: none;
 }
+/* Narrow windows: profile columns stack; the Featured|Gallery pair stacks when its column gets tight */
+@media (max-width: 1100px) {
+  html:not(.faw-off) #page-userpage {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "profile" "left" "right";
+  }
+}
+html:not(.faw-off) #page-userpage .userpage-layout-left-col { container-type: inline-size; }
+@container (max-width: 760px) {
+  html:not(.faw-off) #page-userpage .userpage-layout-left-col-content > .gallery_container {
+    grid-column: 1 / -1 !important;
+    contain: none !important;
+  }
+}
 html:not(.faw-off) #page-userpage #gallery-preview,
 html:not(.faw-off) #page-userpage #favorite-preview { display: none !important; }
 html:not(.faw-off) #page-userpage .gallery_container:has(#gallery-latest-submissions):not(:has(#gallery-latest-submissions figure)),
@@ -118,69 +132,83 @@ html.faw-sub-classic:not(.faw-off) #pageid-submission #submission-main-content >
   box-sizing: border-box !important;
 }
 
-/* Comments-right layout: image → description → info panel on the left, comments on the right.
-   Wrapper divs become display:contents so their children share one grid. Wide screens only. */
-@media (min-width: 1400px) {
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-page-content {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) clamp(420px, 24%, 760px);
-    grid-template-areas: "ads com" "img com" "desc com" "side com";
-    grid-template-rows: auto auto auto 1fr;
-    column-gap: var(--faw-gap);
-    align-items: start;
-  }
-  /* Horizontal comic reader open: comments move to the left, the strip gets the wide column */
-  html.faw-comic-h:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-page-content {
-    grid-template-columns: clamp(420px, 24%, 760px) minmax(0, 1fr);
-    grid-template-areas: "com ads" "com img" "com desc" "com side";
-  }
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content,
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(1),
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #sidebar-collapsible,
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #sidebar-upper {
-    display: contents !important;
-  }
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-ads { grid-area: ads; }
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-content { grid-area: img; min-width: 0; }
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-details { grid-area: desc; min-width: 0; }
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .comments-list { grid-area: com; min-width: 0; }
-
-  /* Description and info panel share exact left/right edges */
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-description {
-    margin: 0 !important;
-    box-sizing: border-box !important;
-    max-width: none !important;
-  }
-
-  /* Former sidebar → horizontal info panel: stats/buttons/info | keywords | folders */
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(2) {
-    grid-area: side;
-    display: grid !important;
-    grid-template-columns: minmax(340px, max-content) minmax(0, 1fr) minmax(220px, max-content);
-    grid-template-areas:
-      "ads   ads  ads"
-      "stats tags lower"
-      "ctrl  tags lower"
-      "info  tags lower"
-      ".     tags lower";
-    grid-template-rows: auto auto auto auto 1fr;
-    gap: 10px 16px;
-    align-items: start;
-    width: auto !important;
-    max-width: none !important;
-    flex: none !important;
-    margin: var(--faw-gap) 0 0 !important;
-    padding: 12px !important;
-    box-sizing: border-box !important;
-  }
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(2) > * { min-width: 0; margin-left: 0 !important; margin-right: 0 !important; }
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .sidebarAds { grid-area: ads; }
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(2) > div:has(.submission-page-stats) { grid-area: stats; }
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-controls-upper { grid-area: ctrl; }
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-content-stats { grid-area: info; }
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-tags { grid-area: tags; }
-  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #sidebar-lower-reverse { grid-area: lower; }
+/* Comments-right layout (default, any window size):
+     main column  = FA's left wrapper (image → mini gallery → description), unchanged inside
+     aside column = info panel (former sidebar) on top, comments below
+   #submission-main-content becomes display:contents so its two wrappers and the comments share
+   one grid. Below ~1100px window width everything stacks in one column. */
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-page-content {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "main" "side" "com";
+  row-gap: var(--faw-gap);
+  align-items: start;
 }
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content {
+  display: contents !important;
+}
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(1) {
+  grid-area: main;
+  display: flex !important;
+  flex-direction: column;
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  flex: none !important;
+}
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .comments-list {
+  grid-area: com; min-width: 0; width: auto !important; max-width: none !important;
+}
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-description {
+  margin: 0 !important; box-sizing: border-box !important; max-width: none !important;
+}
+@media (min-width: 1100px) {
+  html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-page-content {
+    grid-template-columns: minmax(0, 1fr) clamp(380px, 26%, 760px);
+    grid-template-areas: "main side" "main com";
+    grid-template-rows: auto 1fr;
+    column-gap: var(--faw-gap);
+  }
+  /* Horizontal comic reader open: the aside (info + comments) moves to the left */
+  html.faw-comic-h:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-page-content {
+    grid-template-columns: clamp(380px, 26%, 760px) minmax(0, 1fr);
+    grid-template-areas: "side main" "com main";
+  }
+}
+
+/* Info panel (former sidebar): blocks wrap to whatever width the aside has */
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(2) {
+  grid-area: side;
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 14px;
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  flex: none !important;
+  margin: 0 !important;
+  padding: 12px !important;
+  box-sizing: border-box !important;
+}
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #sidebar-collapsible,
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #sidebar-upper {
+  display: contents !important;
+}
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(2) > *,
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #sidebar-upper > *,
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #sidebar-lower-reverse {
+  min-width: 0;
+  margin: 0 !important;
+  box-sizing: border-box;
+}
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .sidebarAds { flex: 1 1 100%; }
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #submission-main-content > div:nth-child(2) > div:has(.submission-page-stats) { flex: 1 1 300px; order: 1; }
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-controls-upper { flex: 1 1 300px; order: 2; display: flex; justify-content: center; align-items: center; }
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-content-stats { flex: 1 1 260px; order: 3; }
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #sidebar-lower-reverse { flex: 1 1 200px; order: 4; }
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission .submission-tags { flex: 1 1 100%; order: 5; }
+html:not(.faw-sub-classic):not(.faw-off) #pageid-submission #sidebar-lower-reverse:not(:has(.submission-controls-lower *)) { display: none !important; }
 
 /* Image fit (features.js sets --faw-ar / --faw-natw and html.faw-fit):
    as wide as the column allows, as tall as the viewport allows, never more than 2× native. */

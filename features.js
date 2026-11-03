@@ -5,7 +5,7 @@
 
   const DEFAULTS = {
     enabled: true, imageFit: true, quickView: true, comic: true, comicHorizontal: false, infinite: true,
-    archiveLink: true, thumb: 1.25
+    archiveLink: false, thumb: 1.25
   };
   const root = document.documentElement;
   const page = document.body ? document.body.id : "";
@@ -426,8 +426,8 @@
     a.addEventListener("auxclick", ask);
     h3.appendChild(a);
     li.appendChild(h3);
-    const scraps = [...ul.children].find((x) => /^\/scraps\//.test(x.querySelector("a")?.getAttribute("href") || ""));
-    if (scraps) scraps.after(li); else ul.appendChild(li);
+    const gallery = [...ul.children].find((x) => /^\/gallery\//.test(x.querySelector("a")?.getAttribute("href") || ""));
+    if (gallery) gallery.after(li); else ul.appendChild(li);
   }
 
   // Small in-page confirmation (a native confirm() would block the page)

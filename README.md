@@ -6,13 +6,14 @@ Chrome extension (Manifest V3) that adapts Fur Affinity's modern theme to ultraw
 
 **Layout**
 - Centered, configurable site width (FA normally caps html *and* body at 1850px)
-- Submission page: image → description → info panel on the left, comments in a right-hand column (or classic sidebar layout)
+- Submission page: image → description on the left; info panel (stats, buttons, details, folders, keywords) above the comments in a right-hand column (or classic sidebar layout). Stacks into one column on narrow windows
 - Submission image scales to fill the available width/height without clipping (click for actual size)
 - Profile pages split: profile text on the left above the galleries, stats/contact/shouts start at the top on the right
 - Profile: Featured and Gallery side by side; the Gallery box is filled edge to edge with justified rows of larger thumbnails (more are fetched if needed); Favorites shows only its thumbnail grid; empty panels hidden
-- Profile header: "Archived Gallery" link to the artist's backup on furarchiver.net (asks for confirmation; can be turned off)
+- Profile header: optional "Archived Gallery" link next to Gallery, to the artist's backup on furarchiver.net (off by default, asks for confirmation)
 - Banners always centered
 - Adjustable thumbnail scale in galleries
+- Responsive: every layout adapts to the window size (single column below ~1100px)
 
 **Features** (each can be toggled in the popup)
 - Quick view: click a thumbnail to open the submission in an overlay (fav, download, open page, ← → to browse). Shows the thumbnail instantly and fades in the full image when loaded; neighbours are prefetched so browsing doesn't flicker.

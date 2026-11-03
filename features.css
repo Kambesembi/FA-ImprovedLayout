@@ -164,3 +164,10 @@ html.faw-comic-h .submission-area { overflow: visible !important; }
 .faw-confirm__url { font-size: 12px; color: #889; word-break: break-all; margin-bottom: 14px; }
 .faw-confirm__row { display: flex; justify-content: flex-end; gap: 8px; }
 .faw-confirm__ok { background: #6b4a12 !important; border-color: #8a6420 !important; }
+
+/* ---------- Narrow windows ---------- */
+@media (max-width: 1000px) {
+  .faw-qv { flex-direction: column; }
+  .faw-qv__stage { padding: 24px 64px; }
+  .faw-qv__panel { flex: 0 0 auto; max-height: 38vh; border-left: 0; border-top: 1px solid #333; }
+}
