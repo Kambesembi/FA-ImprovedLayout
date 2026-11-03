@@ -714,10 +714,8 @@
         item.href = a.getAttribute("href");
         item.title = a.textContent.trim();
         const img = el("img");
-        img.loading = "lazy";
-        img.alt = "";
-        img.src = avatarUrl(slug);
-        img.onerror = () => { img.onerror = null; img.src = "https://a.furaffinity.net/default.gif"; };
+                img.alt = "";
+        attachAvatar(img, slug);
         item.append(img, el("span", null, a.textContent.trim()));
         row.appendChild(item);
       }
@@ -739,8 +737,66 @@
   }
 
   // Avatar tiles for the full watchers / watching list
-  function avatarUrl(slug) {
-    return "https://a.furaffinity.net/" + encodeURIComponent(String(slug).toLowerCase()) + ".gif";
+  // The short form a.furaffinity.net/<name>.gif is unreliable (stale or default images), so the real
+  // URL (with its timestamp) is read from the user's page — only for avatars that scroll into view,
+  // two requests at a time, cached in localStorage for two weeks.
+  const AV_DEFAULT = "https://a.furaffinity.net/default.gif";
+  const AV_TTL = 14 * 864e5;
+  const avPending = new Map();
+  const avQueue = [];
+  let avActive = 0;
+  function avCacheGet(slug) {
+    try {
+      const v = JSON.parse(localStorage.getItem("faw-av:" + slug) || "null");
+      if (v && Date.now() - v.t < AV_TTL) return v.u;
+    } catch {}
+    return null;
+  }
+  function avCacheSet(slug, u) {
+    try { localStorage.setItem("faw-av:" + slug, JSON.stringify({ u, t: Date.now() })); } catch {}
+  }
+  function avPump() {
+    while (avActive < 2 && avQueue.length) {
+      const { slug, resolve } = avQueue.shift();
+      avActive++;
+      fetch("/user/" + encodeURIComponent(slug) + "/", { credentials: "include" })
+        .then((r) => r.text())
+        .then((html) => {
+          const esc = slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const m = html.match(new RegExp("(?:https?:)?//a\\.furaffinity\\.net/(\\d+)/" + esc + "\\.gif", "i"));
+          const nav = !m && html.match(/userpage-nav-avatar[\s\S]{0,400}?src="([^"]+)"/);
+          const u = m ? "https://a.furaffinity.net/" + m[1] + "/" + slug + ".gif"
+            : nav ? new URL(nav[1], location.href).href : AV_DEFAULT;
+          avCacheSet(slug, u);
+          resolve(u);
+        })
+        .catch(() => resolve(AV_DEFAULT))
+        .finally(() => { avActive--; setTimeout(avPump, 120); });
+    }
+  }
+  function resolveAvatar(slug) {
+    slug = String(slug).toLowerCase();
+    const cached = avCacheGet(slug);
+    if (cached) return Promise.resolve(cached);
+    if (!avPending.has(slug)) avPending.set(slug, new Promise((resolve) => { avQueue.push({ slug, resolve }); avPump(); }));
+    return avPending.get(slug);
+  }
+  let avObserver = null;
+  function attachAvatar(img, slug) {
+    img.dataset.fawAv = slug;
+    img.classList.add("faw-av-pending");
+    img.onerror = () => { img.onerror = null; img.src = AV_DEFAULT; };
+    const cached = avCacheGet(String(slug).toLowerCase());
+    if (cached) { img.src = cached; img.classList.remove("faw-av-pending"); return; }
+    avObserver = avObserver || new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        avObserver.unobserve(e.target);
+        const t = e.target;
+        resolveAvatar(t.dataset.fawAv).then((u) => { t.src = u; t.classList.remove("faw-av-pending"); });
+      }
+    }, { rootMargin: "300px" });
+    avObserver.observe(img);
   }
   function decorateWatchlist(list) {
     if (!designOn()) return;
@@ -752,10 +808,8 @@
       const slug = (a.getAttribute("href").match(/^\/user\/([^/]+)/) || [])[1];
       if (!slug) continue;
       const img = el("img", "faw-tile__img");
-      img.loading = "lazy";
-      img.alt = "";
-      img.src = avatarUrl(slug);
-      img.onerror = () => { img.onerror = null; img.src = "https://a.furaffinity.net/default.gif"; };
+            img.alt = "";
+      attachAvatar(img, slug);
       a.prepend(img);
       it.dataset.fawTile = "1";
     }
@@ -808,24 +862,29 @@
 
   // ------------------------------------------------------------------ comment box: more BBCode buttons
   // FA's toolbar only has B/I/U + alignment; add the rest of FA's tags & codes.
+  // Two rows: text formatting (FA's B/I/U first) / alignment + inserts. Order is set via CSS `order`
+  // because FA's own buttons and ours share one flex container.
   const BB_TOOLS = [
-    { t: "S", title: "Strikethrough", wrap: ["[s]", "[/s]"], cls: "s" },
-    { t: "x²", title: "Superscript", wrap: ["[sup]", "[/sup]"] },
-    { t: "x₂", title: "Subscript", wrap: ["[sub]", "[/sub]"] },
-    { sep: true },
-    { t: "H1", title: "Heading 1", wrap: ["[h1]", "[/h1]"] },
-    { t: "H2", title: "Heading 2", wrap: ["[h2]", "[/h2]"] },
-    { t: "H3", title: "Heading 3", wrap: ["[h3]", "[/h3]"] },
-    { sep: true },
-    { t: "A", title: "Text colour", color: true },
-    { t: "❝", title: "Quote", wrap: ["[quote]", "[/quote]"] },
-    { t: "◼", title: "Spoiler", wrap: ["[spoiler]", "[/spoiler]"] },
-    { t: "🔗", title: "Link (select a URL or text)", url: true },
-    { t: "▶", title: "YouTube video", wrap: ["[yt]", "[/yt]"] },
-    { sep: true },
-    { t: "@i", title: "User icon  :iconname:", wrap: [":icon", ":"] },
-    { t: "@l", title: "User link  :linkname:", wrap: [":link", ":"] },
-    { t: "—", title: "Horizontal line", insert: "\n-----\n" }
+    { row: 2, sep: true },
+    { row: 2, t: "S", title: "Strikethrough", wrap: ["[s]", "[/s]"], cls: "s" },
+    { row: 2, t: "x²", title: "Superscript", wrap: ["[sup]", "[/sup]"] },
+    { row: 2, t: "x₂", title: "Subscript", wrap: ["[sub]", "[/sub]"] },
+    { row: 2, sep: true },
+    { row: 2, t: "H1", title: "Heading 1", wrap: ["[h1]", "[/h1]"] },
+    { row: 2, t: "H2", title: "Heading 2", wrap: ["[h2]", "[/h2]"] },
+    { row: 2, t: "H3", title: "Heading 3", wrap: ["[h3]", "[/h3]"] },
+    { row: 2, sep: true },
+    { row: 2, t: "A", title: "Text colour", color: true },
+    { row: 3, br: true },
+    { row: 5, sep: true },
+    { row: 5, t: "❝", title: "Quote", wrap: ["[quote]", "[/quote]"] },
+    { row: 5, t: "◼", title: "Spoiler", wrap: ["[spoiler]", "[/spoiler]"] },
+    { row: 5, t: "🔗", title: "Link (select a URL or text)", url: true },
+    { row: 5, t: "▶", title: "YouTube video", wrap: ["[yt]", "[/yt]"] },
+    { row: 5, sep: true },
+    { row: 5, t: "@i", title: "User icon  :iconname:", wrap: [":icon", ":"] },
+    { row: 5, t: "@l", title: "User link  :linkname:", wrap: [":link", ":"] },
+    { row: 5, t: "—", title: "Horizontal line", insert: "\n-----\n" }
   ];
   function insertBB(ta, open, close, placeholder) {
     const a = ta.selectionStart, b = ta.selectionEnd, v = ta.value;
@@ -845,8 +904,14 @@
       if (!ta) continue;
       const wrapBox = el("span", "faw-bb");
       for (const tool of BB_TOOLS) {
-        if (tool.sep) { wrapBox.appendChild(el("span", "faw-bb__sep")); continue; }
+        if (tool.sep || tool.br) {
+          const x = el("span", tool.br ? "faw-bb__br" : "faw-bb__sep");
+          x.style.order = tool.row;
+          wrapBox.appendChild(x);
+          continue;
+        }
         const btn = el("button", "faw-bb__btn" + (tool.cls ? " is-" + tool.cls : ""), tool.t);
+        btn.style.order = tool.row;
         btn.type = "button";
         btn.title = tool.title;
         if (tool.color) {
@@ -958,7 +1023,8 @@
       const box = el("section", "faw-more");
       const head = el("div", "faw-more__head");
       head.append(el("span", null, `More from ${me.artist.name}`));
-      const all = el("a", null, "View gallery →");
+      const all = el("a", null, "View gallery");
+      all.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>');
       all.href = `/gallery/${slug}/`;
       head.appendChild(all);
       const grid = el("div", "faw-more__grid");
@@ -1154,8 +1220,8 @@
             <img class="faw-qv__img" alt="">
             <span class="faw-qv__badge">loading full quality…</span>
           </div>
-          <button class="faw-qv__nav faw-qv__nav--prev" title="Previous (←)">‹</button>
-          <button class="faw-qv__nav faw-qv__nav--next" title="Next (→)">›</button>
+          <button class="faw-qv__nav faw-qv__nav--prev" title="Previous (←)"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button class="faw-qv__nav faw-qv__nav--next" title="Next (→)"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
         </div>
         <aside class="faw-qv__panel">
           <div class="faw-qv__top">
@@ -1386,8 +1452,7 @@
         const img = el("img");
         img.src = c.avatar || "https://a.furaffinity.net/default.gif";
         img.alt = "";
-        img.loading = "lazy";
-        const body = el("div", "faw-qv__cbody");
+                const body = el("div", "faw-qv__cbody");
         const head = el("div", "faw-qv__chead");
         const who = el("a", null, c.name || "?");
         if (c.href) who.href = c.href;
@@ -1424,8 +1489,8 @@
         if (data === cur) {
           data = fresh;
           renderComments();
-          const list = qv.querySelector(".faw-qv__clist");
-          list.scrollTop = list.scrollHeight;
+          const panel = qv.querySelector(".faw-qv__panel");
+          if (panel) panel.scrollTop = panel.scrollHeight;
         }
         ta.value = "";
         st.textContent = "Posted";

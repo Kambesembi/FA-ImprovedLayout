@@ -5,7 +5,7 @@
 (() => {
   const DEFAULTS = {
     enabled: true, ultrawide: true, design: true,
-    max: 2800, gutter: 24, thumb: 1.25, layout: "comments-right"
+    max: 2800, gutter: 24, thumb: 1.25
   };
   const root = document.documentElement;
   let current = DEFAULTS;
@@ -29,7 +29,7 @@
     root.classList.toggle("faw-layout", layoutOn());
     root.classList.toggle("faw-design", designOn());
     root.classList.toggle("faw-cmt-bubbles", designOn());
-    root.classList.toggle("faw-sub-classic", layoutOn() && s.layout === "classic");
+    root.classList.remove("faw-sub-classic");
     root.classList.remove("faw-off");
     if (layoutOn()) {
       root.style.setProperty("--faw-max", s.max > 0 ? s.max + "px" : "100vw");
@@ -46,7 +46,7 @@
   const moved = [];
   function splitSubmissionPanel() {
     if (!document.body || document.body.id !== "pageid-submission") return;
-    const want = layoutOn() && current.layout !== "classic";
+    const want = layoutOn();
     let panel = document.getElementById("faw-subinfo");
 
     if (!want) {                                   // put everything back where FA had it

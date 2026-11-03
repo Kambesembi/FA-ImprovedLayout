@@ -42,6 +42,7 @@
   width: 56px; height: 120px; z-index: 1; border: 0; border-radius: 6px; cursor: pointer;
   background: rgba(30,30,34,.55); color: #eee; font-size: 34px; line-height: 1;
 }
+.faw-qv__nav { display: grid; place-items: center; }
 .faw-qv__nav:hover { background: rgba(60,60,66,.8); }
 .faw-qv__nav--prev { left: 12px; }
 .faw-qv__nav--next { right: 12px; }
@@ -350,3 +351,20 @@ form span.floatleft:has(> .faw-bb) > .faw-bb { margin-left: 8px; }
 .watch-list.faw-tiles > * > :not(.c-usernameBlockSimple) { display: none !important; }
 .watch-list.faw-tiles ~ .watchlist-navigation { display: none !important; }
 .faw-qv__hint { display: none !important; }
+
+/* ---------- Comment toolbar: always two rows ---------- */
+form span.floatleft:has(> .faw-bb) > .bbcodeformat:is(.b, .i, .u) { order: 1; }
+form span.floatleft:has(> .faw-bb) > .bbcodeformat:is(.align_left, .align_center, .align_right) { order: 4; margin-left: 0 !important; margin-right: 0 !important; }
+form span.floatleft:has(> .faw-bb) > .faw-bb { margin-left: 0; }
+.faw-bb__br { flex: 0 0 100%; height: 0; }
+
+/* ---------- More from artist: keep the header clear of the rounded corners ---------- */
+.faw-more { padding: 14px 14px 14px; }
+.faw-more__head { margin: 2px 6px 12px; align-items: center; }
+.faw-more__head a { display: inline-flex; align-items: center; gap: 4px; }
+
+/* ---------- Quick view: one scroll area (no nested comment scroller), form pinned at the bottom ---------- */
+.faw-qv__clist { max-height: none; overflow: visible; padding-right: 0; }
+
+/* ---------- Watcher avatars while their real URL is being looked up ---------- */
+img.faw-av-pending { background: rgba(255,255,255,.06); }

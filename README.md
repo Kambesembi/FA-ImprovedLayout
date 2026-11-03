@@ -8,7 +8,7 @@ Chrome extension (Manifest V3) that adapts Fur Affinity's modern theme to ultraw
 
 **Layout**
 - Centered, configurable site width (FA normally caps html *and* body at 1850px)
-- Submission page: image → description → details/keywords/folders panel on the left; stats and Fav/Note/Download above the comments in a right-hand column (or classic sidebar layout). Stacks into one column on narrow windows
+- Submission page: image → description → details/keywords/folders panel on the left; stats and Fav/Note/Download above the comments in a right-hand column. Stacks into one column on narrow windows
 - Submission image scales to fill the available width/height without clipping (click for actual size)
 - Profile pages split: profile text on the left above the galleries, stats/contact/shouts start at the top on the right
 - Profile: Featured and Gallery side by side; the Gallery box is filled edge to edge with justified rows of larger thumbnails (more are fetched if needed); Favorites shows only its thumbnail grid; empty panels hidden
@@ -22,13 +22,13 @@ Chrome extension (Manifest V3) that adapts Fur Affinity's modern theme to ultraw
 - Comic reader: assembles a whole series on one page, via prev/next/first links in the description or via numbered titles ("Name - Page 9") found with FA's search. Each page is scaled to fit the screen; optional horizontal mode (comments move left, scroll pages left→right with wheel or ← →)
 - Infinite scroll in galleries, scraps, favorites, browse, search and the submission inbox (next page is prefetched and appended well before the end)
 - Watchers / watching lists load completely on one page
-- Pagination buttons (shouts, search, browse) use compact << < > >> arrows
+- Pagination buttons (shouts, search, browse) use compact arrow icons
 - External links: in-page confirmation instead of FA's interstitial page
 - +Fav on submission pages without a page reload
 - "More from artist" (9 submissions) below the comments
 - Ctrl/Cmd+click a thumbnail opens the submission page instead of the quick view
-- Recent watchers / recently watched: one row of avatars; full watcher lists as avatar tiles
-- Comment & shout style: Classic (FA) or Bubbles; extra BBCode buttons in comment boxes (strike, sup/sub, headings, colour, quote, spoiler, link, YouTube, user icons/links, line)
+- Recent watchers / recently watched: one row of avatars; full watcher lists as avatar tiles (real avatars, looked up as they scroll into view and cached)
+- Comment & shout style: Classic (FA) or Bubbles; two-row comment toolbar with extra BBCode buttons (strike, sup/sub, headings, colour, quote, spoiler, link, YouTube, user icons/links, line)
 
 ## Install
 
