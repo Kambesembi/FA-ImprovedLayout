@@ -141,7 +141,7 @@
       artist: artistA ? { name: artistA.textContent.trim(), href: artistA.getAttribute("href") } : null,
       fav: favA ? { href: favA.getAttribute("href"), faved: favA.getAttribute("href").startsWith("/unfav/") } : null,
       download: dlA ? abs(dlA.getAttribute("href")) : null,
-      descHTML: descEl ? sanitize(descEl) : "",
+      desc: descEl ? sanitize(descEl) : null,
       tags: [...doc.querySelectorAll(".submission-tags a[href*='/search/'], .tags a[href*='/search/']")].map((a) => ({
         text: a.textContent.trim(), href: a.getAttribute("href")
       })).filter((t) => t.text),
@@ -169,7 +169,7 @@
         name: name ? name.textContent.trim() : "",
         href: user ? user.getAttribute("href") : "",
         date: date ? (date.getAttribute("title") || date.textContent).trim() : "",
-        html: text ? sanitize(text) : ""
+        body: text ? sanitize(text) : null
       });
     }
     return out;
@@ -182,6 +182,8 @@
     return { action: form.getAttribute("action") || "", fields };
   }
 
+  // Cleaned copy of FA user content (description / comment) for the quick view: no scripts, embeds,
+  // event handlers or javascript: links. Inserted as DOM nodes (showContent), never as an HTML string.
   function sanitize(node) {
     const c = node.cloneNode(true);
     // the header (avatar/title/artist/date) duplicates what the quick view already shows
@@ -192,7 +194,11 @@
         if (/^on/i.test(at.name) || /^\s*javascript:/i.test(at.value)) n.removeAttribute(at.name);
       }
     });
-    return c.innerHTML;
+    return c;
+  }
+
+  function showContent(target, node) {
+    target.replaceChildren(...(node ? [...node.childNodes].map((n) => document.importNode(n, true)) : []));
   }
 
   function getSubmission(url) {
@@ -1215,6 +1221,16 @@
     document.documentElement.classList.add("faw-subnav-on");
   }
 
+  const arrowIcon = () => {
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg"), path = document.createElementNS(NS, "path");
+    for (const [k, v] of Object.entries({ viewBox: "0 0 24 24", width: 13, height: 13, fill: "none", stroke: "currentColor",
+      "stroke-width": 2.4, "stroke-linecap": "round", "stroke-linejoin": "round" })) svg.setAttribute(k, v);
+    path.setAttribute("d", "M5 12h14M13 6l6 6-6 6");
+    svg.appendChild(path);
+    return svg;
+  };
+
   // ------------------------------------------------------------------ submission: "More from artist" below the comments
   async function initMoreFromArtist() {
     const list = document.querySelector(".comments-list");
@@ -1232,7 +1248,7 @@
       const head = el("div", "faw-more__head");
       head.append(el("span", null, T("moreFrom", me.artist.name)));
       const all = el("a", null, T("viewGallery"));
-      all.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>');
+      all.append(arrowIcon());
       all.href = `/gallery/${slug}/`;
       head.appendChild(all);
       const grid = el("div", "faw-more__grid");
@@ -1420,7 +1436,8 @@
     function build() {
       qv = el("div", "faw-qv");
       qv.hidden = true;
-      qv.innerHTML = `
+      // static markup (only our own texts) parsed once; DOMParser instead of innerHTML
+      const tpl = `
         <div class="faw-qv__view">
         <div class="faw-qv__stage">
           <span class="faw-qv__spinner">${T("loading")}</span>
@@ -1456,6 +1473,7 @@
           </div>
           <div class="faw-qv__hint">${T("qvHint")}</div>
         </aside>`;
+      qv.append(...new DOMParser().parseFromString(tpl, "text/html").body.childNodes);
       document.body.appendChild(qv);
       const $ = (s) => qv.querySelector(s);
       $(".faw-qv__close").onclick = close;
@@ -1616,7 +1634,7 @@
         a.href = tg.href;
         tags.appendChild(a);
       }
-      $(".faw-qv__desc").innerHTML = data.descHTML;
+      showContent($(".faw-qv__desc"), data.desc);
       renderComments();
       updateFavBtn();
       $("[data-act=dl]").disabled = !data.download;
@@ -1695,7 +1713,7 @@
         if (c.href) who.href = c.href;
         head.append(who, el("span", null, c.date));
         const text = el("div", "faw-qv__ctext");
-        text.innerHTML = c.html;
+        showContent(text, c.body);
         body.append(head, text);
         item.append(img, body);
         list.appendChild(item);
