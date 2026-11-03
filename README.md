@@ -20,7 +20,7 @@ Download the latest package from [Releases](../../releases/latest).
 
 **Chrome / Edge / Brave:** unzip `…-chrome.zip`, open `chrome://extensions`, enable **Developer mode**, click **Load unpacked** and select the `FA-ImprovedLayout` folder. To update, replace the folder's contents and click the reload icon.
 
-**Firefox:** open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on** and pick `…-firefox.zip` (removed again when Firefox closes). Permanent installation needs a version signed by Mozilla.
+**Firefox:** download `…-firefox.xpi` from the release and open it with Firefox (or drag it into a Firefox window), then confirm. It's signed by Mozilla and updates by installing the newer `.xpi`.
 
 ## Privacy
 
