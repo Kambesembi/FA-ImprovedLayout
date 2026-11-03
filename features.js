@@ -1,5 +1,6 @@
-// FA Ultrawide — image fit, quick view, comic reader, infinite scroll.
-// Runs at document_idle. Feature toggles come from chrome.storage.sync (popup).
+// FA Ultrawide — everything that needs scripting after the page has loaded: image fit + full-screen
+// viewer, quick view, comic reader, infinite scroll, profile gallery, watcher avatars, comment toolbar,
+// pagination arrows, system message colours. Runs at document_idle; texts come from i18n.js (T()).
 (() => {
   "use strict";
 
@@ -53,11 +54,6 @@
     if (designOn()) { applyArrowButtons(); classifySystemMessages(); }
     onDomChange(() => { if (designOn()) applyArrowButtons(); initCommentToolbar(); indentReplies(); });
     if (S.quickView) initQuickView();
-  });
-  chrome.storage.onChanged.addListener((c, area) => {
-    if (area !== "sync") return;
-    for (const k in c) S[k] = c[k].newValue;
-    root.classList.toggle("faw-fit", !!(S.enabled && S.ultrawide && S.imageFit && document.getElementById("submissionImg")));
   });
 
   // ------------------------------------------------------------------ fetching / parsing
@@ -179,7 +175,9 @@
     c.querySelectorAll("script, style, iframe, object, embed, .submission-description-header, .submission-id-container")
       .forEach((n) => n.remove());
     c.querySelectorAll("*").forEach((n) => {
-      for (const at of [...n.attributes]) if (/^on/i.test(at.name)) n.removeAttribute(at.name);
+      for (const at of [...n.attributes]) {
+        if (/^on/i.test(at.name) || /^\s*javascript:/i.test(at.value)) n.removeAttribute(at.name);
+      }
     });
     return c.innerHTML;
   }
@@ -208,10 +206,10 @@
     if (res) setDims(res.w, res.h);
     root.classList.add("faw-fit");
 
-    // Upgrade to the full-resolution file when the preview would be upscaled
+    // Upgrade to the full-resolution file if FA served a smaller one that would be upscaled
     const ensureFull = () => {
-      if (!full || img.getAttribute("src") === full || abs(img.getAttribute("src")) === full) return;
-      if (img.clientWidth > img.naturalWidth + 2 || root.classList.contains("faw-actual")) img.src = full;
+      if (!full || abs(img.getAttribute("src")) === full) return;
+      if (img.clientWidth > img.naturalWidth + 2) img.src = full;
     };
     img.addEventListener("load", () => {
       if (!res && img.naturalWidth) setDims(img.naturalWidth, img.naturalHeight);
@@ -219,7 +217,6 @@
     });
     if (img.complete) ensureFull();
     window.addEventListener("resize", ensureFull);
-
   }
 
   // ------------------------------------------------------------------ submission: full-screen image viewer
@@ -326,7 +323,7 @@
     const status = el("span");
     bar.append(btn, status);
     const area = img.closest(".submission-area") || img.parentElement;
-    // Sit next to FA's "Main Gallery / Newer / Older" box under the image
+    // The bar lives in FA's #minigallery row under the image (its own box is hidden by the layout)
     const placeBar = () => {
       const mini = document.getElementById("minigallery");
       if (mini) { mini.classList.add("faw-has-comic"); mini.appendChild(bar); }
@@ -369,6 +366,7 @@
       }
     };
 
+    const progress = (n) => { status.textContent = T("loadingPagesFound", n); };
     btn.addEventListener("click", async () => {
       if (container) { setOpen(container.hidden); return; }
       if (loading) return;
@@ -376,8 +374,8 @@
       btn.disabled = true;
       try {
         const pages = titleMatches
-          ? await loadTitled(titleMatches, (n, total) => { status.textContent = T("loadingPagesFound", n); })
-          : await loadSeries(current, (n, dir) => { status.textContent = T("loadingPagesFound", n); });
+          ? await loadTitled(titleMatches, progress)
+          : await loadSeries(current, progress);
         container = renderComic(pages, current.id);
         area.appendChild(container);
         if (S.comicHorizontal) enableHorizontal(container);
@@ -402,7 +400,7 @@
         seen.add(id);
         p = await getSubmission(link);
         before.unshift(p);
-        progress(before.length + after.length + 1, "earlier");
+        progress(before.length + after.length + 1);
         link = p.comicLinks.prev || (p.comicLinks.first && !seen.has(viewId(p.comicLinks.first)) ? p.comicLinks.first : null);
         await sleep(200);
       }
@@ -415,7 +413,7 @@
           seen.add(id);
           q = await getSubmission(q.comicLinks.next);
           before.push(q);
-          progress(before.length + 1, "earlier");
+          progress(before.length + 1);
           await sleep(200);
         }
       }
@@ -427,7 +425,7 @@
         seen.add(id);
         n = await getSubmission(n.comicLinks.next);
         after.push(n);
-        progress(before.length + after.length + 1, "later");
+        progress(before.length + after.length + 1);
         await sleep(200);
       }
       return [...before, cur, ...after];
@@ -436,7 +434,7 @@
     async function loadTitled(matches, progress) {
       const pages = [];
       for (let i = 0; i < matches.length; i++) {
-        progress(i + 1, matches.length);
+        progress(i + 1);
         if (matches[i].id === current.id) { pages.push(current); continue; }
         const wasCached = docCache.has(matches[i].id);
         pages.push(await getSubmission("/view/" + matches[i].id + "/"));
@@ -767,16 +765,7 @@
     layout();
   }
 
-  // ------------------------------------------------------------------ pagination: << < > >> buttons
-  // Shouts, search, browse… The original label stays in the DOM (hidden span) because FA's own
-  // scripts read the button text; the arrow is drawn with CSS. Re-applied when FA re-renders.
-  const ARROWS = {
-    "first": "<<", "first page": "<<",
-    "prev": "<", "prev page": "<", "previous": "<", "previous page": "<", "back": "<",
-    "next": ">", "next page": ">",
-    "last": ">>", "last page": ">>"
-  };
-  // System messages: success → green, failure → red
+  // ------------------------------------------------------------------ system messages: success → green, failure → red
   function classifySystemMessages() {
     for (const h of document.querySelectorAll(".section-header, h2")) {
       if (!/system message/i.test(h.textContent) || h.textContent.length > 60) continue;
@@ -799,6 +788,16 @@
       }
     }
   }
+  // ------------------------------------------------------------------ pagination: << < > >> buttons
+  // Shouts, search, browse… The original label stays in the DOM (hidden span) because FA's own
+  // scripts read the button text; the arrow is drawn with CSS. Re-applied when FA re-renders.
+  const ARROWS = {
+    "first": "<<", "first page": "<<",
+    "prev": "<", "prev page": "<", "previous": "<", "previous page": "<", "back": "<",
+    "next": ">", "next page": ">",
+    "last": ">>", "last page": ">>"
+  };
+  // Shout pager: FA decorates the current page number as ⚞1⚟
   function tidyPageSelects(scope) {
     for (const o of (scope || document).querySelectorAll("select.button option")) {
       if (/[⚞⚟]/.test(o.textContent)) o.textContent = o.textContent.replace(/[⚞⚟]/g, "").trim();
@@ -847,7 +846,7 @@
         item.href = a.getAttribute("href");
         item.title = a.textContent.trim();
         const img = el("img");
-                img.alt = "";
+        img.alt = "";
         attachAvatar(img, slug);
         item.append(img, el("span", null, a.textContent.trim()));
         row.appendChild(item);
@@ -869,10 +868,10 @@
     }
   }
 
-  // Avatar tiles for the full watchers / watching list
-  // The short form a.furaffinity.net/<name>.gif is unreliable (stale or default images), so the real
-  // URL (with its timestamp) is read from the user's page — only for avatars that scroll into view,
-  // two requests at a time, cached in localStorage for two weeks.
+  // ------------------------------------------------------------------ avatars (watcher rows / tiles)
+  // FA lists don't include avatars. The short address a.furaffinity.net/<name>.gif usually works;
+  // only if it keeps failing is the real (timestamped) URL read from the user's profile page —
+  // two lookups at a time, cached in localStorage for two weeks.
   const AV_DEFAULT = "https://a.furaffinity.net/default.gif";
   const AV_DAY = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const AV_TTL = 14 * 864e5;
@@ -893,7 +892,7 @@
     while (avActive < 2 && avQueue.length) {
       const { slug, resolve } = avQueue.shift();
       avActive++;
-      fetch("/user/" + encodeURIComponent(slug) + "/", { credentials: "include" })
+      fetch("/user/" + encodeURIComponent(slug) + "/", { credentials: "same-origin" })
         .then((r) => r.text())
         .then((html) => {
           const esc = slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -964,7 +963,7 @@
       const slug = (a.getAttribute("href").match(/^\/user\/([^/]+)/) || [])[1];
       if (!slug) continue;
       const img = el("img", "faw-tile__img");
-            img.alt = "";
+      img.alt = "";
       attachAvatar(img, slug);
       a.prepend(img);
       it.dataset.fawTile = "1";
@@ -1166,8 +1165,8 @@
     }, true);
   }
 
-  // ------------------------------------------------------------------ submission: newer / older arrows beside the image
-  // Replaces FA's "Main Gallery · Newer | Older" box below the image.
+  // ------------------------------------------------------------------ submission: newer / older buttons
+  // Small arrow buttons below the image replace FA's "Main Gallery · Newer | Older" box.
   function initSubmissionNav() {
     const area = document.querySelector("#pageid-submission .submission-area");
     const nav = document.querySelector("#minigallery .minigallery-navigation");
@@ -1285,7 +1284,7 @@
             sec.removeAttribute("id");
             target.after(document.adoptNode(divider), document.adoptNode(sec));
           } else {
-            if (!isMsgCenter && added === 0) target.appendChild(el("div", "faw-inf-page", `— page ${pageNo + 1} —`));
+            if (!isMsgCenter && added === 0) target.appendChild(el("div", "faw-inf-page", T("pageDivider", pageNo + 1)));
             for (const f of figs) target.appendChild(document.adoptNode(f));
           }
           added += figs.length;
@@ -1298,7 +1297,7 @@
           done = true;
           status.textContent = added ? T("endPages", pageNo) : T("noMore");
         } else {
-          status.textContent = `${pageNo} pages loaded · scroll for more`;
+          status.textContent = T("pagesLoaded", pageNo);
         }
       } catch (err) {
         status.textContent = T("pageFailed", pageNo + 1, err.message);
@@ -1398,7 +1397,7 @@
       qv.innerHTML = `
         <div class="faw-qv__view">
         <div class="faw-qv__stage">
-          <span class="faw-qv__spinner">Loading…</span>
+          <span class="faw-qv__spinner">${T("loading")}</span>
           <div class="faw-qv__frame">
             <img class="faw-qv__low" alt="">
             <img class="faw-qv__img" alt="">
@@ -1429,7 +1428,6 @@
               <div class="faw-qv__crow"><span class="faw-qv__cstatus"></span><button class="faw-qv__btn" type="submit">${T("post")}</button></div>
             </form>
           </section>
-          <div class="faw-qv__hint">← → browse · F fav · D download · click image for actual size · Esc close</div>
         </aside>`;
       document.body.appendChild(qv);
       const $ = (s) => qv.querySelector(s);
@@ -1473,7 +1471,8 @@
       });
       window.addEventListener("resize", () => { if (!qv.hidden) fitImage(); });
       document.addEventListener("keydown", (e) => {
-        if (qv.hidden || (e.target.closest && e.target.closest("input, textarea, select, [contenteditable]"))) return;
+        if (qv.hidden || e.ctrlKey || e.metaKey || e.altKey) return;           // leave browser shortcuts alone
+        if (e.target.closest && e.target.closest("input, textarea, select, [contenteditable]")) return;
         if (e.key === "Escape") close();
         else if (e.key === "ArrowLeft") go(-1);
         else if (e.key === "ArrowRight") go(1);
@@ -1492,6 +1491,7 @@
     }
     function close() {
       qv.hidden = true;
+      qv.querySelector(".faw-qv__stage").classList.remove("is-actual");
       root.style.overflow = "";
       qv.querySelector(".faw-qv__img").removeAttribute("src");
       qv.querySelector(".faw-qv__low").removeAttribute("src");
@@ -1567,11 +1567,11 @@
       if (data.artist) {
         const a = el("a", null, data.artist.name);
         a.href = data.artist.href;
-        by.append("by ", a);
+        by.append(T("by") + " ", a);
       }
       const meta = $(".faw-qv__meta");
-      for (const [k, v] of [["Category", data.category], ["Species", data.species],
-        ["Resolution", data.res ? `${data.res.w} × ${data.res.h}` : ""], ["Rating", data.rating]]) {
+      for (const [k, v] of [[T("category"), data.category], [T("species"), data.species],
+        [T("resolution"), data.res ? `${data.res.w} × ${data.res.h}` : ""], [T("rating"), data.rating]]) {
         if (!v) continue;
         meta.append(el("dt", null, k), el("dd", null, v));
       }
@@ -1650,9 +1650,9 @@
         const item = el("div", "faw-qv__c");
         item.style.marginLeft = Math.min(c.depth, 6) * 14 + "px";
         const img = el("img");
-        img.src = c.avatar || "https://a.furaffinity.net/default.gif";
+        img.src = c.avatar || AV_DEFAULT;
         img.alt = "";
-                const body = el("div", "faw-qv__cbody");
+        const body = el("div", "faw-qv__cbody");
         const head = el("div", "faw-qv__chead");
         const who = el("a", null, c.name || "?");
         if (c.href) who.href = c.href;

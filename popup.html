@@ -28,7 +28,7 @@
     text-transform: uppercase; letter-spacing: .08em;
   }
   .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
-  .card h2 + .row { border-top: 0; }
+  .card h2 + .row, .card > .row:first-child { border-top: 0; }
   .row.sub-row { padding-left: 14px; }
   .row.main { padding: 10px 0; }
   .row.main b { font-size: 13.5px; font-weight: 650; }
@@ -55,18 +55,17 @@
   /* range */
   input[type=range] { width: 100%; margin: 0; accent-color: var(--accent); }
 
-  /* segmented select */
-  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; background: #15161a; border-radius: 8px; padding: 3px; }
-  .seg button {
-    border: 0; background: transparent; color: var(--muted); padding: 6px 4px; border-radius: 6px;
-    font: inherit; font-size: 11.5px; cursor: pointer; white-space: nowrap;
-  }
-  .seg button:hover { color: var(--text); }
-  .seg button[aria-pressed=true] { background: var(--accent-dim); color: var(--accent); font-weight: 600; }
-  .seg.wrap { grid-auto-flow: row; grid-template-columns: repeat(3, 1fr); }
 
   .label i { font-style: normal; }
-  select.lang { background: #15161a; color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 4px 8px; font: inherit; font-size: 12px; }
+  /* language: three flag buttons in the header */
+  .langs { display: flex; gap: 5px; margin-left: auto; margin-right: 12px; }
+  .langs button {
+    width: 26px; height: 19px; padding: 0; border: 1px solid var(--line); border-radius: 4px; overflow: hidden;
+    background: none; cursor: pointer; opacity: .45; transition: opacity .12s, border-color .12s;
+  }
+  .langs button svg { display: block; width: 100%; height: 100%; }
+  .langs button:hover { opacity: .8; }
+  .langs button[aria-pressed=true] { opacity: 1; border-color: var(--accent); }
   footer { display: flex; justify-content: space-between; align-items: center; padding: 4px 16px 14px; color: var(--muted); font-size: 11px; }
   footer button {
     background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 6px;
@@ -78,6 +77,11 @@
 <body>
   <header>
     <h1>FA Ultrawide<small id="version"></small></h1>
+    <div class="langs" id="langs" data-i18n-title="language">
+      <button data-lang="en" title="English"><svg viewBox="0 0 60 30"><clipPath id="fawuk"><path d="M30 15h30v15zv15H0zH0V0zV0h30z"/></clipPath><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#fawuk)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></svg></button>
+      <button data-lang="de" title="Deutsch"><svg viewBox="0 0 5 3"><path fill="#000" d="M0 0h5v1H0z"/><path fill="#D00" d="M0 1h5v1H0z"/><path fill="#FFCE00" d="M0 2h5v1H0z"/></svg></button>
+      <button data-lang="ru" title="Русский"><svg viewBox="0 0 9 6"><path fill="#fff" d="M0 0h9v2H0z"/><path fill="#0039A6" d="M0 2h9v2H0z"/><path fill="#D52B1E" d="M0 4h9v2H0z"/></svg></button>
+    </div>
     <label class="switch" data-i18n-title="masterTitle"><input type="checkbox" id="enabled"><i></i></label>
   </header>
 
@@ -112,18 +116,6 @@
       <div class="row main">
         <div class="label"><b data-i18n="design"></b><span data-i18n="designSub"></span></div>
         <label class="switch"><input type="checkbox" id="design"><i></i></label>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="row">
-        <div class="label"><i data-i18n="language"></i></div>
-        <select id="lang" class="lang">
-          <option value="auto" data-i18n="langAuto"></option>
-          <option value="en">English</option>
-          <option value="de">Deutsch</option>
-          <option value="ru">Русский</option>
-        </select>
       </div>
     </section>
 

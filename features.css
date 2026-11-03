@@ -1,6 +1,8 @@
-/* FA Ultrawide — quick view, comic reader, infinite scroll */
+/* FA Ultrawide — styles for the scripted features (features.js) and the "Bubbles design" switch
+   (html.faw-design). Colours use the palette variables from ultrawide.css, so they follow FA's
+   dark / light colour schemes; the dark overlays (quick view, viewer, confirm) keep their own. */
 
-/* ---------- Quick view ---------- */
+/* ======================================================================= quick view */
 .faw-qv {
   position: fixed; inset: 0; z-index: 2147483000;
   background: rgba(8, 8, 10, .88); backdrop-filter: blur(3px);
@@ -8,43 +10,40 @@
   font: 14px/1.45 "Open Sans", system-ui, sans-serif; color: #ddd;
 }
 .faw-qv[hidden] { display: none; }
-/* Generous padding keeps a clickable margin around the image (click outside = close);
-   the side padding also leaves room for the ‹ › buttons. */
+/* dark overlays keep their dark palette on every colour scheme */
+.faw-qv, .faw-confirm {
+  --faw-ink: 255,255,255; --faw-text: rgba(255,255,255,.9); --faw-accent-text: #f0c27a;
+  --faw-danger-text: #f3a3a3; --faw-menu-bg: #1f2228;
+}
 /* the arrows live in .faw-qv__view, outside the scrolling stage, so they stay put while zoomed */
 .faw-qv__view { flex: 1 1 auto; min-width: 0; min-height: 0; position: relative; display: flex; }
+/* generous padding keeps a clickable margin around the image (click outside = close) */
 .faw-qv__stage {
   flex: 1 1 auto; min-width: 0; position: relative;
   display: flex; align-items: center; justify-content: center;
   padding: clamp(40px, 6vh, 90px) clamp(84px, 6vw, 150px);
   cursor: zoom-out;
 }
-.faw-qv__frame {
-  position: relative; flex: none;
-  box-shadow: 0 6px 40px rgba(0,0,0,.6); cursor: zoom-in;
-  background: #111;
-}
-.faw-qv__low, .faw-qv__img {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  display: block; max-width: none; max-height: none;
-}
+.faw-qv__stage.is-actual { overflow: auto; align-items: flex-start; justify-content: flex-start; }
+.faw-qv__frame { position: relative; flex: none; box-shadow: 0 6px 40px rgba(0,0,0,.6); cursor: zoom-in; background: #111; }
+.faw-qv__stage.is-actual .faw-qv__frame { cursor: zoom-out; margin: auto; }
+.faw-qv__frame.faw-panning { cursor: grabbing; user-select: none; }
+/* two layers: enlarged thumbnail (instant) below, full image fading in on top */
+.faw-qv__low, .faw-qv__img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; max-width: none; max-height: none; }
 .faw-qv__low { filter: blur(.6px); }
 .faw-qv__img { opacity: 0; transition: opacity .25s ease; }
 .faw-qv__frame.is-hq .faw-qv__img { opacity: 1; }
 .faw-qv__badge {
   position: absolute; right: 8px; bottom: 8px; padding: 2px 8px; border-radius: 3px;
-  background: rgba(0,0,0,.6); color: #ccc; font-size: 11px; pointer-events: none;
-  transition: opacity .2s;
+  background: rgba(0,0,0,.6); color: #ccc; font-size: 11px; pointer-events: none; transition: opacity .2s;
 }
 .faw-qv__frame.is-hq .faw-qv__badge { opacity: 0; }
-.faw-qv__stage.is-actual { overflow: auto; align-items: flex-start; justify-content: flex-start; }
-.faw-qv__stage.is-actual .faw-qv__frame { cursor: zoom-out; margin: auto; }
 .faw-qv__spinner { position: absolute; color: #aaa; font-size: 15px; }
 .faw-qv__nav {
-  position: absolute; top: 50%; transform: translateY(-50%);
-  width: 56px; height: 120px; z-index: 1; border: 0; border-radius: 6px; cursor: pointer;
-  background: rgba(30,30,34,.55); color: #eee; font-size: 34px; line-height: 1;
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 1;
+  display: grid; place-items: center; width: 56px; height: 120px; border: 0; border-radius: 6px; cursor: pointer;
+  background: rgba(30,30,34,.55); color: #eee;
 }
-.faw-qv__nav { display: grid; place-items: center; }
 .faw-qv__nav:hover { background: rgba(60,60,66,.8); }
 .faw-qv__nav--prev { left: 12px; }
 .faw-qv__nav--next { right: 12px; }
@@ -80,16 +79,98 @@
 .faw-qv__tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .faw-qv__tags a { background: #2c313a; color: #ccc; padding: 1px 7px; border-radius: 3px; font-size: 12px; text-decoration: none; }
 .faw-qv__tags a:hover { background: #3a4150; color: #fff; }
-.faw-qv__hint { color: #666; font-size: 11px; margin-top: auto; }
 
-/* ---------- Comic reader ---------- */
-/* Button sits in FA's #minigallery row, right of the Main Gallery box */
+/* comments: one scroll area (the panel); the write box stays pinned to the bottom */
+.faw-qv__comments {
+  margin-top: auto; display: flex; flex-direction: column; gap: 10px;
+  background: #181a1f; border: 1px solid #2c3038; border-radius: 10px; padding: 12px;
+}
+.faw-qv__ch { margin: 0; font-size: 13px; color: #ddd; font-weight: 600; display: flex; gap: 6px; align-items: baseline; }
+.faw-qv__ch span { color: #777; font-weight: 400; }
+.faw-qv__clist { display: flex; flex-direction: column; gap: 8px; }
+.faw-qv__cempty { color: #777; font-size: 12px; text-align: center; padding: 10px 0; }
+.faw-qv__c { display: flex; gap: 8px; align-items: flex-start; }
+.faw-qv__c img { width: 32px; height: 32px; border-radius: 6px; object-fit: cover; flex: none; }
+.faw-qv__cbody { flex: 1; min-width: 0; background: rgba(var(--faw-ink), .06); border-radius: 4px 12px 12px 12px; padding: 7px 11px; }
+.faw-qv__chead { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; color: #888; margin-bottom: 2px; }
+.faw-qv__chead a { color: #9cf; font-weight: 600; text-decoration: none; }
+.faw-qv__ctext { font-size: 12.5px; color: #ddd; word-break: break-word; }
+.faw-qv__ctext img { max-width: 100%; height: auto; }
+.faw-qv__cform {
+  display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #2c3038; padding: 10px 12px 12px;
+  position: sticky; bottom: -24px; margin: 0 -12px -12px; background: #181a1f; border-radius: 0 0 10px 10px; z-index: 1;
+}
+.faw-qv__cform[hidden] { display: none; }
+.faw-qv__cform textarea {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 60px;
+  background: rgba(var(--faw-ink), .05); color: #ddd; border: 1px solid rgba(var(--faw-ink), .12);
+  border-radius: 12px; padding: 9px 12px; font: inherit; font-size: 13px;
+}
+.faw-qv__cform textarea:focus { outline: none; border-color: rgba(224,166,75,.6); }
+.faw-qv__crow { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.faw-qv__crow .faw-qv__btn { border-radius: 8px; background: rgba(224,166,75,.18); border-color: rgba(224,166,75,.45); color: var(--faw-accent-text); }
+.faw-qv__cstatus { font-size: 11.5px; color: #888; }
+
+@media (max-width: 1000px) {
+  .faw-qv { flex-direction: column; }
+  .faw-qv__stage { padding: 24px 64px; }
+  .faw-qv__panel { flex: 0 0 auto; max-height: 38vh; border-left: 0; border-top: 1px solid #333; }
+}
+
+/* ======================================================================= full-screen image viewer */
+html.faw-lb-open { overflow: hidden; }
+#pageid-submission #submissionImg { cursor: zoom-in !important; }
+.faw-lb { position: fixed; inset: 0; z-index: 2147483000; background: rgba(8, 8, 10, .94); }
+.faw-lb__stage {
+  position: absolute; inset: 0; overflow: auto; padding: 16px; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center; cursor: zoom-out;
+}
+.faw-lb__img {
+  display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;
+  cursor: zoom-in; box-shadow: 0 6px 40px rgba(0,0,0,.6); user-select: none; -webkit-user-drag: none;
+}
+.faw-lb.is-zoom .faw-lb__stage { align-items: flex-start; justify-content: flex-start; }
+.faw-lb.is-zoom .faw-lb__img { max-width: none; max-height: none; margin: auto; flex: none; cursor: grab; }
+.faw-lb__stage.faw-panning .faw-lb__img { cursor: grabbing; }
+.faw-lb__close {
+  position: absolute; top: 10px; right: 14px; z-index: 1; width: 40px; height: 40px; border: 0; border-radius: 10px;
+  background: rgba(30,30,34,.6); color: #ddd; font-size: 26px; line-height: 1; cursor: pointer;
+}
+.faw-lb__close:hover { background: rgba(60,60,66,.85); color: #fff; }
+
+/* ======================================================================= submission page extras */
+/* newer / older buttons below the image (hidden while the comic reader is open) */
+.faw-subnav-row { display: flex; justify-content: center; gap: 6px; margin: 10px 0 0; }
+.faw-subnav-row .faw-arrow-btn {
+  min-width: 40px; min-height: 30px; padding: 0 10px; text-decoration: none !important;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.faw-subnav-row .faw-arrow-btn.is-off { opacity: .3; pointer-events: none; }
+html.faw-comic-open .faw-subnav-row { display: none !important; }
+
+/* "More from <artist>" below the comments, after the same divider as stats → comments.
+   It is a <section>, so FA's section box styles are reset. */
+.faw-sep { height: 1px; background: rgba(var(--faw-ink), .08); margin: 22px 0 var(--faw-gap, 12px); }
+.faw-more { margin: 0; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: none !important; box-shadow: none !important; }
+.faw-more__head { display: flex; justify-content: space-between; align-items: center; margin: 0 2px 12px; font-size: 14px; }
+.faw-more__head span { font-weight: 600; color: var(--faw-text); }
+.faw-more__head a { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #e0a64b; text-decoration: none; }
+.faw-more__head a:hover { text-decoration: underline; }
+.faw-more__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.faw-more__item {
+  display: block; aspect-ratio: 1; overflow: hidden; border-radius: 10px;
+  background: rgba(var(--faw-ink), .04); outline: 1px solid rgba(var(--faw-ink), .06); outline-offset: -1px;
+}
+.faw-more__item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s ease; }
+.faw-more__item:hover img { transform: scale(1.06); }
+
+.faw-busy { opacity: .55; pointer-events: none; }   /* +Fav request in flight */
+
+/* ======================================================================= comic reader */
+/* the bar sits in FA's #minigallery row under the image */
 #minigallery.faw-has-comic { display: flex !important; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap; }
 #minigallery.faw-has-comic > * { margin-left: 0 !important; margin-right: 0 !important; }
-.faw-comic-bar {
-  display: flex; justify-content: center; align-items: center; gap: 8px;
-  margin: 10px 0 0; font-size: 12px; color: #999;
-}
+.faw-comic-bar { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 10px 0 0; font-size: 12px; color: #999; }
 #minigallery .faw-comic-bar { margin: 0; flex-direction: column; gap: 4px; }
 .faw-comic-bar button { cursor: pointer; white-space: nowrap; }
 .faw-comic-bar button[disabled] { opacity: .5; cursor: default; }
@@ -109,17 +190,14 @@
 }
 html.faw-comic-open #submissionImg { display: none !important; }
 
-/* Horizontal reader: pages side by side, scroll left/right. The strip is exactly one screen tall
-   (menu + gaps subtracted, room for the scrollbar), page labels sit on top of the pages. */
+/* Horizontal reader: pages side by side, one screen tall, labels on top of the pages */
 html.faw-comic-h .faw-comic {
   flex-direction: row; align-items: flex-start; gap: 14px;
   height: calc(100vh - var(--faw-nav, 50px) - 2 * var(--faw-gap, 12px));
   overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity;
   overscroll-behavior-x: contain; padding-bottom: 14px; margin: var(--faw-gap, 12px) 0 0;
 }
-html.faw-comic-h .faw-comic__page {
-  width: auto; height: 100%; flex: none; scroll-snap-align: start; gap: 4px; justify-content: flex-start;
-}
+html.faw-comic-h .faw-comic__page { width: auto; height: 100%; flex: none; scroll-snap-align: start; gap: 4px; justify-content: flex-start; }
 html.faw-comic-h .faw-comic__label { flex: none; height: 18px; line-height: 18px; white-space: nowrap; }
 html.faw-comic-h .faw-comic__page img {
   height: min(calc(100% - 22px), calc(var(--natw, 99999px) * 2 / var(--ar, .7)));
@@ -127,20 +205,16 @@ html.faw-comic-h .faw-comic__page img {
 }
 html.faw-comic-h .submission-area { overflow: visible !important; }
 
-/* ---------- Infinite scroll ---------- */
-.faw-inf-status {
-  text-align: center; padding: 18px 0 26px; color: #999; font-size: 13px; clear: both;
-}
+/* ======================================================================= infinite scroll */
+.faw-inf-status { text-align: center; padding: 18px 0 26px; color: #999; font-size: 13px; clear: both; }
 .faw-inf-status button {
   background: #3a3f4a; color: #eee; border: 1px solid #4a505c; border-radius: 3px;
   padding: 5px 12px; font: inherit; cursor: pointer; margin-left: 8px;
 }
-.faw-inf-page {
-  flex-basis: 100%; width: 100%; text-align: center; color: #777; font-size: 12px;
-  margin: 14px 0 6px; letter-spacing: .04em;
-}
+.faw-inf-page { flex-basis: 100%; width: 100%; text-align: center; color: #777; font-size: 12px; margin: 14px 0 6px; letter-spacing: .04em; }
 
-/* ---------- Profile: justified Gallery box (features.js sets --w / --h per figure) ---------- */
+/* ======================================================================= profile */
+/* Gallery box: justified rows (features.js sets --w / --h per figure and --faw-rowgap) */
 #gallery-latest-submissions.faw-justified {
   display: flex !important; flex-wrap: wrap; align-content: flex-start; column-gap: 6px; row-gap: var(--faw-rowgap, 6px);
   padding: 6px !important; box-sizing: border-box; overflow: hidden !important; text-align: left;
@@ -150,25 +224,26 @@ html.faw-comic-h .submission-area { overflow: visible !important; }
   width: var(--w, 150px) !important; height: var(--h, 150px) !important;
 }
 .faw-justified > figure.faw-hide, .faw-justified > :not(figure) { display: none !important; }
-.faw-justified > figure > b, .faw-justified > figure > b > u, .faw-justified > figure a {
-  display: block !important; width: 100% !important; height: 100% !important;
-}
-.faw-justified > figure img {
-  width: 100% !important; height: 100% !important; max-width: none !important; max-height: none !important;
-  object-fit: cover; display: block;
-}
+.faw-justified > figure > b, .faw-justified > figure > b > u, .faw-justified > figure a { display: block !important; width: 100% !important; height: 100% !important; }
+.faw-justified > figure img { width: 100% !important; height: 100% !important; max-width: none !important; max-height: none !important; object-fit: cover; display: block; }
 .faw-justified figcaption { display: none !important; }
 
-/* ---------- External-link confirmation ---------- */
+/* Archived Gallery button below the system message of unavailable accounts */
+.faw-archive-sys {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin: 14px auto; max-width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px;
+  background: rgba(var(--faw-ink), .04); border: 1px solid rgba(var(--faw-ink), .08); color: var(--faw-text); font-size: 13px;
+}
+
+/* ======================================================================= external-link confirmation */
 .faw-confirm {
   position: fixed; inset: 0; z-index: 2147483001; background: rgba(0,0,0,.55);
   display: flex; align-items: center; justify-content: center;
   font: 14px/1.45 "Open Sans", system-ui, sans-serif; color: #ddd;
 }
 .faw-confirm__box {
-  background: #1f2228; border: 1px solid #3a3f4a; border-radius: 10px; padding: 22px 24px;
+  background: #1f2228; border: 1px solid #3a3f4a; border-radius: 10px; padding: 22px 24px; font-size: 15px;
   min-width: min(440px, 90vw); max-width: min(620px, 92vw); box-shadow: 0 16px 50px rgba(0,0,0,.6);
-  font-size: 15px;
 }
 .faw-confirm__box p { margin: 0 0 8px; color: #fff; font-size: 15px; }
 .faw-confirm__url {
@@ -178,38 +253,19 @@ html.faw-comic-h .submission-area { overflow: visible !important; }
 .faw-confirm__row { display: flex; justify-content: flex-end; gap: 8px; }
 .faw-confirm__ok { background: #6b4a12 !important; border-color: #8a6420 !important; }
 
-/* ---------- Narrow windows ---------- */
-@media (max-width: 1000px) {
-  .faw-qv { flex-direction: column; }
-  .faw-qv__stage { padding: 24px 64px; }
-  .faw-qv__panel { flex: 0 0 auto; max-height: 38vh; border-left: 0; border-top: 1px solid #333; }
+/* ======================================================================= comment toolbar */
+/* FA's B/I/U/alignment icons and our extra buttons share one flex container; CSS `order` arranges
+   them in two rows: formatting (1–2) | line break (3) | alignment (4) + inserts (5) */
+form .floatleft:has(> .faw-bb) {
+  float: none !important; display: flex; flex-wrap: wrap; align-items: center; gap: 3px; justify-content: flex-start;
+  width: 100%; margin: 0 0 6px !important; padding-left: 0 !important; text-align: left;
 }
-
-/* Shout pagination: arrow-only buttons */
-
-/* ---------- Comment style: Bubbles (html.faw-cmt-bubbles) — comments, journal comments and shouts ---------- */
-html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) comment-container {
-  border: 0 !important; background: transparent !important; box-shadow: none !important;
-  display: flex !important; gap: 10px; align-items: flex-start; padding: 6px 2px !important; margin-bottom: 4px;
-}
-html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) comment-container > .avatar {
-  width: auto !important; flex: none !important; padding: 0 !important; margin: 0 !important;
-}
-html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) .comment_useravatar,
-html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) .avatar img {
-  width: 44px !important; height: 44px !important; border-radius: 8px !important; object-fit: cover;
-}
-html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) .comment-content {
-  flex: 1 1 auto; min-width: 0; background: rgba(var(--faw-ink), .06);
-  border-radius: 4px 14px 14px 14px; padding: 8px 14px !important; border: 0 !important;
-}
-html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) comment-title { display: none !important; }
-
-/* ---------- Comment box: extra BBCode buttons ---------- */
-/* Our buttons join FA's icon row and copy its 25px square look */
+form .floatleft:has(> .faw-bb) > .bbcodeformat:is(.b, .i, .u) { order: 1; }
+form .floatleft:has(> .faw-bb) > .bbcodeformat:is(.align_left, .align_center, .align_right) { order: 4; margin-left: 0 !important; margin-right: 0 !important; }
 .faw-bb { display: contents; }
+.faw-bb__br { flex: 0 0 100%; height: 0; }
 .faw-bb__sep { width: 8px; height: 25px; flex: none; }
-.faw-bb__btn {
+.faw-bb__btn {   /* FA's 25px square look when the design switch is off */
   position: relative; flex: none; width: 25px; height: 25px; padding: 0; margin: 0;
   border: 0; border-radius: 0; background: #555d69; color: #fff;
   font: 700 12px/25px "Open Sans", system-ui, sans-serif; text-align: center; cursor: pointer;
@@ -217,27 +273,55 @@ html.faw-cmt-bubbles :is(#comments-submission, #comments-journal, #shouts) comme
 .faw-bb__btn:hover { background: #69727f; }
 .faw-bb__btn.is-s { text-decoration: line-through; }
 .faw-bb__color { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; border: 0; padding: 0; }
-form .floatleft:has(> .faw-bb) {
-  float: none !important; display: flex; flex-wrap: wrap; align-items: center; row-gap: 4px;
-  justify-content: flex-start; width: 100%; margin-bottom: 8px; text-align: left;
-}
-form .floatleft:has(> .faw-bb) > .bbcodeformat.align_left { margin-left: 8px; }
-form .floatleft:has(> .faw-bb) > .bbcodeformat.align_right { margin-right: 8px; }
 
-/* Bubbles: the comment form gets the same soft, rounded look as the comments */
-html.faw-cmt-bubbles #add_comment_form textarea,
-html.faw-cmt-bubbles form textarea#JSMessage {
+/* ======================================================================= Bubbles design */
+/* comments, journal comments and shouts as chat bubbles; replies indented by depth (--faw-depth) */
+html.faw-design :is(#comments-submission, #comments-journal, #shouts) comment-container {
+  border: 0 !important; background: transparent !important; box-shadow: none !important;
+  display: flex !important; gap: 10px; align-items: flex-start; padding: 6px 2px !important; margin-bottom: 4px;
+}
+html.faw-design :is(#comments-submission, #comments-journal, #shouts) comment-container > .avatar {
+  width: auto !important; flex: none !important; padding: 0 !important; margin: 0 !important;
+}
+html.faw-design :is(#comments-submission, #comments-journal, #shouts) .comment_useravatar,
+html.faw-design :is(#comments-submission, #comments-journal, #shouts) .avatar img {
+  width: 44px !important; height: 44px !important; border-radius: 8px !important; object-fit: cover;
+}
+html.faw-design :is(#comments-submission, #comments-journal, #shouts) .comment-content {
+  flex: 1 1 auto; min-width: 0; background: rgba(var(--faw-ink), .06);
+  border-radius: 4px 14px 14px 14px; padding: 8px 14px !important; border: 0 !important;
+}
+html.faw-design :is(#comments-submission, #comments-journal, #shouts) comment-title { display: none !important; }
+html.faw-design :is(#comments-submission, #comments-journal) .comment_container[data-faw-depth] {
+  width: auto !important; float: none !important; margin-left: calc(var(--faw-depth, 0) * 28px) !important;
+}
+
+/* comment form: rounded box, Post Comment at the top right next to the help line */
+html.faw-design #add_comment_form textarea,
+html.faw-design form textarea#JSMessage {
   border-radius: 14px !important; background: rgba(var(--faw-ink), .05) !important;
   border: 1px solid rgba(var(--faw-ink), .12) !important; padding: 10px 14px !important;
 }
-html.faw-cmt-bubbles #add_comment_form textarea:focus { border-color: rgba(224,166,75,.6) !important; outline: none; }
-/* Bubbles design: FA's own B / I / U / alignment icons redrawn in the same style as ours */
-html.faw-design form .floatleft:has(> .bbcodeformat) { gap: 3px; }
+html.faw-design #add_comment_form textarea:focus { border-color: rgba(224,166,75,.6) !important; outline: none; }
+html.faw-design #responsebox { position: relative; }
+html.faw-design #responsebox > p:first-child { min-height: 34px; display: flex; align-items: center; margin: 0 0 8px; padding-right: 150px; }
+html.faw-design #responsebox #add_comment_form,
+html.faw-design #responsebox #add_comment_form .section-footer { position: static !important; }
+html.faw-design #add_comment_form .section-footer { min-height: 0 !important; padding-bottom: 0 !important; }
+html.faw-design #add_comment_form .button.go {
+  border-radius: 8px !important; padding: 6px 16px !important;
+  background: rgba(224,166,75,.18) !important; border: 1px solid rgba(224,166,75,.45) !important; color: var(--faw-accent-text) !important;
+}
+html.faw-design #add_comment_form .button.go:hover { background: rgba(224,166,75,.28) !important; }
+html.faw-design #add_comment_form .button.go.post-comment { position: absolute !important; top: 0; right: 0; margin: 0 !important; }
+
+/* toolbar buttons (comments, journals, notes): FA's sprite icons redrawn in the same style as ours */
+html.faw-design form .floatleft:has(> .bbcodeformat) { display: flex !important; flex-wrap: wrap; gap: 3px; align-items: center; }
 html.faw-design i.bbcodeformat {
   background-image: none !important; background-color: rgba(var(--faw-ink), .1) !important;
   border-radius: 6px !important; width: 25px !important; height: 25px !important;
-  display: inline-flex !important; align-items: center; justify-content: center;
-  color: var(--faw-text); font: normal 700 13px/1 "Open Sans", system-ui, sans-serif; position: relative;
+  display: inline-flex !important; align-items: center; justify-content: center; position: relative;
+  color: var(--faw-text); font: normal 700 13px/1 "Open Sans", system-ui, sans-serif;
 }
 html.faw-design i.bbcodeformat:hover { background-color: rgba(var(--faw-ink), .18) !important; }
 html.faw-design i.bbcodeformat.b::before { content: "B"; }
@@ -250,141 +334,11 @@ html.faw-design i.bbcodeformat:is(.align_left, .align_center, .align_right)::bef
 html.faw-design i.bbcodeformat.align_left { --faw-align: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 11'%3E%3Cpath d='M0 0h13v2H0zM0 3h8v2H0zM0 6h13v2H0zM0 9h8v2H0z'/%3E%3C/svg%3E"); }
 html.faw-design i.bbcodeformat.align_center { --faw-align: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 11'%3E%3Cpath d='M0 0h13v2H0zM2.5 3h8v2h-8zM0 6h13v2H0zM2.5 9h8v2h-8z'/%3E%3C/svg%3E"); }
 html.faw-design i.bbcodeformat.align_right { --faw-align: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 11'%3E%3Cpath d='M0 0h13v2H0zM5 3h8v2H5zM0 6h13v2H0zM5 9h8v2H5z'/%3E%3C/svg%3E"); }
-html.faw-design .faw-bb__btn { background: rgba(var(--faw-ink), .1); border-radius: 6px; }
+html.faw-design .faw-bb__btn { background: rgba(var(--faw-ink), .1); border-radius: 6px; color: var(--faw-text); }
 html.faw-design .faw-bb__btn:hover { background: rgba(var(--faw-ink), .18); }
 html.faw-design .faw-bb__sep { width: 6px; }
-html.faw-cmt-bubbles #add_comment_form .button.go {
-  border-radius: 8px !important; padding: 6px 16px !important;
-  background: rgba(224,166,75,.18) !important; border: 1px solid rgba(224,166,75,.45) !important; color: var(--faw-accent-text) !important;
-}
-html.faw-cmt-bubbles #add_comment_form .button.go:hover { background: rgba(224,166,75,.28) !important; }
 
-/* Bubbles: replies indented by depth (features.js sets --faw-depth) */
-html.faw-cmt-bubbles :is(#comments-submission, #comments-journal) .comment_container[data-faw-depth] {
-  width: auto !important; float: none !important;
-  margin-left: calc(var(--faw-depth, 0) * 28px) !important;
-}
-
-/* ---------- Quick view comments ---------- */
-.faw-qv__comments {
-  margin-top: auto; display: flex; flex-direction: column; gap: 10px;
-  background: #181a1f; border: 1px solid #2c3038; border-radius: 10px; padding: 12px;
-}
-.faw-qv__ch { margin: 0; font-size: 13px; color: #ddd; font-weight: 600; display: flex; gap: 6px; align-items: baseline; }
-.faw-qv__ch span { color: #777; font-weight: 400; }
-.faw-qv__clist {
-  max-height: 38vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;
-  scrollbar-width: thin;
-}
-.faw-qv__cempty { color: #777; font-size: 12px; text-align: center; padding: 10px 0; }
-.faw-qv__c { display: flex; gap: 8px; align-items: flex-start; }
-.faw-qv__c img { width: 32px; height: 32px; border-radius: 6px; object-fit: cover; flex: none; }
-.faw-qv__cbody { flex: 1; min-width: 0; background: rgba(var(--faw-ink), .06); border-radius: 4px 12px 12px 12px; padding: 7px 11px; }
-.faw-qv__chead { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; color: #888; margin-bottom: 2px; }
-.faw-qv__chead a { color: #9cf; font-weight: 600; text-decoration: none; }
-.faw-qv__ctext { font-size: 12.5px; color: #ddd; word-break: break-word; }
-.faw-qv__ctext img { max-width: 100%; height: auto; }
-/* the write box stays pinned to the bottom of the panel while the rest scrolls */
-.faw-qv__cform {
-  display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #2c3038; padding: 10px 12px 12px;
-  position: sticky; bottom: -24px; margin: 0 -12px -12px; background: #181a1f; border-radius: 0 0 10px 10px;
-  z-index: 1;
-}
-.faw-qv__cform[hidden] { display: none; }
-.faw-qv__cform textarea {
-  width: 100%; box-sizing: border-box; resize: vertical; min-height: 60px;
-  background: rgba(var(--faw-ink), .05); color: #ddd; border: 1px solid rgba(var(--faw-ink), .12);
-  border-radius: 12px; padding: 9px 12px; font: inherit; font-size: 13px;
-}
-.faw-qv__cform textarea:focus { outline: none; border-color: rgba(224,166,75,.6); }
-.faw-qv__crow { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.faw-qv__crow .faw-qv__btn {
-  border-radius: 8px; background: rgba(224,166,75,.18); border-color: rgba(224,166,75,.45); color: var(--faw-accent-text);
-}
-.faw-qv__cstatus { font-size: 11.5px; color: #888; }
-
-/* ---------- Submission: "More from artist" (below the comments) ---------- */
-.faw-more {
-  margin-top: 18px; padding: 12px; border-radius: 14px;
-  background: rgba(var(--faw-ink), .035); border: 1px solid rgba(var(--faw-ink), .08);
-  box-shadow: 0 4px 18px rgba(0,0,0,.25);
-}
-.faw-more__head { display: flex; justify-content: space-between; align-items: baseline; margin: 0 2px 10px; font-size: 14px; }
-.faw-more__head span { font-weight: 600; color: var(--faw-text); }
-.faw-more__head a { font-size: 12px; color: #e0a64b; text-decoration: none; }
-.faw-more__head a:hover { text-decoration: underline; }
-.faw-more__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.faw-more__item {
-  display: block; aspect-ratio: 1; overflow: hidden; border-radius: 10px;
-  background: rgba(var(--faw-ink), .04); outline: 1px solid rgba(var(--faw-ink), .06); outline-offset: -1px;
-}
-.faw-more__item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s ease; }
-.faw-more__item:hover img { transform: scale(1.06); }
-
-/* ---------- Watchers / watching list as avatar tiles ---------- */
-.watch-list.faw-tiles {
-  display: grid !important; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px 8px; padding: 12px !important;
-}
-.watch-list.faw-tiles > * { float: none !important; width: auto !important; margin: 0 !important; clear: none !important; min-width: 0; }
-.watch-list.faw-tiles a[href^="/user/"] {
-  display: flex !important; flex-direction: column; align-items: center; gap: 5px; text-decoration: none; font-size: 12px; min-width: 0;
-}
-.watch-list.faw-tiles .faw-tile__img {
-  width: 64px; height: 64px; border-radius: 10px; object-fit: cover; background: rgba(var(--faw-ink), .05); transition: transform .12s;
-}
-.watch-list.faw-tiles a:hover .faw-tile__img { transform: scale(1.06); }
-.watch-list.faw-tiles .c-usernameBlockSimple { display: block; max-width: 100%; text-align: center; }
-.watch-list.faw-tiles .c-usernameBlockSimple__displayName {
-  display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
-.faw-busy { opacity: .55; pointer-events: none; }
-form .floatleft:has(> .faw-bb) {
-  float: none !important; display: flex; flex-wrap: wrap; align-items: center; gap: 3px;
-  justify-content: flex-start; width: 100%; margin-bottom: 6px; text-align: left;
-}
-form .floatleft:has(> .faw-bb) > .faw-bb { margin-left: 8px; }
-
-/* ---------- Watchers / watching tiles: no "~"/badge line, no page buttons ---------- */
-.watch-list.faw-tiles .c-usernameBlockSimple > :not(a) { display: none !important; }
-/* the "~" before each name is a bare text node: hide text at item level, restore it on the link */
-.watch-list.faw-tiles > * { font-size: 0 !important; line-height: 0; }
-.watch-list.faw-tiles > * a[href^="/user/"] { font-size: 12px !important; line-height: 1.3; }
-.watch-list.faw-tiles > * > :not(.c-usernameBlockSimple) { display: none !important; }
-.watch-list.faw-tiles ~ .watchlist-navigation { display: none !important; }
-.faw-qv__hint { display: none !important; }
-
-/* ---------- Comment toolbar: always two rows ---------- */
-form .floatleft:has(> .faw-bb) > .bbcodeformat:is(.b, .i, .u) { order: 1; }
-form .floatleft:has(> .faw-bb) > .bbcodeformat:is(.align_left, .align_center, .align_right) { order: 4; margin-left: 0 !important; margin-right: 0 !important; }
-form .floatleft:has(> .faw-bb) > .faw-bb { margin-left: 0; }
-.faw-bb__br { flex: 0 0 100%; height: 0; }
-
-/* ---------- More from artist: keep the header clear of the rounded corners ---------- */
-.faw-more { padding: 14px 14px 14px; }
-.faw-more__head { margin: 2px 6px 12px; align-items: center; }
-.faw-more__head a { display: inline-flex; align-items: center; gap: 4px; }
-
-/* ---------- Quick view: one scroll area (no nested comment scroller), form pinned at the bottom ---------- */
-.faw-qv__clist { max-height: none; overflow: visible; padding-right: 0; }
-
-/* ---------- Watcher avatars while their real URL is being looked up ---------- */
-
-/* ---------- More from artist: same rhythm & divider as stats → comments ---------- */
-.faw-sep { height: 1px; background: rgba(var(--faw-ink), .08); margin: 22px 0 var(--faw-gap, 12px); }
-.faw-sep + .faw-more { margin-top: 0; }
-
-/* ---------- Comment toolbar: no stray indents ---------- */
-form .floatleft:has(> .faw-bb) { padding-left: 0 !important; margin-left: 0 !important; }
-
-/* ---------- Unavailable account: archived gallery button ---------- */
-.faw-archive-sys {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-  margin: 12px 0; padding: 12px 14px; border-radius: 10px;
-  background: rgba(var(--faw-ink), .04); border: 1px solid rgba(var(--faw-ink), .08); color: var(--faw-text); font-size: 13px;
-}
-
-/* ---------- Bubbles: buttons across the site ---------- */
+/* buttons across the site: rounded, translucent; icon-only buttons keep their icon */
 html.faw-design :is(button.button, a.button, input.button, input[type=submit].button, .button.standard):not(.faw-qv__btn):not(.bbcodeformat) {
   border-radius: 8px !important;
   background-color: rgba(var(--faw-ink), .07) !important;
@@ -392,35 +346,35 @@ html.faw-design :is(button.button, a.button, input.button, input[type=submit].bu
   color: var(--faw-text) !important; text-shadow: none !important; box-shadow: none !important;
   transition: background-color .12s, border-color .12s;
 }
-html.faw-design :is(button.button, a.button, input.button, input[type=submit].button, .button.standard):not(.faw-qv__btn):not(.bbcodeformat):not(:is(.nuke, .button-nuke)):not(button:empty):not(a:empty):not(.c-searchQueryInput__button) {
+html.faw-design :is(button.button, a.button, input.button, input[type=submit].button, .button.standard):not(.faw-qv__btn):not(.bbcodeformat):not(.nuke):not(button:empty):not(a:empty):not(.c-searchQueryInput__button) {
   background-image: none !important;
 }
 html.faw-design :is(button.button, a.button, input.button, .button.standard):not(.faw-qv__btn):not([disabled]):not(.disabled):hover {
   background-color: rgba(var(--faw-ink), .14) !important; border-color: rgba(var(--faw-ink), .22) !important;
 }
 html.faw-design :is(button.button, a.button, input.button, .button.standard):is([disabled], .disabled) { opacity: .45; }
-html.faw-design :is(button, a, input).button:is(.nuke, .button-nuke, [name=nuke], [value*="Nuke" i]) {
-  background-color: rgba(200,50,50,.18) !important; border-color: rgba(220,80,80,.5) !important; color: var(--faw-danger-text) !important;
-}
-html.faw-design :is(button, a, input).button:is(.nuke, .button-nuke):hover { background-color: rgba(200,50,50,.3) !important; }
 html.faw-design .button.standard.active {
   background-color: rgba(224,166,75,.16) !important; border-color: rgba(224,166,75,.45) !important; color: var(--faw-accent-text) !important;
 }
+/* Nuke: red everywhere (submissions, journals, comments, notes…) */
+html.faw-design .button.nuke {
+  background-color: rgba(200,50,50,.18) !important; border-color: rgba(220,80,80,.5) !important; color: var(--faw-danger-text) !important;
+}
+html.faw-design .button.nuke:hover { background-color: rgba(200,50,50,.3) !important; }
+html.faw-design .button.nuke :is(svg, svg *, i, .bi) { fill: #e5484d !important; color: #e5484d !important; }
 
-/* ---------- Comment form: Post Comment at the top right, next to the help line ---------- */
-html.faw-cmt-bubbles #responsebox { position: relative; }
-html.faw-cmt-bubbles #responsebox > p:first-child { min-height: 34px; display: flex; align-items: center; margin: 0 0 8px; padding-right: 150px; }
-html.faw-cmt-bubbles #add_comment_form .button.go.post-comment { position: absolute !important; top: 0; right: 0; margin: 0 !important; }
-html.faw-cmt-bubbles #add_comment_form .section-footer { min-height: 0 !important; padding-bottom: 0 !important; }
-
-/* ---------- Shouts: Leave Shout spacing, page selector in the bubbles look ---------- */
+/* shouts: Leave Shout in accent colour; pager buttons and page-number box all 34px tall */
 html.faw-design #c-shoutBox__submitContainer { margin-top: 8px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
 html.faw-design #c-shoutBox__button {
   padding: 6px 16px !important; border-radius: 8px !important;
   background-color: rgba(224,166,75,.18) !important; border-color: rgba(224,166,75,.45) !important; color: var(--faw-accent-text) !important;
 }
 html.faw-design form.c-shoutPaginationForm { display: flex !important; justify-content: center; align-items: stretch; gap: 6px; flex-wrap: wrap; }
-html.faw-design form.c-shoutPaginationForm > .button { margin: 0 !important; min-height: 34px; box-sizing: border-box; }
+html.faw-design form.c-shoutPaginationForm > .button {
+  margin: 0 !important; box-sizing: border-box; height: 34px !important; min-height: 34px;
+  padding-top: 0 !important; padding-bottom: 0 !important; line-height: 32px !important;
+  display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
+}
 html.faw-design form.c-shoutPaginationForm select.button {
   -webkit-appearance: none; appearance: none; cursor: pointer;
   border-radius: 8px !important; padding: 0 14px !important; min-width: 52px; text-align: center; text-align-last: center;
@@ -429,32 +383,21 @@ html.faw-design form.c-shoutPaginationForm select.button {
 }
 html.faw-design select.button option { background: var(--faw-menu-bg); color: var(--faw-text); }
 
-/* ---------- Unavailable account: info box centered like the system message ---------- */
-.faw-archive-sys { margin: 14px auto; max-width: 100%; box-sizing: border-box; }
-html.faw-cmt-bubbles #responsebox #add_comment_form,
-html.faw-cmt-bubbles #responsebox #add_comment_form .section-footer { position: static !important; }
-
-/* ---------- More from artist: no box, just the grid ---------- */
-.faw-more { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; }
-.faw-more__head { margin: 0 2px 12px; }
-
-/* ---------- Bubbles: FA's own bordered boxes (sections, profile/gallery panels, system messages,
-   settings) get rounded corners and a soft hairline instead of the hard theme outline ---------- */
+/* FA's own bordered boxes (sections, profile/gallery panels, system messages, settings): rounded
+   with a soft hairline. :where() keeps this weak so the "box inside a box" rule below wins. */
 html.faw-design :where(section, .stats-page, .submission-preview, .fa-plus-subscribe-box, .section-warning,
   .userpage-profile, .userpage-section-right, .userpage-section-left):not([class^="faw-"]) {
   border-color: rgba(var(--faw-ink), .09) !important; border-radius: 12px !important;
 }
-/* boxes inside a box: no second outline */
 html.faw-design :is(section, .userpage-section-left, .userpage-section-right, .userpage-profile) section:not([class^="faw-"]) {
   border: 0 !important; border-radius: 0 !important;
 }
+/* clip square inner backgrounds to the rounded corners */
 html.faw-design section:not([class^="faw-"]):is(.gallery-section, :has(> .section-header), :has(> .section-body)),
 html.faw-design #page-userpage :is(.userpage-section-left, .userpage-section-right) { overflow: hidden; }
-html.faw-design .section-header {
-  background-image: none !important;
-  border: 0 !important; border-bottom: 1px solid rgba(var(--faw-ink), .07) !important;
-}
+html.faw-design .section-header { background-image: none !important; border: 0 !important; border-bottom: 1px solid rgba(var(--faw-ink), .07) !important; }
 html.faw-design #faw-subinfo { border-radius: 12px; border: 1px solid rgba(var(--faw-ink), .07); }
+
 /* form fields (settings, upload, notes…) */
 html.faw-design :is(textarea, .textarea, .textbox, .uploadfield, .forminput, select:not(.button)) {
   border-color: rgba(var(--faw-ink), .14) !important; border-radius: 8px !important;
@@ -462,61 +405,32 @@ html.faw-design :is(textarea, .textarea, .textbox, .uploadfield, .forminput, sel
 html.faw-design :is(textarea, .textarea, .textbox, .uploadfield, .forminput, select:not(.button)):focus {
   border-color: rgba(224,166,75,.6) !important; outline: none;
 }
+
 /* system messages: green on success, red on failure (features.js classifies the text) */
 html.faw-design .faw-msg-ok { border-left: 3px solid var(--faw-ok) !important; }
 html.faw-design .faw-msg-err { border-left: 3px solid var(--faw-err) !important; }
 html.faw-design .faw-msg-ok .faw-msg-text { color: var(--faw-ok) !important; font-weight: 600; }
 html.faw-design .faw-msg-err .faw-msg-text { color: var(--faw-err) !important; font-weight: 600; }
-html.faw-design .faw-archive-sys { border-radius: 12px; }
 
-/* dark overlays keep their dark palette on every theme */
-.faw-qv, .faw-confirm { --faw-ink: 255,255,255; --faw-text: rgba(255,255,255,.9); --faw-accent-text: #f0c27a; --faw-danger-text: #f3a3a3; --faw-menu-bg: #1f2228; }
-
-/* ---------- Submission: newer / older as small arrow buttons below the image ---------- */
-.faw-subnav-row { display: flex; justify-content: center; gap: 6px; margin: 10px 0 0; }
-.faw-subnav-row .faw-arrow-btn { min-width: 40px; min-height: 30px; display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; text-decoration: none !important; }
-.faw-subnav-row .faw-arrow-btn.is-off { opacity: .3; pointer-events: none; }
-
-/* Nuke buttons everywhere (journals, comments, notes…): red icon like on submissions */
-html.faw-design .button.nuke svg, html.faw-design .button.nuke svg * { fill: #e5484d !important; color: #e5484d !important; }
-html.faw-design .button.nuke i, html.faw-design .button.nuke .bi { color: #e5484d !important; }
-
-/* Shouts pager: number box exactly as tall as the arrow buttons */
-html.faw-design form.c-shoutPaginationForm > .button {
-  height: 34px !important; min-height: 34px; padding-top: 0 !important; padding-bottom: 0 !important;
-  line-height: 32px !important; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
+/* watchers / watching: avatar tiles (features.js adds the images) */
+.watch-list.faw-tiles {
+  display: grid !important; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px 8px; padding: 12px !important;
 }
-
-/* Comic view open: newer/older buttons are not needed */
-html.faw-comic-open .faw-subnav-row { display: none !important; }
-
-/* Zoomed submission image: drag to pan */
-html.faw-actual #pageid-submission .submission-area.faw-pannable { cursor: grab; }
-html.faw-actual #pageid-submission .submission-area.faw-panning { cursor: grabbing; user-select: none; }
-html.faw-actual #pageid-submission .submission-area.faw-pannable #submissionImg { cursor: inherit !important; }
-.faw-qv__frame.faw-pannable { cursor: grab; }
-.faw-qv__frame.faw-panning { cursor: grabbing; user-select: none; }
-
-/* plain FA toolbar (extra buttons off) or notes: tidy row */
-html.faw-design form .floatleft:has(> .bbcodeformat) { display: flex !important; flex-wrap: wrap; gap: 3px; align-items: center; }
-
-/* ---------- Full-screen image viewer (submission page) ---------- */
-html.faw-lb-open { overflow: hidden; }
-.faw-lb { position: fixed; inset: 0; z-index: 2147483000; background: rgba(8, 8, 10, .94); }
-.faw-lb__stage {
-  position: absolute; inset: 0; overflow: auto; padding: 16px; box-sizing: border-box;
-  display: flex; align-items: center; justify-content: center; cursor: zoom-out;
+/* the "~" before each name is a bare text node: hide text at item level, restore it on the link */
+.watch-list.faw-tiles > * {
+  float: none !important; width: auto !important; margin: 0 !important; clear: none !important; min-width: 0;
+  font-size: 0 !important; line-height: 0;
 }
-.faw-lb__img {
-  display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;
-  cursor: zoom-in; box-shadow: 0 6px 40px rgba(0,0,0,.6); user-select: none; -webkit-user-drag: none;
+.watch-list.faw-tiles > * > :not(.c-usernameBlockSimple) { display: none !important; }
+.watch-list.faw-tiles a[href^="/user/"] {
+  display: flex !important; flex-direction: column; align-items: center; gap: 5px; text-decoration: none; min-width: 0;
+  font-size: 12px !important; line-height: 1.3;
 }
-.faw-lb.is-zoom .faw-lb__stage { align-items: flex-start; justify-content: flex-start; }
-.faw-lb.is-zoom .faw-lb__img { max-width: none; max-height: none; margin: auto; flex: none; cursor: grab; }
-.faw-lb__stage.faw-panning .faw-lb__img { cursor: grabbing; }
-.faw-lb__close {
-  position: absolute; top: 10px; right: 14px; z-index: 1; width: 40px; height: 40px; border: 0; border-radius: 10px;
-  background: rgba(30,30,34,.6); color: #ddd; font-size: 26px; line-height: 1; cursor: pointer;
+.watch-list.faw-tiles .faw-tile__img {
+  width: 64px; height: 64px; border-radius: 10px; object-fit: cover; background: rgba(var(--faw-ink), .05); transition: transform .12s;
 }
-.faw-lb__close:hover { background: rgba(60,60,66,.85); color: #fff; }
-#pageid-submission #submissionImg { cursor: zoom-in !important; }
+.watch-list.faw-tiles a:hover .faw-tile__img { transform: scale(1.06); }
+.watch-list.faw-tiles .c-usernameBlockSimple { display: block; max-width: 100%; text-align: center; }
+.watch-list.faw-tiles .c-usernameBlockSimple > :not(a) { display: none !important; }
+.watch-list.faw-tiles .c-usernameBlockSimple__displayName { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.watch-list.faw-tiles ~ .watchlist-navigation { display: none !important; }

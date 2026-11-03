@@ -1,7 +1,6 @@
-// Applies layout settings as CSS variables/classes on <html>. Runs at document_start.
-// On submission pages it also splits FA's sidebar as soon as the DOM is ready:
-// stats + Fav/Note/Download stay in the aside above the comments, while the details table,
-// keywords and folders move into a panel below the description.
+// Runs at document_start: sets the switch classes (faw-layout / faw-design) and size variables on
+// <html> before FA paints. Once the DOM is ready it also does the structural changes that must not
+// flash: splitting the submission sidebar, tagging profile sections, arrow buttons, theme detection.
 (() => {
   const DEFAULTS = {
     enabled: true, ultrawide: true, design: true,
@@ -20,7 +19,7 @@
     splitSubmissionPanel();
     tagProfile();
   }
-  const VARS = ["--faw-max", "--faw-gutter", "--faw-thumb", "--faw-read", "--faw-sidebar", "--faw-comments"];
+  const VARS = ["--faw-max", "--faw-gutter", "--faw-thumb"];
   const layoutOn = () => current.enabled && current.ultrawide;
   const designOn = () => current.enabled && current.design;
 
@@ -30,9 +29,6 @@
     current = s;
     root.classList.toggle("faw-layout", layoutOn());
     root.classList.toggle("faw-design", designOn());
-    root.classList.toggle("faw-cmt-bubbles", designOn());
-    root.classList.remove("faw-sub-classic");
-    root.classList.remove("faw-off");
     if (layoutOn()) {
       root.style.setProperty("--faw-max", s.max > 0 ? s.max + "px" : "100vw");
       root.style.setProperty("--faw-gutter", s.gutter + "px");
@@ -44,7 +40,8 @@
     run();
   }
 
-  // ---- submission page: move details/keywords/folders below the description (reversible)
+  // ---- submission page: stats + Fav/Note/Download stay in the aside above the comments; the details
+  //      table, keywords and folders move into a panel below the description (reversible)
   const moved = [];
   function splitSubmissionPanel() {
     if (!document.body || document.body.id !== "pageid-submission") return;
@@ -66,8 +63,6 @@
 
     panel = document.createElement("div");
     panel.id = "faw-subinfo";
-    const bg = getComputedStyle(side).backgroundColor;
-    if (bg && bg !== "rgba(0, 0, 0, 0)") panel.style.setProperty("--faw-panel-bg", bg);
     for (const sel of [".submission-content-stats", ".submission-tags", "#sidebar-lower-reverse"]) {
       const node = side.querySelector(sel);
       if (!node) continue;

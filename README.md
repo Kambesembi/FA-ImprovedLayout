@@ -4,7 +4,7 @@ Chrome extension (Manifest V3) that adapts Fur Affinity's modern theme to ultraw
 
 ## Features
 
-Works with all of FA's colour schemes (dark and light variants). Extension language: English, Deutsch, Русский (automatic or chosen in the popup).
+Works with all of FA's colour schemes (dark and light variants). Extension language: English, Deutsch, Русский (follows the browser, or pick a flag in the popup).
 
 **Main switches** (popup): the master switch turns everything off (the page is left untouched); *Ultrawide layout* covers all layout changes; *Bubbles design* covers comment/shout bubbles, the comment box, buttons across the site, pagination arrows, avatar views for watchers and the page frame.
 
@@ -31,7 +31,8 @@ Works with all of FA's colour schemes (dark and light variants). Extension langu
 - "More from artist" (9 submissions) below the comments
 - Ctrl/Cmd+click a thumbnail opens the submission page instead of the quick view
 - Recent watchers / recently watched: one row of avatars; full watcher lists as avatar tiles (real avatars, looked up as they scroll into view and cached)
-- Comment & shout style: Classic (FA) or Bubbles; two-row comment toolbar with extra BBCode buttons (can be switched off) (strike, sup/sub, headings, colour, quote, spoiler, link, YouTube, user icons/links, line)
+- Two-row comment toolbar with extra BBCode buttons: strike, sup/sub, headings, colour, quote, spoiler, link, YouTube, user icons/links, line (can be switched off)
+- Bubbles design: chat-bubble comments and shouts, rounded panels and buttons, success/error colours for system messages
 
 ## Install
 
@@ -46,7 +47,11 @@ Disable overlapping features in other FA extensions (e.g. "FurAffinity Features"
 | File | Purpose |
 |---|---|
 | `manifest.json` | Extension manifest |
-| `ultrawide.css` / `content.js` | Layout (applied at `document_start`) |
-| `features.css` / `features.js` | Image fit, quick view, comic reader, infinite scroll |
+| `content.js` / `ultrawide.css` | Switch classes, layout and palette, applied at `document_start` (no flash) |
+| `features.js` / `features.css` | Everything scripted: viewer, quick view, comic reader, infinite scroll, profile gallery, avatars, comment toolbar, Bubbles design |
+| `i18n.js` | Texts in English, German and Russian (popup and page) |
 | `background.js` | Downloads for the quick view |
-| `popup.html` / `popup.js` / `settings.js` | Settings popup (switches, presets) |
+| `popup.html` / `popup.js` / `settings.js` | Settings popup and defaults |
+| `icon*.png` | Extension icon |
+
+All settings are stored with `chrome.storage.sync`; the extension only talks to furaffinity.net (and opens furarchiver.net only after you confirm).

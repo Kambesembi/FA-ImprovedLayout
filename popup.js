@@ -1,48 +1,43 @@
+// Settings popup. Values live in chrome.storage.sync (defaults: settings.js); pages pick them up on
+// their next load. Texts come from i18n.js via data-i18n / data-i18n-title attributes.
 const $ = (id) => document.getElementById(id);
 const RANGES = ["max", "gutter", "thumb"];
 const CHECKS = ["ultrawide", "design", "imageFit", "quickView", "comic", "comicHorizontal", "infinite", "bbExtra", "archiveLink"];
-const UNCAPPED_AT_MAX = { max: true }; // top slider position = no cap (stored as 0)
 
 $("version").textContent = "v" + chrome.runtime.getManifest().version;
 
-function translate() {
-  for (const n of document.querySelectorAll("[data-i18n]")) n.textContent = T(n.dataset.i18n);
-  for (const n of document.querySelectorAll("[data-i18n-title]")) n.title = T(n.dataset.i18nTitle);
-  document.documentElement.lang = FAW_LANG;
+// "max" slider: the top position means "no cap" (stored as 0)
+function fmt(id, v) {
+  if (id === "max" && v === 0) return T("noCap");
+  return id === "thumb" ? Number(v).toFixed(2) + "×" : v + " px";
+}
+function readSlider(id) {
+  const el = $(id), v = Number(el.value);
+  return id === "max" && v >= Number(el.max) ? 0 : v;
 }
 
-function fmt(id, v) {
-  if (UNCAPPED_AT_MAX[id] && v === 0) return T("noCap");
-  return id === "thumb" ? Number(v).toFixed(2) + "×" : v + " px";
+function applyLang(pref) {
+  fawSetLang(pref);
+  document.documentElement.lang = FAW_LANG;
+  for (const n of document.querySelectorAll("[data-i18n]")) n.textContent = T(n.dataset.i18n);
+  for (const n of document.querySelectorAll("[data-i18n-title]")) n.title = T(n.dataset.i18nTitle);
+  for (const b of document.querySelectorAll("#langs button")) b.setAttribute("aria-pressed", String(b.dataset.lang === FAW_LANG));
+  for (const id of RANGES) $(id + "-v").textContent = fmt(id, readSlider(id));
 }
 
 function render(s) {
-  fawSetLang(s.lang);
-  translate();
-  $("lang").value = s.lang || "auto";
   $("enabled").checked = s.enabled;
   $("opts").disabled = !s.enabled;
-  for (const id of RANGES) {
-    const el = $(id);
-    el.value = UNCAPPED_AT_MAX[id] && s[id] === 0 ? el.max : s[id];
-    $(id + "-v").textContent = fmt(id, s[id]);
-  }
+  for (const id of RANGES) $(id).value = id === "max" && s[id] === 0 ? $(id).max : s[id];
   for (const id of CHECKS) $(id).checked = !!s[id];
-  for (const seg of document.querySelectorAll(".seg")) {
-    for (const b of seg.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.val === s[seg.dataset.key]));
-  }
-  syncDependents(s);
+  applyLang(s.lang);
+  syncDependents();
 }
 
-function syncDependents(s) {
-  $("comicHorizontal").disabled = !s.comic;
-  document.querySelector('[data-group="ultrawide"] .sub').classList.toggle("off", !s.ultrawide);
-}
-
-function readSlider(id) {
-  const el = $(id);
-  const v = Number(el.value);
-  return UNCAPPED_AT_MAX[id] && v >= Number(el.max) ? 0 : v;
+// Sub-options are dimmed while their parent switch is off
+function syncDependents() {
+  $("comicHorizontal").disabled = !$("comic").checked;
+  document.querySelector('[data-group="ultrawide"] .sub').classList.toggle("off", !$("ultrawide").checked);
 }
 
 // Debounced: storage.sync limits writes per minute, sliders fire many input events
@@ -63,27 +58,20 @@ for (const id of RANGES) {
   });
 }
 for (const id of CHECKS) {
-  $(id).addEventListener("change", (e) => {
-    save({ [id]: e.target.checked });
-    syncDependents({ comic: $("comic").checked, ultrawide: $("ultrawide").checked });
-  });
-}
-for (const seg of document.querySelectorAll(".seg")) {
-  seg.addEventListener("click", (e) => {
-    const b = e.target.closest("button");
-    if (!b) return;
-    for (const x of seg.querySelectorAll("button")) x.setAttribute("aria-pressed", String(x === b));
-    save({ [seg.dataset.key]: b.dataset.val });
-  });
+  $(id).addEventListener("change", (e) => { save({ [id]: e.target.checked }); syncDependents(); });
 }
 $("enabled").addEventListener("change", (e) => {
   $("opts").disabled = !e.target.checked;
   save({ enabled: e.target.checked });
 });
-$("lang").addEventListener("change", (e) => {
-  save({ lang: e.target.value });
-  chrome.storage.sync.get(FAW_DEFAULTS, (s) => render(Object.assign(s, { lang: e.target.value })));
+// Language: "auto" (browser language) until a flag is picked
+$("langs").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-lang]");
+  if (!b) return;
+  save({ lang: b.dataset.lang });
+  applyLang(b.dataset.lang);
 });
 $("reset").addEventListener("click", () => {
+  clearTimeout(timer); pending = {};
   chrome.storage.sync.clear(() => chrome.storage.sync.set(FAW_DEFAULTS, () => render(FAW_DEFAULTS)));
 });

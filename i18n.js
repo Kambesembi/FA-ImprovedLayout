@@ -5,7 +5,6 @@ const FAW_I18N = {
     // popup
     tagline: "Fur Affinity, tuned for wide screens",
     masterTitle: "Turn the whole extension on / off",
-    language: "Language", langAuto: "Automatic",
     ultrawide: "Ultrawide layout", ultrawideSub: "Width, comments beside the image, profile layout",
     maxWidth: "Max site width", gutter: "Side gutter", thumbSize: "Thumbnail size", noCap: "no cap",
     imageFit: "Fit image to screen", imageFitSub: "Click the image for a full-screen view",
@@ -37,6 +36,7 @@ const FAW_I18N = {
     // submission
     newerSub: "Newer submission", olderSub: "Older submission", moreFrom: "More from {0}", viewGallery: "View gallery",
     // infinite scroll
+    pageDivider: "— page {0} —", pagesLoaded: "{0} pages loaded · scroll for more", by: "by", category: "Category", species: "Species", resolution: "Resolution", rating: "Rating",
     scrollMore: "Scroll for more", loadingPage: "Loading page {0}…", endPages: "End · {0} pages loaded",
     noMore: "No more submissions", pageFailed: "Couldn't load page {0} ({1}) ", retry: "Retry",
     // quick view
@@ -48,7 +48,6 @@ const FAW_I18N = {
   de: {
     tagline: "Fur Affinity, optimiert für breite Bildschirme",
     masterTitle: "Erweiterung komplett ein- / ausschalten",
-    language: "Sprache", langAuto: "Automatisch",
     ultrawide: "Ultrawide-Layout", ultrawideSub: "Breite, Kommentare neben dem Bild, Profil-Layout",
     maxWidth: "Max. Seitenbreite", gutter: "Seitenrand", thumbSize: "Vorschaugröße", noCap: "unbegrenzt",
     imageFit: "Bild an Bildschirm anpassen", imageFitSub: "Klick aufs Bild öffnet die Vollbildansicht",
@@ -74,6 +73,7 @@ const FAW_I18N = {
     bbColor: "Textfarbe", bbQuote: "Zitat", bbSpoiler: "Spoiler", bbLink: "Link (URL oder Text markieren)",
     bbYt: "YouTube-Video", bbIcon: "Nutzer-Icon  :iconname:", bbUlink: "Nutzer-Link  :linkname:", bbHr: "Trennlinie",
     newerSub: "Neuere Einreichung", olderSub: "Ältere Einreichung", moreFrom: "Mehr von {0}", viewGallery: "Zur Galerie",
+    pageDivider: "— Seite {0} —", pagesLoaded: "{0} Seiten geladen · scrollen für mehr", by: "von", category: "Kategorie", species: "Spezies", resolution: "Auflösung", rating: "Einstufung",
     scrollMore: "Scrollen für mehr", loadingPage: "Lade Seite {0}…", endPages: "Ende · {0} Seiten geladen",
     noMore: "Keine weiteren Einreichungen", pageFailed: "Seite {0} konnte nicht geladen werden ({1}) ", retry: "Erneut versuchen",
     prev: "Zurück (←)", next: "Weiter (→)", close: "Schließen (Esc)", download: "Herunterladen", openPage: "Seite öffnen",
@@ -84,7 +84,6 @@ const FAW_I18N = {
   ru: {
     tagline: "Fur Affinity для широких экранов",
     masterTitle: "Включить / выключить расширение",
-    language: "Язык", langAuto: "Автоматически",
     ultrawide: "Широкий макет", ultrawideSub: "Ширина, комментарии рядом с изображением, макет профиля",
     maxWidth: "Макс. ширина сайта", gutter: "Боковой отступ", thumbSize: "Размер миниатюр", noCap: "без ограничения",
     imageFit: "Вписать изображение в экран", imageFitSub: "Нажмите на изображение для полноэкранного просмотра",
@@ -110,6 +109,7 @@ const FAW_I18N = {
     bbColor: "Цвет текста", bbQuote: "Цитата", bbSpoiler: "Спойлер", bbLink: "Ссылка (выделите URL или текст)",
     bbYt: "Видео YouTube", bbIcon: "Иконка пользователя  :iconname:", bbUlink: "Ссылка на пользователя  :linkname:", bbHr: "Горизонтальная линия",
     newerSub: "Более новая работа", olderSub: "Более старая работа", moreFrom: "Ещё от {0}", viewGallery: "Открыть галерею",
+    pageDivider: "— страница {0} —", pagesLoaded: "Загружено страниц: {0} · прокрутите дальше", by: "автор", category: "Категория", species: "Вид", resolution: "Разрешение", rating: "Рейтинг",
     scrollMore: "Прокрутите, чтобы увидеть больше", loadingPage: "Загрузка страницы {0}…", endPages: "Конец · загружено страниц: {0}",
     noMore: "Больше работ нет", pageFailed: "Не удалось загрузить страницу {0} ({1}) ", retry: "Повторить",
     prev: "Назад (←)", next: "Вперёд (→)", close: "Закрыть (Esc)", download: "Скачать", openPage: "Открыть страницу",
