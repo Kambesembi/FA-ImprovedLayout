@@ -247,7 +247,7 @@ html.faw-layout:not(.faw-sub-classic) #pageid-submission #sidebar-lower-reverse:
    no boxed backgrounds, a hairline divider towards the comments, compact uniform buttons */
 html.faw-layout:not(.faw-sub-classic) #pageid-submission #submission-main-content > div:nth-child(2) {
   background: transparent !important;
-  padding: var(--faw-gap) 2px 14px !important;
+  padding: calc(var(--faw-gap) * 2) 2px 14px !important;
   border-bottom: 1px solid rgba(255, 255, 255, .08);
   flex-direction: column !important;
   flex-wrap: nowrap !important;
@@ -361,12 +361,29 @@ html.faw-layout #page-userpage > .leaderboardAd { justify-self: center; }
 /* ---- Submission page: subtle dividers between the sections (image, mini gallery, description,
    info panel); the aside already has one between stats/buttons and the comments ---- */
 html.faw-layout:not(.faw-sub-classic) #pageid-submission #submission-main-content > div:nth-child(1) > :is(.submission-details, #faw-subinfo),
-html.faw-layout:not(.faw-sub-classic) #pageid-submission #minigallery:has(*) {
+html.faw-layout:not(.faw-sub-classic) #pageid-submission #minigallery.faw-has-comic {
   position: relative; margin-top: calc(var(--faw-gap) * 2) !important;
 }
 html.faw-layout:not(.faw-sub-classic) #pageid-submission #submission-main-content > div:nth-child(1) > :is(.submission-details, #faw-subinfo)::before,
-html.faw-layout:not(.faw-sub-classic) #pageid-submission #minigallery:has(*)::before {
+html.faw-layout:not(.faw-sub-classic) #pageid-submission #minigallery.faw-has-comic::before {
   content: ""; position: absolute; left: 0; right: 0; top: calc(var(--faw-gap) * -1 - 1px);
   height: 1px; background: rgba(255, 255, 255, .08); pointer-events: none;
 }
 html.faw-layout:not(.faw-sub-classic) #pageid-submission .comments-list { border-top: 0; }
+
+/* Bottom breathing room below keywords / info panel and comments */
+html.faw-layout #pageid-submission .submission-page-content { padding-bottom: calc(var(--faw-gap) * 3) !important; }
+
+/* Newer / older arrows beside the image replace FA's mini gallery box */
+html.faw-layout.faw-subnav-on #pageid-submission #minigallery > .minigallery-container { display: none !important; }
+html.faw-layout.faw-subnav-on #pageid-submission #minigallery:not(.faw-has-comic) { display: none !important; }
+html.faw-layout #pageid-submission .submission-area { position: relative; }
+.faw-subnav {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+  display: grid; place-items: center; width: 44px; height: 88px; border-radius: 12px;
+  color: rgba(255,255,255,.55); background: rgba(20,22,26,.35); text-decoration: none !important;
+  transition: background .15s, color .15s;
+}
+.faw-subnav:hover { color: #fff; background: rgba(20,22,26,.7); }
+.faw-subnav--prev { left: 6px; }
+.faw-subnav--next { right: 6px; }

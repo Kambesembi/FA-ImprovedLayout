@@ -36,7 +36,7 @@
       if (S.imageFit && layoutOn()) initImageFit();
       if (S.comic) initComic();
       initAjaxFav();
-      if (layoutOn()) initMoreFromArtist();
+      if (layoutOn()) { initMoreFromArtist(); initSubmissionNav(); }
     }
     if (S.infinite) initInfinite();
     if (S.archiveLink) initArchiveLink();
@@ -769,6 +769,7 @@
   // URL (with its timestamp) is read from the user's page — only for avatars that scroll into view,
   // two requests at a time, cached in localStorage for two weeks.
   const AV_DEFAULT = "https://a.furaffinity.net/default.gif";
+  const AV_DAY = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const AV_TTL = 14 * 864e5;
   const avPending = new Map();
   const avQueue = [];
@@ -820,7 +821,9 @@
       img.onerror = () => { img.onerror = null; img.src = AV_DEFAULT; };
       resolveAvatar(key).then((u) => { if (u !== img.src) img.src = u; else img.onerror(); });
     };
-    img.src = cached || "https://a.furaffinity.net/" + encodeURIComponent(key) + ".gif";
+    // Daily version parameter: the browser cache can hold a wrong image for the short avatar address
+    // (e.g. a disabled account's avatar for many users); a fresh URL per day avoids that.
+    img.src = cached || "https://a.furaffinity.net/" + encodeURIComponent(key) + ".gif?v=" + AV_DAY;
   }
   function decorateWatchlist(list) {
     if (!designOn()) return;
@@ -1031,6 +1034,27 @@
         a.classList.remove("faw-busy");
       }
     }, true);
+  }
+
+  // ------------------------------------------------------------------ submission: newer / older arrows beside the image
+  // Replaces FA's "Main Gallery · Newer | Older" box below the image.
+  function initSubmissionNav() {
+    const area = document.querySelector("#pageid-submission .submission-area");
+    const nav = document.querySelector("#minigallery .minigallery-navigation");
+    if (!area || area.querySelector(".faw-subnav")) return;
+    const links = nav ? [...nav.querySelectorAll("a[href]")] : [];
+    const newer = links.find((a) => /newer/i.test(a.textContent));
+    const older = links.find((a) => /older/i.test(a.textContent));
+    const mk = (a, dir, title) => {
+      const x = el("a", "faw-subnav faw-subnav--" + dir);
+      x.href = a.getAttribute("href");
+      x.title = title;
+      x.innerHTML = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="${dir === "prev" ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"}"/></svg>`;
+      area.appendChild(x);
+    };
+    if (newer) mk(newer, "prev", "Newer submission");
+    if (older) mk(older, "next", "Older submission");
+    document.documentElement.classList.add("faw-subnav-on");
   }
 
   // ------------------------------------------------------------------ submission: "More from artist" below the comments

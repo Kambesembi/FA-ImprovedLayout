@@ -432,3 +432,20 @@ html.faw-design select.button option { background: #1f2228; color: #e2e3e8; }
 .faw-archive-sys { margin: 14px auto; max-width: 100%; box-sizing: border-box; }
 html.faw-cmt-bubbles #responsebox #add_comment_form,
 html.faw-cmt-bubbles #responsebox #add_comment_form .section-footer { position: static !important; }
+
+/* ---------- More from artist: no box, just the grid ---------- */
+.faw-more { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; }
+.faw-more__head { margin: 0 2px 12px; }
+
+/* ---------- Bubbles: FA panels (profile, stats, gallery boxes, system messages, info panel) ---------- */
+html.faw-design :is(div, section):has(> .section-header):not(.faw-qv *):not(#faw-subinfo *):not(#submission-main-content > div:nth-child(2) *):not(.comments-list *),
+html.faw-design .userpage-layout-profile-container,
+html.faw-design #faw-subinfo {
+  border-radius: 12px !important; overflow: hidden;
+  border: 1px solid rgba(255,255,255,.07) !important; box-shadow: 0 2px 12px rgba(0,0,0,.18);
+}
+html.faw-design .section-header {
+  background-color: rgba(255,255,255,.035) !important; background-image: none !important;
+  border: 0 !important; border-bottom: 1px solid rgba(255,255,255,.06) !important;
+}
+html.faw-design .faw-archive-sys { border-radius: 12px; }
