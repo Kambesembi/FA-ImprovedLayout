@@ -351,7 +351,10 @@ html.faw-layout #pageid-submission .submission-page-content { padding-left: var(
   display: flex; flex-direction: column; align-items: center; gap: 4px; box-sizing: border-box; padding: 6px 0;
   border-radius: 14px; background: rgba(var(--faw-ink), .04); border: 1px solid rgba(var(--faw-ink), .09);
   color: var(--faw-text); font: 11px/1.25 "Open Sans", system-ui, sans-serif;
+  container-type: inline-size;
 }
+/* second column only once the sidebar is really wide */
+@container (min-width: 210px) { .faw-pinbar__list { grid-template-columns: 1fr 1fr; } }
 .faw-pinbar[hidden] { display: none; }
 .faw-pinbar__head { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0 10px; box-sizing: border-box; }
 .faw-pinbar__head span { display: grid; color: var(--faw-accent-text); opacity: .85; }
@@ -365,7 +368,7 @@ html.faw-layout #pageid-submission .submission-page-content { padding-left: var(
 /* padding gives the hover zoom and the current-profile outline room so they aren't clipped */
 .faw-pinbar__list {
   flex: 1; min-height: 0; width: 100%; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; box-sizing: border-box;
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(max(68px, calc(50% - 2px)), 1fr)); justify-items: center; align-content: start;
+  display: grid; grid-template-columns: 1fr; justify-items: center; align-content: start;
   gap: 10px 4px; padding: 8px 4px;
 }
 .faw-pin { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 68px; flex: none; color: var(--faw-text) !important; text-decoration: none !important; }

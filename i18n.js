@@ -40,6 +40,7 @@ const FAW_I18N = {
     qvHint: "← → browse · F fav · D download · click image to zoom · Esc close",
     nukeAll: "Clear all notifications", nukeConfirm: "Clear ALL notifications (submissions, watches, comments, journals, favourites, shouts)? This can't be undone.", nukeOk: "Clear all", sfwTitle: "Show or hide mature and adult submissions", pin: "Pin", unpin: "Unpin", pinTitle: "Pin this artist to the sidebar", pinnedArtists: "Pinned artists", topbar: "Top bar extras", topbarSub: "Clear-all button and SFW switch next to the notifications", pins: "Pinned artists", pinsSub: "Pin button on profiles, list on the right",
     pinDelete: "Remove artists (click again to finish)",
+    gutterHint: "Minimum space left and right. When the window is wider than max width + both gutters, the max width decides instead.",
     scrollMore: "Scroll for more", loadingPage: "Loading page {0}…", endPages: "End · {0} pages loaded",
     noMore: "No more submissions", pageFailed: "Couldn't load page {0} ({1}) ", retry: "Retry",
     // quick view
@@ -80,6 +81,7 @@ const FAW_I18N = {
     qvHint: "← → blättern · F Fav · D Download · Klick ins Bild zum Zoomen · Esc schließen",
     nukeAll: "Alle Benachrichtigungen löschen", nukeConfirm: "ALLE Benachrichtigungen löschen (Einreichungen, Watches, Kommentare, Journale, Favoriten, Shouts)? Das kann nicht rückgängig gemacht werden.", nukeOk: "Alle löschen", sfwTitle: "Mature- und Adult-Inhalte ein- oder ausblenden", pin: "Anheften", unpin: "Lösen", pinTitle: "Diesen Künstler an die Seitenleiste heften", pinnedArtists: "Angeheftete Künstler", topbar: "Extras in der Menüleiste", topbarSub: "Alles-löschen-Button und SFW-Schalter neben den Benachrichtigungen", pins: "Angeheftete Künstler", pinsSub: "Anheften-Button im Profil, Liste rechts",
     pinDelete: "Künstler entfernen (erneut klicken zum Beenden)",
+    gutterHint: "Mindestabstand links und rechts. Ist das Fenster breiter als max. Breite + beide Ränder, entscheidet stattdessen die max. Breite.",
     scrollMore: "Scrollen für mehr", loadingPage: "Lade Seite {0}…", endPages: "Ende · {0} Seiten geladen",
     noMore: "Keine weiteren Einreichungen", pageFailed: "Seite {0} konnte nicht geladen werden ({1}) ", retry: "Erneut versuchen",
     prev: "Zurück (←)", next: "Weiter (→)", close: "Schließen (Esc)", download: "Herunterladen", openPage: "Seite öffnen",
@@ -119,6 +121,7 @@ const FAW_I18N = {
     qvHint: "← → листать · F избранное · D скачать · клик по изображению — масштаб · Esc закрыть",
     nukeAll: "Удалить все уведомления", nukeConfirm: "Удалить ВСЕ уведомления (работы, подписки, комментарии, журналы, избранное, шауты)? Это нельзя отменить.", nukeOk: "Удалить все", sfwTitle: "Показать или скрыть взрослый контент", pin: "Закрепить", unpin: "Открепить", pinTitle: "Закрепить художника на боковой панели", pinnedArtists: "Закреплённые художники", topbar: "Дополнения в верхней панели", topbarSub: "Кнопка «удалить все» и переключатель SFW рядом с уведомлениями", pins: "Закреплённые художники", pinsSub: "Кнопка закрепления в профиле, список справа",
     pinDelete: "Удалить художников (нажмите ещё раз, чтобы завершить)",
+    gutterHint: "Минимальный отступ слева и справа. Если окно шире макс. ширины + двух отступов, решает макс. ширина.",
     scrollMore: "Прокрутите, чтобы увидеть больше", loadingPage: "Загрузка страницы {0}…", endPages: "Конец · загружено страниц: {0}",
     noMore: "Больше работ нет", pageFailed: "Не удалось загрузить страницу {0} ({1}) ", retry: "Повторить",
     prev: "Назад (←)", next: "Вперёд (→)", close: "Закрыть (Esc)", download: "Скачать", openPage: "Открыть страницу",
