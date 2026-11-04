@@ -1,15 +1,14 @@
 /* FA-ImprovedLayout — layout rules apply only with html.faw-layout ("Ultrawide layout" switch), design
    rules only with html.faw-design ("Bubbles design" switch); content.js sets both on <html>.
-   Only site width, gutter and thumbnail scale are user settings; the rest derives from the layout. */
+   Only the side gutter and thumbnail scale are user settings; the rest derives from the layout. */
 
 /* Palette for FA's dark schemes; flipped for light schemes (html.faw-light, see content.js) */
 :root {
   --faw-ink: 255,255,255; --faw-text: rgba(255,255,255,.9); --faw-accent-text: #f0c27a; --faw-danger-text: #f3a3a3;
   --faw-menu-bg: #1f2228; --faw-ok: #6fd38a; --faw-err: #f07a7a;
-  --faw-max: 2800px;      /* maximum site width (popup) */
-  --faw-gutter: 24px;     /* minimum space left/right (popup) */
+  --faw-gutter: 24px;     /* space left/right of the page (popup) */
   --faw-thumb: 1.25;      /* thumbnail scale in galleries (popup) */
-  --faw-w: min(var(--faw-max), calc(100vw - 2 * var(--faw-gutter)));
+  --faw-w: calc(100vw - 2 * var(--faw-gutter));
   --faw-nav: 50px;        /* FA's fixed top menu */
   --faw-gap: 12px;
 }
@@ -18,7 +17,7 @@ html.faw-light {
   --faw-menu-bg: #fff; --faw-ok: #1d8a3c; --faw-err: #c62828;
 }
 
-/* ---- Core layout: FA caps html AND body at 1850px. Lift html, center body. ---- */
+/* ---- Core layout: FA caps html AND body at 1850px. Lift html, center body; the gutter decides the width. ---- */
 html.faw-layout { max-width: none !important; }
 html.faw-layout body {
   max-width: var(--faw-w) !important;
@@ -342,11 +341,11 @@ html.faw-layout.faw-subnav-on #pageid-submission #minigallery:not(.faw-has-comic
 /* left edge gets the same breathing room as the right */
 html.faw-layout #pageid-submission .submission-page-content { padding-left: var(--faw-gap) !important; box-sizing: border-box; }
 
-/* ---- Pinned artists sidebar (content.js): fixed in the right gutter, which content.js widens to
-   at least 100px while the list isn't empty. Colours follow the FA colour scheme. ---- */
+/* ---- Pin sidebars (content.js): artists on the right, submissions on the left, each fixed in its
+   gutter (content.js keeps the gutter at ≥100px while one is shown). Colours follow the FA scheme. ---- */
 .faw-pinbar {
-  /* fills the free space right of the page (at least 76px); one or two columns of artists */
-  position: fixed; top: 8px; right: 8px; bottom: 8px; z-index: 1000;
+  /* fills the free space beside the page (at least 76px); one or two columns */
+  position: fixed; top: 8px; bottom: 8px; z-index: 1000;
   width: max(76px, calc((100vw - var(--faw-w)) / 2 - 26px));
   display: flex; flex-direction: column; align-items: center; gap: 4px; box-sizing: border-box; padding: 6px 0;
   border-radius: 14px; background: rgba(var(--faw-ink), .04); border: 1px solid rgba(var(--faw-ink), .09);
@@ -355,6 +354,8 @@ html.faw-layout #pageid-submission .submission-page-content { padding-left: var(
 }
 /* second column only once the sidebar is really wide */
 @container (min-width: 210px) { .faw-pinbar__list { grid-template-columns: 1fr 1fr; } }
+.faw-pinbar--right { right: 8px; }
+.faw-pinbar--left { left: 8px; }
 .faw-pinbar[hidden] { display: none; }
 .faw-pinbar__head { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0 10px; box-sizing: border-box; }
 .faw-pinbar__head span { display: grid; color: var(--faw-accent-text); opacity: .85; }

@@ -4,9 +4,10 @@
 (() => {
   const DEFAULTS = {
     enabled: true, ultrawide: true, design: true,
-    max: 2800, gutter: 24, thumb: 1.25, pins: true, pinned: [], lang: "auto"
+    gutter: 24, thumb: 1.25, pins: true, pinned: [], pinSubs: true, lang: "auto"
   };
-  const PINBAR = 100;   // minimum side gutter while artists are pinned (sidebar ≥76px + margins)
+  const PINBAR = 100;   // minimum side gutter while a pin sidebar is shown (sidebar ≥76px + margins); popup.js mirrors it
+  let pinnedSubs = [];  // pinned submissions live in storage.local (more room than sync)
   const root = document.documentElement;
   let current = DEFAULTS;
   let loaded = false;            // settings read from storage
@@ -20,7 +21,7 @@
     splitSubmissionPanel();
     tagProfile();
   }
-  const VARS = ["--faw-max", "--faw-gutter", "--faw-thumb"];
+  const VARS = ["--faw-gutter", "--faw-thumb"];
   const layoutOn = () => current.enabled && current.ultrawide;
   const designOn = () => current.enabled && current.design;
 
@@ -31,21 +32,22 @@
     root.classList.toggle("faw-layout", layoutOn());
     root.classList.toggle("faw-design", designOn());
     if (layoutOn()) {
-      root.style.setProperty("--faw-max", s.max > 0 ? s.max + "px" : "100vw");
-      const pinsShown = s.pins && Array.isArray(s.pinned) && s.pinned.length > 0;
-      root.style.setProperty("--faw-gutter", (pinsShown ? Math.max(s.gutter, PINBAR) : s.gutter) + "px");
+      root.style.setProperty("--faw-gutter", (barsShown() ? Math.max(s.gutter, PINBAR) : s.gutter) + "px");
       root.style.setProperty("--faw-thumb", String(s.thumb));
     } else {
       for (const v of VARS) root.style.removeProperty(v);
     }
     loaded = true;
     if (typeof fawSetLang === "function") fawSetLang(s.lang);
-    renderPinBar();
+    renderBars();
     run();
   }
+  const barsShown = () => (current.pins && Array.isArray(current.pinned) && current.pinned.length > 0) ||
+    (current.pinSubs && pinnedSubs.length > 0);
 
-  // ---- pinned artists sidebar: drawn at page start (before FA renders) so it doesn't pop in late.
-  //      Removing entries needs "delete mode" (trash icon) so a stray click can't unpin anyone.
+  // ---- pin sidebars: pinned artists on the right, pinned submissions on the left. Drawn at page start
+  //      (before FA renders) so they don't pop in late. Removing entries needs "delete mode" (trash
+  //      icon) so a stray click can't unpin anything; click-hold-drag reorders.
   const SVG = "http://www.w3.org/2000/svg";
   function svgIcon(paths, size) {
     const svg = document.createElementNS(SVG, "svg");
@@ -57,13 +59,34 @@
   const PIN_ICON = ["M12 17v5", "M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"];
   const TRASH_ICON = ["M3 6h18", "M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6", "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2", "M10 11v6M14 11v6"];
   const tr = (k, fallback) => (typeof T === "function" ? T(k) : fallback);
-  let pinBar = null;
-  function renderPinBar() {
-    const pins = current.enabled && current.pins && Array.isArray(current.pinned) ? current.pinned : [];
-    if (!pins.length) { if (pinBar) { pinBar.hidden = true; pinBar.classList.remove("is-deleting"); } return; }
-    if (!pinBar) {
-      pinBar = document.createElement("aside");
-      pinBar.className = "faw-pinbar";
+
+  // entries: artists { u: slug, n: name, a: avatar }   submissions { u: id, n: title, a: thumbnail }
+  const herePath = location.pathname;
+  const BARS = {
+    artists: {
+      side: "right", area: "sync", key: "pinned", titleKey: "pinnedArtists", deleteKey: "pinDelete",
+      on: () => current.pins, list: () => current.pinned || [],
+      href: (p) => "/user/" + encodeURIComponent(p.u) + "/",
+      img: (p) => p.a || "https://a.furaffinity.net/" + encodeURIComponent(p.u) + ".gif",
+      isHere: (p) => { const m = herePath.match(/^\/(?:user|gallery|scraps|favorites|journals|commissions|stats)\/([^/]+)/i); return !!m && decodeURIComponent(m[1]).toLowerCase() === p.u; }
+    },
+    subs: {
+      side: "left", area: "local", key: "pinnedSubs", titleKey: "pinnedSubs", deleteKey: "pinDeleteSubs",
+      on: () => current.pinSubs, list: () => pinnedSubs,
+      href: (p) => "/view/" + p.u + "/",
+      img: (p) => p.a,
+      isHere: (p) => herePath.startsWith("/view/" + p.u + "/")
+    }
+  };
+  const saveBar = (cfg, list) => chrome.storage[cfg.area].set({ [cfg.key]: list });
+
+  function renderBars() { for (const k in BARS) renderBar(BARS[k]); }
+  function renderBar(cfg) {
+    const pins = current.enabled && cfg.on() && Array.isArray(cfg.list()) ? cfg.list() : [];
+    if (!pins.length) { if (cfg.el) { cfg.el.hidden = true; cfg.el.classList.remove("is-deleting"); } return; }
+    if (!cfg.el) {
+      const bar = cfg.el = document.createElement("aside");
+      bar.className = "faw-pinbar faw-pinbar--" + cfg.side;
       const head = document.createElement("div");
       head.className = "faw-pinbar__head";
       const label = document.createElement("span");
@@ -72,39 +95,39 @@
       trash.type = "button";
       trash.className = "faw-pinbar__trash";
       trash.append(svgIcon(TRASH_ICON, 15));
-      trash.addEventListener("click", () => pinBar.classList.toggle("is-deleting"));
+      trash.addEventListener("click", () => bar.classList.toggle("is-deleting"));
       head.append(label, trash);
       const list = document.createElement("div");
       list.className = "faw-pinbar__list";
-      // in delete mode a click removes the entry instead of opening the profile
+      // in delete mode a click removes the entry instead of opening it
       list.addEventListener("click", (e) => {
         const a = e.target.closest(".faw-pin");
-        if (!a || !pinBar.classList.contains("is-deleting")) return;
+        if (!a || !bar.classList.contains("is-deleting")) return;
         e.preventDefault();
-        chrome.storage.sync.set({ pinned: current.pinned.filter((q) => q.u !== a.dataset.u) });
+        saveBar(cfg, cfg.list().filter((q) => String(q.u) !== a.dataset.u));
       });
-      enableReorder(list);
-      pinBar.append(head, list);
-      (document.body || root).appendChild(pinBar);
-      if (!document.body) document.addEventListener("DOMContentLoaded", () => document.body.appendChild(pinBar), { once: true });
+      enableReorder(cfg, list);
+      bar.append(head, list);
+      (document.body || root).appendChild(bar);
+      if (!document.body) document.addEventListener("DOMContentLoaded", () => document.body.appendChild(bar), { once: true });
     }
-    pinBar.hidden = false;
-    pinBar.querySelector(".faw-pinbar__head span").title = tr("pinnedArtists", "Pinned artists");
-    pinBar.querySelector(".faw-pinbar__trash").title = tr("pinDelete", "Remove artists");
-    const here = (location.pathname.match(/^\/(?:user|gallery|scraps|favorites|journals|commissions|stats)\/([^/]+)/i) || [])[1];
-    const list = pinBar.querySelector(".faw-pinbar__list");
+    const bar = cfg.el;
+    bar.hidden = false;
+    bar.querySelector(".faw-pinbar__head span").title = tr(cfg.titleKey, "Pinned");
+    bar.querySelector(".faw-pinbar__trash").title = tr(cfg.deleteKey, "Remove");
+    const list = bar.querySelector(".faw-pinbar__list");
     list.replaceChildren();
     for (const p of pins) {
       const a = document.createElement("a");
-      a.className = "faw-pin" + (here && decodeURIComponent(here).toLowerCase() === p.u ? " is-current" : "");
-      a.href = "/user/" + encodeURIComponent(p.u) + "/";
+      a.className = "faw-pin" + (cfg.isHere(p) ? " is-current" : "");
+      a.href = cfg.href(p);
       a.title = p.n || p.u;
-      a.dataset.u = p.u;
+      a.dataset.u = String(p.u);
       a.draggable = false;
       const img = document.createElement("img");
       img.alt = "";
       img.draggable = false;
-      img.src = p.a || "https://a.furaffinity.net/" + encodeURIComponent(p.u) + ".gif";
+      img.src = cfg.img(p) || "https://a.furaffinity.net/default.gif";
       img.onerror = () => { img.onerror = null; img.src = "https://a.furaffinity.net/default.gif"; };
       const name = document.createElement("span");
       name.textContent = p.n || p.u;
@@ -151,11 +174,11 @@
   }
 
   // Click, hold and drag an entry to reorder; the new order is saved when it's dropped
-  function enableReorder(list) {
+  function enableReorder(cfg, list) {
     let drag = null, swallowClick = false;
     list.addEventListener("mousedown", (e) => {
       const a = e.target.closest(".faw-pin");
-      if (!a || e.button !== 0 || pinBar.classList.contains("is-deleting")) return;
+      if (!a || e.button !== 0 || cfg.el.classList.contains("is-deleting")) return;
       e.preventDefault();
       drag = { a, x: e.clientX, y: e.clientY, active: false };
     });
@@ -165,10 +188,9 @@
         if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 5) return;
         drag.active = true;
         drag.a.classList.add("is-dragging");
-        pinBar.classList.add("is-reordering");
+        cfg.el.classList.add("is-reordering");
       }
       // move the entry in front of the first sibling that comes after the pointer in reading order
-      // (one or two columns)
       const others = [...list.children].filter((x) => x !== drag.a);
       const next = others.find((x) => {
         const r = x.getBoundingClientRect();
@@ -187,12 +209,11 @@
       drag = null;
       if (!active) return;
       a.classList.remove("is-dragging");
-      pinBar.classList.remove("is-reordering");
+      cfg.el.classList.remove("is-reordering");
       swallowClick = true;
       setTimeout(() => { swallowClick = false; }, 0);
-      const order = [...list.children].map((x) => x.dataset.u);
-      const byU = new Map(current.pinned.map((p) => [p.u, p]));
-      chrome.storage.sync.set({ pinned: order.map((u) => byU.get(u)).filter(Boolean) });
+      const byU = new Map(cfg.list().map((p) => [String(p.u), p]));
+      saveBar(cfg, [...list.children].map((x) => byU.get(x.dataset.u)).filter(Boolean));
     });
     list.addEventListener("click", (e) => { if (swallowClick) { e.preventDefault(); e.stopPropagation(); } }, true);
   }
@@ -266,9 +287,13 @@
     root.classList.toggle("faw-light", light);
     if (name) root.dataset.fawTheme = name;
   }
-  chrome.storage.sync.get(DEFAULTS, apply);
+  chrome.storage.local.get({ pinnedSubs: [] }, (l) => {
+    pinnedSubs = Array.isArray(l.pinnedSubs) ? l.pinnedSubs : [];
+    chrome.storage.sync.get(DEFAULTS, apply);
+  });
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "sync") chrome.storage.sync.get(DEFAULTS, apply);
+    if (area === "local" && changes.pinnedSubs) pinnedSubs = changes.pinnedSubs.newValue || [];
+    if (area === "sync" || (area === "local" && changes.pinnedSubs)) chrome.storage.sync.get(DEFAULTS, apply);
   });
   if (!domReady) {
     document.addEventListener("DOMContentLoaded", () => { domReady = true; run(); }, { once: true });

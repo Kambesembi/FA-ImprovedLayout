@@ -3,7 +3,6 @@ const FAW_DEFAULTS = {
   enabled: true,
   ultrawide: true,    // main switch: ultrawide layout
   design: true,       // main switch: bubbles design
-  max: 2800,          // px, 0 = no cap (full width)
   gutter: 24,         // px
   thumb: 1.25,        // thumbnail scale
   imageFit: true,     // fit submission image to available space
@@ -16,5 +15,6 @@ const FAW_DEFAULTS = {
   topbar: true,       // clear-all-notifications button + SFW switch in the top bar
   pins: true,         // pinned artists sidebar
   pinned: [],         // [{ u: slug, n: name, a: avatar URL }]
+  pinSubs: true,      // pinned submissions sidebar (list itself in storage.local "pinnedSubs")
   lang: "auto"        // extension language: auto | en | de | ru
 };

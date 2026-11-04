@@ -4,13 +4,13 @@ Browser extension that adapts Fur Affinity's modern theme to wide and ultrawide 
 
 ## Features
 
-- **Ultrawide layout** – centered, adjustable site width; submission page with comments beside the image; profile split into two columns with a justified gallery box
+- **Ultrawide layout** – centered page, width set by the side gutter; submission page with comments beside the image; profile split into two columns with a justified gallery box
 - **Bubbles design** – rounded panels and buttons, chat-bubble comments and shouts, avatar tiles for watchers, coloured system messages
 - **Quick view** – click a thumbnail to open it in an overlay (fav, download, comments, ← → to browse)
 - **Full-screen viewer** – click a submission image; click again to zoom at the cursor, drag to pan
 - **Comic reader** – loads a whole series on one page (vertical or horizontal)
 - **Infinite scroll** – galleries, favorites, browse, search and the submission inbox
-- **Pinned artists** – pin button next to Watch on profiles; pinned artists stay in a sidebar on the right
+- **Pinned artists & submissions** – pin button next to Watch on profiles and on submissions / in the quick view; artists stay in a sidebar on the right, submissions on the left (drag to reorder)
 - **Top bar** – clear all notifications with one click (with confirmation), SFW/NSFW switch next to the notifications
 - **Extras** – extra BBCode buttons, +Fav without reload, "More from this artist", full watcher lists, in-page link warnings, optional link to archived galleries
 

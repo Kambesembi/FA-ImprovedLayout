@@ -474,3 +474,9 @@ html.faw-sfw-moved .mobile-sfw-toggle { display: none !important; }   /* FA's or
 .faw-pin-btn { display: inline-flex !important; align-items: center; justify-content: center; vertical-align: top; }
 .faw-pin-btn svg { display: block; flex: none; width: 21px !important; height: 21px !important; min-width: 0 !important; padding: 0 !important; margin: 0 !important; position: static !important; top: auto !important; }
 .faw-pin-btn.is-on { color: var(--faw-accent-text) !important; border-color: rgba(224,166,75,.45) !important; background-color: rgba(224,166,75,.14) !important; }
+
+/* pin buttons for submissions (aside on the submission page, quick view) */
+.faw-subpin-btn { display: inline-flex !important; align-items: center; justify-content: center; min-width: 46px; box-sizing: border-box; }
+.faw-subpin-btn svg, .faw-qv__pin svg { display: block; flex: none; min-width: 0 !important; padding: 0 !important; margin: 0 !important; position: static !important; top: auto !important; }
+.faw-subpin-btn.is-on, .faw-qv__pin.is-on { color: var(--faw-accent-text) !important; border-color: rgba(224,166,75,.45) !important; background-color: rgba(224,166,75,.14) !important; }
+.faw-qv__pin { display: inline-flex; align-items: center; justify-content: center; padding: 5px 9px; }

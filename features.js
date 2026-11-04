@@ -7,7 +7,7 @@
   const DEFAULTS = {
     enabled: true, ultrawide: true, design: true,
     imageFit: true, quickView: true, comic: true, comicHorizontal: false, infinite: true,
-    archiveLink: false, bbExtra: true, topbar: true, pins: true, pinned: [], thumb: 1.25, lang: "auto"
+    archiveLink: false, bbExtra: true, topbar: true, pins: true, pinned: [], pinSubs: true, thumb: 1.25, lang: "auto"
   };
   const root = document.documentElement;
   const page = document.body ? document.body.id : "";
@@ -56,6 +56,7 @@
     if (S.quickView) initQuickView();
     if (S.topbar) initTopBar();
     if (S.pins) initPins();
+    if (S.pinSubs && page === "pageid-submission") initSubPin();
   });
 
   // ------------------------------------------------------------------ fetching / parsing
@@ -1501,6 +1502,49 @@
     });
   }
 
+  // ------------------------------------------------------------------ pinned submissions (left sidebar)
+  // List in chrome.storage.local "pinnedSubs" as [{ u: id, n: title, a: thumbnail }]; content.js draws it.
+  const subPins = {
+    get: () => new Promise((r) => chrome.storage.local.get({ pinnedSubs: [] }, (l) => r(l.pinnedSubs || []))),
+    async toggle(entry) {
+      const list = await subPins.get();
+      const has = list.some((p) => String(p.u) === String(entry.u));
+      await new Promise((r) => chrome.storage.local.set({ pinnedSubs: has ? list.filter((p) => String(p.u) !== String(entry.u)) : list.concat(entry) }, r));
+      return !has;
+    },
+    // keeps a pin button's icon/title in sync with the stored list
+    bind(btn, getId) {
+      const update = (list) => {
+        const on = list.some((p) => String(p.u) === String(getId()));
+        btn.replaceChildren(icon(on ? ICONS.pinOff : ICONS.pin, btn.dataset.size ? +btn.dataset.size : 18));
+        btn.classList.toggle("is-on", on);
+        btn.title = on ? T("unpinSub") : T("pinSub");
+      };
+      subPins.get().then(update);
+      chrome.storage.onChanged.addListener((c, area) => { if (area === "local" && c.pinnedSubs) update(c.pinnedSubs.newValue || []); });
+      return () => subPins.get().then(update);
+    }
+  };
+  const thumb300 = (u) => (u ? abs(u).replace(/@\d+-/, "@300-") : "");
+
+  function initSubPin() {
+    const controls = document.querySelector(".submission-controls-upper");
+    const id = viewId(location.pathname);
+    if (!controls || !id) return;
+    const img = document.getElementById("submissionImg");
+    const btn = el("a", "button standard mobile-fix faw-subpin-btn");
+    btn.href = "#";
+    btn.dataset.size = "18";
+    subPins.bind(btn, () => id);
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const cur = parseSubmission(document, location.pathname);
+      subPins.toggle({ u: id, n: (cur.title || "").slice(0, 80), a: thumb300(img && (img.getAttribute("data-preview-src") || img.getAttribute("src"))) });
+    });
+    const dl = [...controls.children].find((x) => /download/i.test(x.textContent));
+    if (dl) dl.after(btn); else controls.append(btn);
+  }
+
   // ------------------------------------------------------------------ quick view
   function initQuickView() {
     let qv = null, list = [], idx = 0, token = 0;
@@ -1509,7 +1553,7 @@
     const isQvAnchor = (a) =>
       a && a.matches("a[href]") && viewId(a.getAttribute("href")) &&
       /^\/view\/\d+\/?$/.test(new URL(a.href).pathname) &&
-      a.querySelector("img") && !a.closest(".faw-qv, .faw-comic, .submission-description, #submission-main-content .submission-area");
+      a.querySelector("img") && !a.closest(".faw-qv, .faw-comic, .faw-pinbar, .submission-description, #submission-main-content .submission-area");
 
     // window + capture runs before FA's (and other extensions') handlers on the page
     window.addEventListener("click", (e) => {
@@ -1568,6 +1612,7 @@
             <button class="faw-qv__btn" data-act="fav">+Fav</button>
             <button class="faw-qv__btn" data-act="dl">${T("download")}</button>
             <a class="faw-qv__btn" data-act="open">${T("openPage")}</a>
+            <button class="faw-qv__btn faw-qv__pin" data-act="pin" data-size="15"></button>
           </div>
           <dl class="faw-qv__meta"></dl>
           <div class="faw-qv__tags"></div>
@@ -1595,6 +1640,16 @@
         e.stopPropagation();                                       // don't trigger F / D / arrows while typing
       });
       $("[data-act=dl]").onclick = download;
+      // pin to the submissions sidebar
+      const pinBtn = $("[data-act=pin]");
+      if (S.pinSubs) {
+        refreshPin = subPins.bind(pinBtn, () => list[idx] && list[idx].id);
+        pinBtn.onclick = () => {
+          const it = list[idx];
+          if (!it) return;
+          subPins.toggle({ u: it.id, n: ((data && String(data.id) === String(it.id) && data.title) || "").slice(0, 80), a: thumb300(it.thumb || (data && data.preview)) });
+        };
+      } else pinBtn.remove();
       $(".faw-qv__stage").addEventListener("click", (e) => { if (e.target === e.currentTarget) close(); });
       const qvStage = $(".faw-qv__stage"), qvFrame = $(".faw-qv__frame");
       const qvPan = makePannable(qvFrame, { x: qvStage, y: qvStage, active: () => qvStage.classList.contains("is-actual"), hostClass: qvFrame });
@@ -1865,7 +1920,9 @@
       }
     }
 
+    let refreshPin = null;
     function updateFavBtn() {
+      if (refreshPin) refreshPin();
       const b = qv.querySelector("[data-act=fav]");
       b.disabled = !data || !data.fav;
       const faved = data && data.fav && data.fav.faved;
