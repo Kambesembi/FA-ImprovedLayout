@@ -157,19 +157,23 @@
       const a = e.target.closest(".faw-pin");
       if (!a || e.button !== 0 || pinBar.classList.contains("is-deleting")) return;
       e.preventDefault();
-      drag = { a, y: e.clientY, active: false };
+      drag = { a, x: e.clientX, y: e.clientY, active: false };
     });
     window.addEventListener("mousemove", (e) => {
       if (!drag) return;
       if (!drag.active) {
-        if (Math.abs(e.clientY - drag.y) < 5) return;
+        if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 5) return;
         drag.active = true;
         drag.a.classList.add("is-dragging");
         pinBar.classList.add("is-reordering");
       }
-      // move the entry in front of the first sibling whose middle is below the pointer
+      // move the entry in front of the first sibling that comes after the pointer in reading order
+      // (one or two columns)
       const others = [...list.children].filter((x) => x !== drag.a);
-      const next = others.find((x) => { const r = x.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; });
+      const next = others.find((x) => {
+        const r = x.getBoundingClientRect();
+        return e.clientY < r.top || (e.clientY <= r.bottom && e.clientX < r.left + r.width / 2);
+      });
       if (next) { if (drag.a.nextSibling !== next) list.insertBefore(drag.a, next); }
       else if (list.lastChild !== drag.a) list.appendChild(drag.a);
       // scroll the list while dragging near its edges

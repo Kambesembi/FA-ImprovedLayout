@@ -1244,6 +1244,7 @@
   const ICONS = {
     arrow: "M5 12h14M13 6l6 6-6 6",
     bellOff: ["M8.7 3A6 6 0 0 1 18 8c0 2.7.6 4.6 1.3 6", "M17 17H3s3-2 3-9c0-.8.1-1.5.4-2.2", "M10.3 21a1.94 1.94 0 0 0 3.4 0", "M2 2l20 20"],
+    pinOff: ["M12 17v5", "M15 9.34V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H7.89", "M2 2l20 20", "M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h11"],
     pin: ["M12 17v5", "M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"]
   };
 
@@ -1475,9 +1476,9 @@
     let pins = Array.isArray(S.pinned) ? S.pinned : [];
     const btn = el("a", "button standard faw-pin-btn");
     btn.href = "#";
-    btn.append(icon(ICONS.pin, 21));
     const update = () => {
       const on = pins.some((q) => q.u === here);
+      btn.replaceChildren(icon(on ? ICONS.pinOff : ICONS.pin, 21));   // crossed-out pin = click to unpin
       btn.classList.toggle("is-on", on);
       btn.title = on ? T("unpin") : T("pinTitle");
       btn.setAttribute("aria-label", btn.title);
@@ -1490,7 +1491,8 @@
       chrome.storage.sync.set({ pinned: pins.concat({ u: here, n: (name || here).trim(), a: av ? abs(av.getAttribute("src")) : "" }) });
     });
     const watch = buttons.querySelector("#watch-button");
-    if (watch) watch.after(btn); else buttons.prepend(btn);
+    // FA separates its inline buttons with whitespace; give ours the same gap
+    if (watch) watch.after(" ", btn); else buttons.prepend(btn, " ");
     update();
     chrome.storage.onChanged.addListener((c, area) => {
       if (area !== "sync" || !c.pinned) return;

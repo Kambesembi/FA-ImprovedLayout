@@ -459,11 +459,11 @@ html.faw-design .faw-msg-err .faw-msg-text { color: var(--faw-err) !important; f
 .faw-tb-btn.is-busy { animation: faw-pulse .8s ease-in-out infinite alternate; }
 @keyframes faw-pulse { to { opacity: .4; } }
 .faw-tb-sfw {
-  display: inline-flex; padding: 2px; border-radius: 999px; cursor: pointer; gap: 2px;
+  display: inline-flex; padding: 2px; border-radius: 8px; cursor: pointer; gap: 2px; box-sizing: border-box; height: 30px; align-items: stretch;
   background: rgba(var(--faw-ink), .06); border: 1px solid rgba(var(--faw-ink), .12);
   font: 700 10.5px/1 "Open Sans", system-ui, sans-serif; letter-spacing: .04em;
 }
-.faw-tb-sfw__opt { padding: 6px 9px; border-radius: 999px; color: rgba(var(--faw-ink), .45); transition: background .15s, color .15s; }
+.faw-tb-sfw__opt { display: flex; align-items: center; padding: 0 9px; border-radius: 6px; color: rgba(var(--faw-ink), .45); transition: background .15s, color .15s; }
 .faw-tb-sfw__opt.is-on { background: rgba(80,180,110,.25); color: var(--faw-ok); }
 .faw-tb-sfw__opt.is-nsfw.is-on { background: rgba(210,70,70,.28); color: var(--faw-err); }
 html.faw-sfw-moved .mobile-sfw-toggle { display: none !important; }   /* FA's original stays in the DOM, hidden */
