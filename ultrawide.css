@@ -341,3 +341,39 @@ html.faw-layout.faw-subnav-on #pageid-submission #minigallery > .minigallery-con
 html.faw-layout.faw-subnav-on #pageid-submission #minigallery:not(.faw-has-comic) { display: none !important; }
 /* left edge gets the same breathing room as the right */
 html.faw-layout #pageid-submission .submission-page-content { padding-left: var(--faw-gap) !important; box-sizing: border-box; }
+
+/* ---- Pinned artists sidebar (content.js): fixed in the right gutter, which content.js widens to
+   116px while the list isn't empty. Colours follow the FA colour scheme. ---- */
+.faw-pinbar {
+  position: fixed; top: calc(var(--faw-nav) + 8px); right: 8px; bottom: 8px; z-index: 50; width: 88px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; box-sizing: border-box; padding: 6px 0;
+  border-radius: 14px; background: rgba(var(--faw-ink), .04); border: 1px solid rgba(var(--faw-ink), .09);
+  color: var(--faw-text); font: 11px/1.25 "Open Sans", system-ui, sans-serif;
+}
+.faw-pinbar[hidden] { display: none; }
+.faw-pinbar__head { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0 10px; box-sizing: border-box; }
+.faw-pinbar__head span { display: grid; color: var(--faw-accent-text); opacity: .85; }
+.faw-pinbar__head svg { display: block; }
+.faw-pinbar__trash {
+  display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px; cursor: pointer;
+  background: transparent; color: rgba(var(--faw-ink), .45);
+}
+.faw-pinbar__trash:hover { color: var(--faw-text); background: rgba(var(--faw-ink), .08); }
+.faw-pinbar.is-deleting .faw-pinbar__trash { color: #fff; background: rgba(210,70,70,.75); }
+/* padding gives the hover zoom and the current-profile outline room so they aren't clipped */
+.faw-pinbar__list {
+  flex: 1; min-height: 0; width: 100%; overflow-y: auto; scrollbar-width: none; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0;
+}
+.faw-pin { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 76px; flex: none; color: var(--faw-text) !important; text-decoration: none !important; }
+.faw-pin img { width: 50px; height: 50px; border-radius: 12px; object-fit: cover; background: rgba(var(--faw-ink), .06); transition: transform .12s; }
+.faw-pin:hover img { transform: scale(1.06); }
+.faw-pin.is-current img { outline: 2px solid #e0a64b; outline-offset: 2px; }
+.faw-pin span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .85; }
+.faw-pin__x {
+  display: none; position: absolute; top: -5px; right: 8px; width: 18px; height: 18px; border-radius: 50%;
+  background: #d24646; color: #fff; font: normal 700 13px/18px system-ui, sans-serif; text-align: center;
+}
+.faw-pinbar.is-deleting .faw-pin__x { display: block; }
+.faw-pinbar.is-deleting .faw-pin img { opacity: .7; }
+.faw-pinbar.is-deleting .faw-pin:hover img { opacity: 1; outline: 2px solid #d24646; outline-offset: 2px; }

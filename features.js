@@ -1464,75 +1464,38 @@
     msgs.after(li);
   }
 
-  // ------------------------------------------------------------------ pinned artists (sidebar on the right)
-  // Stored in chrome.storage.sync as [{ u: slug, n: display name, a: avatar URL }]; content.js widens
-  // the side gutter while the list isn't empty.
+  // ------------------------------------------------------------------ pinned artists: Pin button on profiles
+  // The list lives in chrome.storage.sync ([{ u: slug, n: name, a: avatar URL }]); content.js draws the
+  // sidebar at page start and redraws it whenever the list changes.
   function initPins() {
-    let pins = Array.isArray(S.pinned) ? S.pinned : [];
-    const save = (list) => chrome.storage.sync.set({ pinned: list });
-    const slugHere = (location.pathname.match(/^\/(?:user|gallery|scraps|favorites|journals|commissions|stats)\/([^/]+)/i) || [])[1];
-    const here = slugHere ? decodeURIComponent(slugHere).toLowerCase() : null;
-
-    // sidebar
-    const bar = el("aside", "faw-pinbar");
-    const head = el("div", "faw-pinbar__head");
-    head.title = T("pinnedArtists");
-    head.append(icon(ICONS.pin, 15));
-    const list = el("div", "faw-pinbar__list");
-    bar.append(head, list);
-    document.body.appendChild(bar);
-    const render = () => {
-      list.replaceChildren();
-      bar.hidden = !pins.length;
-      for (const p of pins) {
-        const a = el("a", "faw-pin" + (p.u === here ? " is-current" : ""));
-        a.href = "/user/" + encodeURIComponent(p.u) + "/";
-        a.title = p.n || p.u;
-        const img = el("img");
-        img.alt = "";
-        if (p.a) { img.src = p.a; img.onerror = () => { img.onerror = null; attachAvatar(img, p.u); }; }
-        else attachAvatar(img, p.u);
-        const x = el("button", "faw-pin__x", "×");
-        x.type = "button";
-        x.title = T("unpin");
-        x.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); save(pins.filter((q) => q.u !== p.u)); });
-        a.append(img, el("span", null, p.n || p.u), x);
-        list.appendChild(a);
-      }
-    };
-
-    // pin button next to Watch on profile / gallery pages
-    let pinBtn = null;
     const buttons = document.querySelector("userpage-nav-interface-buttons");
-    if (here && buttons) {
-      pinBtn = el("a", "button standard faw-pin-btn");
-      pinBtn.href = "#";
-      pinBtn.append(icon(ICONS.pin, 14), el("span"));
-      pinBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        if (pins.some((q) => q.u === here)) { save(pins.filter((q) => q.u !== here)); return; }
-        const name = (document.querySelector("userpage-nav-user-details .js-displayName-block, userpage-nav-user-details .c-usernameBlock__displayName") || {}).textContent;
-        const av = document.querySelector("userpage-nav-avatar img");
-        save(pins.concat({ u: here, n: (name || here).trim(), a: av ? abs(av.getAttribute("src")) : "" }));
-      });
-      const watch = buttons.querySelector("#watch-button");
-      if (watch) watch.after(pinBtn); else buttons.prepend(pinBtn);
-    }
-    const updateBtn = () => {
-      if (!pinBtn) return;
+    const slugHere = (location.pathname.match(/^\/(?:user|gallery|scraps|favorites|journals|commissions|stats)\/([^/]+)/i) || [])[1];
+    if (!buttons || !slugHere) return;
+    const here = decodeURIComponent(slugHere).toLowerCase();
+    let pins = Array.isArray(S.pinned) ? S.pinned : [];
+    const btn = el("a", "button standard faw-pin-btn");
+    btn.href = "#";
+    btn.append(icon(ICONS.pin, 14), el("span"));
+    const update = () => {
       const on = pins.some((q) => q.u === here);
-      pinBtn.classList.toggle("is-on", on);
-      pinBtn.title = on ? T("unpin") : T("pinTitle");
-      pinBtn.lastChild.textContent = on ? T("unpin") : T("pin");
+      btn.classList.toggle("is-on", on);
+      btn.title = on ? T("unpin") : T("pinTitle");
+      btn.lastChild.textContent = on ? T("unpin") : T("pin");
     };
-
-    render();
-    updateBtn();
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (pins.some((q) => q.u === here)) { chrome.storage.sync.set({ pinned: pins.filter((q) => q.u !== here) }); return; }
+      const name = (document.querySelector("userpage-nav-user-details .js-displayName-block, userpage-nav-user-details .c-usernameBlock__displayName") || {}).textContent;
+      const av = document.querySelector("userpage-nav-avatar img");
+      chrome.storage.sync.set({ pinned: pins.concat({ u: here, n: (name || here).trim(), a: av ? abs(av.getAttribute("src")) : "" }) });
+    });
+    const watch = buttons.querySelector("#watch-button");
+    if (watch) watch.after(btn); else buttons.prepend(btn);
+    update();
     chrome.storage.onChanged.addListener((c, area) => {
       if (area !== "sync" || !c.pinned) return;
       pins = Array.isArray(c.pinned.newValue) ? c.pinned.newValue : [];
-      render();
-      updateBtn();
+      update();
     });
   }
 

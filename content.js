@@ -4,9 +4,9 @@
 (() => {
   const DEFAULTS = {
     enabled: true, ultrawide: true, design: true,
-    max: 2800, gutter: 24, thumb: 1.25, pins: true, pinned: []
+    max: 2800, gutter: 24, thumb: 1.25, pins: true, pinned: [], lang: "auto"
   };
-  const PINBAR = 100;   // px kept free on both sides for the pinned-artists sidebar (features.css: 88px wide)
+  const PINBAR = 116;   // px kept free on both sides for the pinned-artists sidebar (88px wide + margins)
   const root = document.documentElement;
   let current = DEFAULTS;
   let loaded = false;            // settings read from storage
@@ -39,7 +39,78 @@
       for (const v of VARS) root.style.removeProperty(v);
     }
     loaded = true;
+    if (typeof fawSetLang === "function") fawSetLang(s.lang);
+    renderPinBar();
     run();
+  }
+
+  // ---- pinned artists sidebar: drawn at page start (before FA renders) so it doesn't pop in late.
+  //      Removing entries needs "delete mode" (trash icon) so a stray click can't unpin anyone.
+  const SVG = "http://www.w3.org/2000/svg";
+  function svgIcon(paths, size) {
+    const svg = document.createElementNS(SVG, "svg");
+    for (const [k, v] of Object.entries({ viewBox: "0 0 24 24", width: size, height: size, fill: "none", stroke: "currentColor",
+      "stroke-width": 2.2, "stroke-linecap": "round", "stroke-linejoin": "round" })) svg.setAttribute(k, v);
+    for (const d of paths) { const p = document.createElementNS(SVG, "path"); p.setAttribute("d", d); svg.appendChild(p); }
+    return svg;
+  }
+  const PIN_ICON = ["M12 17v5", "M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"];
+  const TRASH_ICON = ["M3 6h18", "M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6", "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2", "M10 11v6M14 11v6"];
+  const tr = (k, fallback) => (typeof T === "function" ? T(k) : fallback);
+  let pinBar = null;
+  function renderPinBar() {
+    const pins = current.enabled && current.pins && Array.isArray(current.pinned) ? current.pinned : [];
+    if (!pins.length) { if (pinBar) { pinBar.hidden = true; pinBar.classList.remove("is-deleting"); } return; }
+    if (!pinBar) {
+      pinBar = document.createElement("aside");
+      pinBar.className = "faw-pinbar";
+      const head = document.createElement("div");
+      head.className = "faw-pinbar__head";
+      const label = document.createElement("span");
+      label.append(svgIcon(PIN_ICON, 15));
+      const trash = document.createElement("button");
+      trash.type = "button";
+      trash.className = "faw-pinbar__trash";
+      trash.append(svgIcon(TRASH_ICON, 15));
+      trash.addEventListener("click", () => pinBar.classList.toggle("is-deleting"));
+      head.append(label, trash);
+      const list = document.createElement("div");
+      list.className = "faw-pinbar__list";
+      // in delete mode a click removes the entry instead of opening the profile
+      list.addEventListener("click", (e) => {
+        const a = e.target.closest(".faw-pin");
+        if (!a || !pinBar.classList.contains("is-deleting")) return;
+        e.preventDefault();
+        chrome.storage.sync.set({ pinned: current.pinned.filter((q) => q.u !== a.dataset.u) });
+      });
+      pinBar.append(head, list);
+      (document.body || root).appendChild(pinBar);
+      if (!document.body) document.addEventListener("DOMContentLoaded", () => document.body.appendChild(pinBar), { once: true });
+    }
+    pinBar.hidden = false;
+    pinBar.querySelector(".faw-pinbar__head span").title = tr("pinnedArtists", "Pinned artists");
+    pinBar.querySelector(".faw-pinbar__trash").title = tr("pinDelete", "Remove artists");
+    const here = (location.pathname.match(/^\/(?:user|gallery|scraps|favorites|journals|commissions|stats)\/([^/]+)/i) || [])[1];
+    const list = pinBar.querySelector(".faw-pinbar__list");
+    list.replaceChildren();
+    for (const p of pins) {
+      const a = document.createElement("a");
+      a.className = "faw-pin" + (here && decodeURIComponent(here).toLowerCase() === p.u ? " is-current" : "");
+      a.href = "/user/" + encodeURIComponent(p.u) + "/";
+      a.title = p.n || p.u;
+      a.dataset.u = p.u;
+      const img = document.createElement("img");
+      img.alt = "";
+      img.src = p.a || "https://a.furaffinity.net/" + encodeURIComponent(p.u) + ".gif";
+      img.onerror = () => { img.onerror = null; img.src = "https://a.furaffinity.net/default.gif"; };
+      const name = document.createElement("span");
+      name.textContent = p.n || p.u;
+      const x = document.createElement("i");
+      x.className = "faw-pin__x";
+      x.textContent = "×";
+      a.append(img, name, x);
+      list.appendChild(a);
+    }
   }
 
   // ---- submission page: stats + Fav/Note/Download stay in the aside above the comments; the details
