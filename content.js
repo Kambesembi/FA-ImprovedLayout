@@ -83,6 +83,7 @@
         e.preventDefault();
         chrome.storage.sync.set({ pinned: current.pinned.filter((q) => q.u !== a.dataset.u) });
       });
+      enableReorder(list);
       pinBar.append(head, list);
       (document.body || root).appendChild(pinBar);
       if (!document.body) document.addEventListener("DOMContentLoaded", () => document.body.appendChild(pinBar), { once: true });
@@ -99,8 +100,10 @@
       a.href = "/user/" + encodeURIComponent(p.u) + "/";
       a.title = p.n || p.u;
       a.dataset.u = p.u;
+      a.draggable = false;
       const img = document.createElement("img");
       img.alt = "";
+      img.draggable = false;
       img.src = p.a || "https://a.furaffinity.net/" + encodeURIComponent(p.u) + ".gif";
       img.onerror = () => { img.onerror = null; img.src = "https://a.furaffinity.net/default.gif"; };
       const name = document.createElement("span");
@@ -145,6 +148,49 @@
       panel.appendChild(node);
     }
     if (panel.children.length) details.after(panel);
+  }
+
+  // Click, hold and drag an entry to reorder; the new order is saved when it's dropped
+  function enableReorder(list) {
+    let drag = null, swallowClick = false;
+    list.addEventListener("mousedown", (e) => {
+      const a = e.target.closest(".faw-pin");
+      if (!a || e.button !== 0 || pinBar.classList.contains("is-deleting")) return;
+      e.preventDefault();
+      drag = { a, y: e.clientY, active: false };
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!drag) return;
+      if (!drag.active) {
+        if (Math.abs(e.clientY - drag.y) < 5) return;
+        drag.active = true;
+        drag.a.classList.add("is-dragging");
+        pinBar.classList.add("is-reordering");
+      }
+      // move the entry in front of the first sibling whose middle is below the pointer
+      const others = [...list.children].filter((x) => x !== drag.a);
+      const next = others.find((x) => { const r = x.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; });
+      if (next) { if (drag.a.nextSibling !== next) list.insertBefore(drag.a, next); }
+      else if (list.lastChild !== drag.a) list.appendChild(drag.a);
+      // scroll the list while dragging near its edges
+      const lr = list.getBoundingClientRect();
+      if (e.clientY < lr.top + 30) list.scrollTop -= 12;
+      else if (e.clientY > lr.bottom - 30) list.scrollTop += 12;
+    });
+    window.addEventListener("mouseup", () => {
+      if (!drag) return;
+      const { a, active } = drag;
+      drag = null;
+      if (!active) return;
+      a.classList.remove("is-dragging");
+      pinBar.classList.remove("is-reordering");
+      swallowClick = true;
+      setTimeout(() => { swallowClick = false; }, 0);
+      const order = [...list.children].map((x) => x.dataset.u);
+      const byU = new Map(current.pinned.map((p) => [p.u, p]));
+      chrome.storage.sync.set({ pinned: order.map((u) => byU.get(u)).filter(Boolean) });
+    });
+    list.addEventListener("click", (e) => { if (swallowClick) { e.preventDefault(); e.stopPropagation(); } }, true);
   }
 
   // ---- profile page: tag the left-column sections so CSS can pair Featured | Gallery reliably

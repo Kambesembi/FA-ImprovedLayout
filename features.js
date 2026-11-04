@@ -1475,12 +1475,12 @@
     let pins = Array.isArray(S.pinned) ? S.pinned : [];
     const btn = el("a", "button standard faw-pin-btn");
     btn.href = "#";
-    btn.append(icon(ICONS.pin, 14), el("span"));
+    btn.append(icon(ICONS.pin, 21));
     const update = () => {
       const on = pins.some((q) => q.u === here);
       btn.classList.toggle("is-on", on);
       btn.title = on ? T("unpin") : T("pinTitle");
-      btn.lastChild.textContent = on ? T("unpin") : T("pin");
+      btn.setAttribute("aria-label", btn.title);
     };
     btn.addEventListener("click", (e) => {
       e.preventDefault();

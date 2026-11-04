@@ -345,7 +345,7 @@ html.faw-layout #pageid-submission .submission-page-content { padding-left: var(
 /* ---- Pinned artists sidebar (content.js): fixed in the right gutter, which content.js widens to
    116px while the list isn't empty. Colours follow the FA colour scheme. ---- */
 .faw-pinbar {
-  position: fixed; top: calc(var(--faw-nav) + 8px); right: 8px; bottom: 8px; z-index: 50; width: 88px;
+  position: fixed; top: 8px; right: 8px; bottom: 8px; z-index: 1000; width: 88px;
   display: flex; flex-direction: column; align-items: center; gap: 4px; box-sizing: border-box; padding: 6px 0;
   border-radius: 14px; background: rgba(var(--faw-ink), .04); border: 1px solid rgba(var(--faw-ink), .09);
   color: var(--faw-text); font: 11px/1.25 "Open Sans", system-ui, sans-serif;
@@ -353,7 +353,7 @@ html.faw-layout #pageid-submission .submission-page-content { padding-left: var(
 .faw-pinbar[hidden] { display: none; }
 .faw-pinbar__head { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0 10px; box-sizing: border-box; }
 .faw-pinbar__head span { display: grid; color: var(--faw-accent-text); opacity: .85; }
-.faw-pinbar__head svg { display: block; }
+.faw-pinbar svg { display: block; position: static !important; top: auto !important; }
 .faw-pinbar__trash {
   display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px; cursor: pointer;
   background: transparent; color: rgba(var(--faw-ink), .45);
@@ -362,7 +362,7 @@ html.faw-layout #pageid-submission .submission-page-content { padding-left: var(
 .faw-pinbar.is-deleting .faw-pinbar__trash { color: #fff; background: rgba(210,70,70,.75); }
 /* padding gives the hover zoom and the current-profile outline room so they aren't clipped */
 .faw-pinbar__list {
-  flex: 1; min-height: 0; width: 100%; overflow-y: auto; scrollbar-width: none; box-sizing: border-box;
+  flex: 1; min-height: 0; width: 100%; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; box-sizing: border-box;
   display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0;
 }
 .faw-pin { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 76px; flex: none; color: var(--faw-text) !important; text-decoration: none !important; }
@@ -377,3 +377,10 @@ html.faw-layout #pageid-submission .submission-page-content { padding-left: var(
 .faw-pinbar.is-deleting .faw-pin__x { display: block; }
 .faw-pinbar.is-deleting .faw-pin img { opacity: .7; }
 .faw-pinbar.is-deleting .faw-pin:hover img { opacity: 1; outline: 2px solid #d24646; outline-offset: 2px; }
+.faw-pinbar.is-reordering .faw-pin { cursor: grabbing; }
+.faw-pinbar.is-reordering .faw-pin:hover img { transform: none; }
+.faw-pin.is-dragging { opacity: .55; }
+.faw-pin.is-dragging img { outline: 2px dashed rgba(var(--faw-ink), .5); outline-offset: 2px; }
+
+/* top menu: FA's "Search" item has no visible link on desktop but still takes up room */
+html.faw-layout #ddmenu ul.navhideonmobile > li:has(> a.hideondesktop:only-child) { display: none !important; }

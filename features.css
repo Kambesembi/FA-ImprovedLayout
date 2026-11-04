@@ -452,7 +452,8 @@ html.faw-design .faw-msg-err .faw-msg-text { color: var(--faw-err) !important; f
   display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border-radius: 8px; cursor: pointer; box-sizing: border-box;
   background: rgba(var(--faw-ink), .06); border: 1px solid rgba(var(--faw-ink), .12); color: var(--faw-text);
 }
-.faw-tb-btn svg { display: block; width: 15px !important; height: 15px !important; margin: 0 !important; }
+/* FA nudges all menu icons down (position: relative; top: 6px) – undone for ours */
+#ddmenu .faw-tb-btn svg { display: block; width: 15px !important; height: 15px !important; min-width: 0 !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; position: static !important; top: auto !important; }
 .faw-tb-btn:hover:not([disabled]) { background: rgba(200,50,50,.25); border-color: rgba(220,80,80,.55); color: #fff; }
 .faw-tb-btn[disabled] { opacity: .35; cursor: default; }
 .faw-tb-btn.is-busy { animation: faw-pulse .8s ease-in-out infinite alternate; }
@@ -469,6 +470,7 @@ html.faw-sfw-moved .mobile-sfw-toggle { display: none !important; }   /* FA's or
 
 /* ======================================================================= pinned artists: Pin button */
 /* (the sidebar itself is styled in ultrawide.css, it's drawn at page start) */
-.faw-pin-btn { display: inline-flex !important; align-items: center; justify-content: center; gap: 6px; }
-.faw-pin-btn svg { display: block; flex: none; width: 14px !important; height: 14px !important; margin: 0 !important; }
+/* icon-only, same size as FA's message button next to it */
+.faw-pin-btn { display: inline-flex !important; align-items: center; justify-content: center; vertical-align: top; }
+.faw-pin-btn svg { display: block; flex: none; width: 21px !important; height: 21px !important; min-width: 0 !important; padding: 0 !important; margin: 0 !important; position: static !important; top: auto !important; }
 .faw-pin-btn.is-on { color: var(--faw-accent-text) !important; border-color: rgba(224,166,75,.45) !important; background-color: rgba(224,166,75,.14) !important; }
