@@ -6,7 +6,7 @@
     enabled: true, ultrawide: true, design: true,
     max: 2800, gutter: 24, thumb: 1.25, pins: true, pinned: [], lang: "auto"
   };
-  const PINBAR = 116;   // px kept free on both sides for the pinned-artists sidebar (88px wide + margins)
+  const PINBAR = 100;   // minimum side gutter while artists are pinned (sidebar ≥76px + margins)
   const root = document.documentElement;
   let current = DEFAULTS;
   let loaded = false;            // settings read from storage
