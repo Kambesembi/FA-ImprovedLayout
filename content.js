@@ -4,8 +4,9 @@
 (() => {
   const DEFAULTS = {
     enabled: true, ultrawide: true, design: true,
-    max: 2800, gutter: 24, thumb: 1.25
+    max: 2800, gutter: 24, thumb: 1.25, pins: true, pinned: []
   };
+  const PINBAR = 100;   // px kept free on both sides for the pinned-artists sidebar (features.css: 88px wide)
   const root = document.documentElement;
   let current = DEFAULTS;
   let loaded = false;            // settings read from storage
@@ -31,7 +32,8 @@
     root.classList.toggle("faw-design", designOn());
     if (layoutOn()) {
       root.style.setProperty("--faw-max", s.max > 0 ? s.max + "px" : "100vw");
-      root.style.setProperty("--faw-gutter", s.gutter + "px");
+      const pinsShown = s.pins && Array.isArray(s.pinned) && s.pinned.length > 0;
+      root.style.setProperty("--faw-gutter", (pinsShown ? Math.max(s.gutter, PINBAR) : s.gutter) + "px");
       root.style.setProperty("--faw-thumb", String(s.thumb));
     } else {
       for (const v of VARS) root.style.removeProperty(v);

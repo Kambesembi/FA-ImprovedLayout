@@ -10,6 +10,8 @@ Browser extension that adapts Fur Affinity's modern theme to wide and ultrawide 
 - **Full-screen viewer** – click a submission image; click again to zoom at the cursor, drag to pan
 - **Comic reader** – loads a whole series on one page (vertical or horizontal)
 - **Infinite scroll** – galleries, favorites, browse, search and the submission inbox
+- **Pinned artists** – pin button next to Watch on profiles; pinned artists stay in a sidebar on the right
+- **Top bar** – clear all notifications with one click (with confirmation), SFW/NSFW switch next to the notifications
 - **Extras** – extra BBCode buttons, +Fav without reload, "More from this artist", full watcher lists, in-page link warnings, optional link to archived galleries
 
 Everything can be switched on or off in the popup.

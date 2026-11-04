@@ -13,5 +13,8 @@ const FAW_DEFAULTS = {
   infinite: true,     // infinite scroll in galleries
   archiveLink: false, // "Archived Gallery" (furarchiver.net) link in the profile header
   bbExtra: true,      // extra BBCode buttons in comment boxes
+  topbar: true,       // clear-all-notifications button + SFW switch in the top bar
+  pins: true,         // pinned artists sidebar
+  pinned: [],         // [{ u: slug, n: name, a: avatar URL }]
   lang: "auto"        // extension language: auto | en | de | ru
 };

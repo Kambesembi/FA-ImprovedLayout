@@ -2,7 +2,7 @@
 // their next load. Texts come from i18n.js via data-i18n / data-i18n-title attributes.
 const $ = (id) => document.getElementById(id);
 const RANGES = ["max", "gutter", "thumb"];
-const CHECKS = ["ultrawide", "design", "imageFit", "quickView", "comic", "comicHorizontal", "infinite", "bbExtra", "archiveLink"];
+const CHECKS = ["ultrawide", "design", "imageFit", "quickView", "comic", "comicHorizontal", "infinite", "bbExtra", "topbar", "pins", "archiveLink"];
 
 $("version").textContent = "v" + chrome.runtime.getManifest().version;
 
@@ -73,5 +73,9 @@ $("langs").addEventListener("click", (e) => {
 });
 $("reset").addEventListener("click", () => {
   clearTimeout(timer); pending = {};
-  chrome.storage.sync.clear(() => chrome.storage.sync.set(FAW_DEFAULTS, () => render(FAW_DEFAULTS)));
+  // keeps the pinned artists: Reset only restores the settings
+  chrome.storage.sync.get({ pinned: [] }, ({ pinned }) => {
+    const fresh = Object.assign({}, FAW_DEFAULTS, { pinned });
+    chrome.storage.sync.clear(() => chrome.storage.sync.set(fresh, () => render(fresh)));
+  });
 });

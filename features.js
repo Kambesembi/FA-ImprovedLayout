@@ -7,7 +7,7 @@
   const DEFAULTS = {
     enabled: true, ultrawide: true, design: true,
     imageFit: true, quickView: true, comic: true, comicHorizontal: false, infinite: true,
-    archiveLink: false, bbExtra: true, thumb: 1.25, lang: "auto"
+    archiveLink: false, bbExtra: true, topbar: true, pins: true, pinned: [], thumb: 1.25, lang: "auto"
   };
   const root = document.documentElement;
   const page = document.body ? document.body.id : "";
@@ -54,6 +54,8 @@
     if (designOn()) { applyArrowButtons(); classifySystemMessages(); }
     onDomChange(() => { if (designOn()) applyArrowButtons(); initCommentToolbar(); indentReplies(); });
     if (S.quickView) initQuickView();
+    if (S.topbar) initTopBar();
+    if (S.pins) initPins();
   });
 
   // ------------------------------------------------------------------ fetching / parsing
@@ -629,22 +631,27 @@
 
   // Small in-page confirmation (a native confirm() would block the page)
   function confirmExternal(text, url) {
+    confirmBox(text, url, T("openNewTab"), () => window.open(url, "_blank", "noopener,noreferrer"));
+  }
+  // Generic confirmation overlay: text, optional highlighted detail line, OK label, action
+  function confirmBox(text, detail, okLabel, onOk, danger) {
     const ov = el("div", "faw-confirm");
     const box = el("div", "faw-confirm__box");
     const p = el("p", null, text);
-    const host = el("div", "faw-confirm__url", url);
     const row = el("div", "faw-confirm__row");
     const cancel = el("button", "button standard", T("cancel"));
-    const ok = el("button", "button standard faw-confirm__ok", T("openNewTab"));
+    const ok = el("button", "button standard faw-confirm__ok" + (danger ? " is-danger" : ""), okLabel);
     row.append(cancel, ok);
-    box.append(p, host, row);
+    box.append(p);
+    if (detail) box.append(el("div", "faw-confirm__url", detail));
+    box.append(row);
     ov.appendChild(box);
     document.body.appendChild(ov);
     ok.focus();
     const done = (go) => {
       ov.remove();
       document.removeEventListener("keydown", onKey, true);
-      if (go) window.open(url, "_blank", "noopener,noreferrer");
+      if (go) onOk();
     };
     const onKey = (e) => {
       if (e.key === "Escape") { e.preventDefault(); done(false); }
@@ -1221,14 +1228,23 @@
     document.documentElement.classList.add("faw-subnav-on");
   }
 
-  const arrowIcon = () => {
-    const NS = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(NS, "svg"), path = document.createElementNS(NS, "path");
-    for (const [k, v] of Object.entries({ viewBox: "0 0 24 24", width: 13, height: 13, fill: "none", stroke: "currentColor",
-      "stroke-width": 2.4, "stroke-linecap": "round", "stroke-linejoin": "round" })) svg.setAttribute(k, v);
-    path.setAttribute("d", "M5 12h14M13 6l6 6-6 6");
-    svg.appendChild(path);
+  // Small stroke icon (24×24 viewBox) built as DOM nodes
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  function icon(d, size = 13) {
+    const svg = document.createElementNS(SVG_NS, "svg");
+    for (const [k, v] of Object.entries({ viewBox: "0 0 24 24", width: size, height: size, fill: "none", stroke: "currentColor",
+      "stroke-width": 2.2, "stroke-linecap": "round", "stroke-linejoin": "round" })) svg.setAttribute(k, v);
+    for (const pd of [].concat(d)) {
+      const path = document.createElementNS(SVG_NS, "path");
+      path.setAttribute("d", pd);
+      svg.appendChild(path);
+    }
     return svg;
+  }
+  const ICONS = {
+    arrow: "M5 12h14M13 6l6 6-6 6",
+    bellOff: ["M8.7 3A6 6 0 0 1 18 8c0 2.7.6 4.6 1.3 6", "M17 17H3s3-2 3-9c0-.8.1-1.5.4-2.2", "M10.3 21a1.94 1.94 0 0 0 3.4 0", "M2 2l20 20"],
+    pin: ["M12 17v5", "M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"]
   };
 
   // ------------------------------------------------------------------ submission: "More from artist" below the comments
@@ -1248,7 +1264,7 @@
       const head = el("div", "faw-more__head");
       head.append(el("span", null, T("moreFrom", me.artist.name)));
       const all = el("a", null, T("viewGallery"));
-      all.append(arrowIcon());
+      all.append(icon(ICONS.arrow));
       all.href = `/gallery/${slug}/`;
       head.appendChild(all);
       const grid = el("div", "faw-more__grid");
@@ -1390,6 +1406,134 @@
     }
     for (const [k, v] of fd) action.searchParams.set(k, v);
     return { url: action.href };
+  }
+
+  // ------------------------------------------------------------------ top bar: clear all notifications, SFW switch
+  function initTopBar() {
+    const bar = document.querySelector("#ddmenu ul.navhideonmobile");
+    const msgs = bar && bar.querySelector("li.message-bar-desktop");
+    if (!msgs || bar.querySelector(".faw-topbar")) return;           // not logged in
+    const li = el("li", "faw-topbar");
+
+    // Clear all: presses every "Nuke" button FA offers on the two notification pages
+    const hasAny = !!msgs.querySelector("a.notification-container");
+    const nuke = el("button", "faw-tb-btn faw-tb-nuke");
+    nuke.type = "button";
+    nuke.title = T("nukeAll");
+    nuke.disabled = !hasAny;
+    nuke.append(icon(ICONS.bellOff, 17));
+    nuke.addEventListener("click", () => confirmBox(T("nukeConfirm"), null, T("nukeOk"), async () => {
+      nuke.disabled = true;
+      nuke.classList.add("is-busy");
+      try {
+        for (const page of ["/msg/submissions/", "/msg/others/"]) {
+          const done = new Set();
+          for (let i = 0; i < 12; i++) {                            // one Nuke button per request, page re-read each time
+            const { doc } = await fetchDoc(new URL(page, location.origin).href);
+            const btn = [...doc.querySelectorAll("form button.nuke, form input.nuke")]
+              .find((b) => !done.has(b.name + "=" + b.value));
+            if (!btn) break;
+            done.add(btn.name + "=" + btn.value);
+            const form = btn.form || btn.closest("form");
+            const body = new URLSearchParams(new FormData(form));
+            if (btn.name) body.set(btn.name, btn.value);
+            await pageFetch(new URL(form.getAttribute("action") || page, location.origin).href, { method: "POST", body, credentials: "same-origin" });
+            await sleep(250);
+          }
+        }
+      } catch (e) { /* reload shows what's left */ }
+      location.reload();
+    }, true));
+    li.append(nuke);
+
+    // SFW / NSFW: our switch drives FA's own toggle (moved out of the menu), so FA's logic stays in charge
+    const fa = document.getElementById("sfw-toggle-mobile");
+    if (fa) {
+      const sw = el("button", "faw-tb-sfw");
+      sw.type = "button";
+      sw.title = T("sfwTitle");
+      const sfw = el("span", "faw-tb-sfw__opt", "SFW"), nsfw = el("span", "faw-tb-sfw__opt is-nsfw", "NSFW");
+      sw.append(sfw, nsfw);
+      const sync = () => { sfw.classList.toggle("is-on", fa.checked); nsfw.classList.toggle("is-on", !fa.checked); };
+      sync();
+      sw.addEventListener("click", () => { fa.click(); setTimeout(sync, 0); });
+      fa.addEventListener("change", sync);
+      li.append(sw);
+      document.documentElement.classList.add("faw-sfw-moved");
+    }
+    msgs.after(li);
+  }
+
+  // ------------------------------------------------------------------ pinned artists (sidebar on the right)
+  // Stored in chrome.storage.sync as [{ u: slug, n: display name, a: avatar URL }]; content.js widens
+  // the side gutter while the list isn't empty.
+  function initPins() {
+    let pins = Array.isArray(S.pinned) ? S.pinned : [];
+    const save = (list) => chrome.storage.sync.set({ pinned: list });
+    const slugHere = (location.pathname.match(/^\/(?:user|gallery|scraps|favorites|journals|commissions|stats)\/([^/]+)/i) || [])[1];
+    const here = slugHere ? decodeURIComponent(slugHere).toLowerCase() : null;
+
+    // sidebar
+    const bar = el("aside", "faw-pinbar");
+    const head = el("div", "faw-pinbar__head");
+    head.title = T("pinnedArtists");
+    head.append(icon(ICONS.pin, 15));
+    const list = el("div", "faw-pinbar__list");
+    bar.append(head, list);
+    document.body.appendChild(bar);
+    const render = () => {
+      list.replaceChildren();
+      bar.hidden = !pins.length;
+      for (const p of pins) {
+        const a = el("a", "faw-pin" + (p.u === here ? " is-current" : ""));
+        a.href = "/user/" + encodeURIComponent(p.u) + "/";
+        a.title = p.n || p.u;
+        const img = el("img");
+        img.alt = "";
+        if (p.a) { img.src = p.a; img.onerror = () => { img.onerror = null; attachAvatar(img, p.u); }; }
+        else attachAvatar(img, p.u);
+        const x = el("button", "faw-pin__x", "×");
+        x.type = "button";
+        x.title = T("unpin");
+        x.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); save(pins.filter((q) => q.u !== p.u)); });
+        a.append(img, el("span", null, p.n || p.u), x);
+        list.appendChild(a);
+      }
+    };
+
+    // pin button next to Watch on profile / gallery pages
+    let pinBtn = null;
+    const buttons = document.querySelector("userpage-nav-interface-buttons");
+    if (here && buttons) {
+      pinBtn = el("a", "button standard faw-pin-btn");
+      pinBtn.href = "#";
+      pinBtn.append(icon(ICONS.pin, 14), el("span"));
+      pinBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (pins.some((q) => q.u === here)) { save(pins.filter((q) => q.u !== here)); return; }
+        const name = (document.querySelector("userpage-nav-user-details .js-displayName-block, userpage-nav-user-details .c-usernameBlock__displayName") || {}).textContent;
+        const av = document.querySelector("userpage-nav-avatar img");
+        save(pins.concat({ u: here, n: (name || here).trim(), a: av ? abs(av.getAttribute("src")) : "" }));
+      });
+      const watch = buttons.querySelector("#watch-button");
+      if (watch) watch.after(pinBtn); else buttons.prepend(pinBtn);
+    }
+    const updateBtn = () => {
+      if (!pinBtn) return;
+      const on = pins.some((q) => q.u === here);
+      pinBtn.classList.toggle("is-on", on);
+      pinBtn.title = on ? T("unpin") : T("pinTitle");
+      pinBtn.lastChild.textContent = on ? T("unpin") : T("pin");
+    };
+
+    render();
+    updateBtn();
+    chrome.storage.onChanged.addListener((c, area) => {
+      if (area !== "sync" || !c.pinned) return;
+      pins = Array.isArray(c.pinned.newValue) ? c.pinned.newValue : [];
+      render();
+      updateBtn();
+    });
   }
 
   // ------------------------------------------------------------------ quick view
