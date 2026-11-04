@@ -353,7 +353,7 @@ html.faw-layout #pageid-submission .submission-page-content { padding-left: var(
   container-type: inline-size;
 }
 /* second column only once the sidebar is really wide */
-@container (min-width: 210px) { .faw-pinbar__list { grid-template-columns: 1fr 1fr; } }
+@container (min-width: 210px) { .faw-pinbar .faw-pinbar__list { grid-template-columns: 1fr 1fr; } }
 .faw-pinbar--right { right: 8px; }
 .faw-pinbar--left { left: 8px; }
 .faw-pinbar[hidden] { display: none; }

@@ -1739,6 +1739,7 @@
       const frame = $(".faw-qv__frame");
       $(".faw-qv__stage").classList.remove("is-actual");
       $(".faw-qv__frame").classList.remove("faw-pannable");
+      if (refreshPin) refreshPin();                                // pin state of the new item right away
       $(".faw-qv__nav--prev").disabled = idx === 0;
       $(".faw-qv__nav--next").disabled = idx >= list.length - 1 && !(infinite && !infinite.done);
       // Low-quality layer first: the (enlarged) thumbnail. Sized with the exact dimensions when the
