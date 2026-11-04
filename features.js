@@ -1555,6 +1555,8 @@
       /^\/view\/\d+\/?$/.test(new URL(a.href).pathname) &&
       a.querySelector("img") && !a.closest(".faw-qv, .faw-comic, .faw-pinbar, .submission-description, #submission-main-content .submission-area");
 
+    const DBL_MS = 230;          // how long a single click waits for a second one
+    let pendingOpen = null;
     // window + capture runs before FA's (and other extensions') handlers on the page
     window.addEventListener("click", (e) => {
       if (e.defaultPrevented || e.button !== 0 || e.shiftKey || e.altKey) return;
@@ -1568,8 +1570,16 @@
       }
       e.preventDefault();
       e.stopImmediatePropagation();
-      buildList(a);
-      open();
+      // double-click: straight to the submission page. A single click waits one double-click
+      // interval before opening the quick view, so a double-click never flashes the popup.
+      if (e.detail >= 2) {
+        clearTimeout(pendingOpen);
+        pendingOpen = null;
+        location.href = a.href;
+        return;
+      }
+      clearTimeout(pendingOpen);
+      pendingOpen = setTimeout(() => { pendingOpen = null; buildList(a); open(); }, DBL_MS);
     }, true);
 
     function buildList(anchor) {
