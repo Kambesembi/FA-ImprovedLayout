@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FA-ImprovedLayout",
-  "version": "2.3.2",
+  "version": "2.4.0",
   "description": "Fur Affinity for wide screens: centered wide layout, modern design, quick view, comic reader, infinite scroll and more.",
   "permissions": [
     "storage",
@@ -51,5 +51,8 @@
     "32": "icon32.png",
     "48": "icon48.png",
     "128": "icon128.png"
-  }
+  },
+  "host_permissions": [
+    "*://*.furaffinity.net/*"
+  ]
 }

@@ -16,5 +16,6 @@ const FAW_DEFAULTS = {
   pins: true,         // pinned artists sidebar
   pinned: [],         // [{ u: slug, n: name, a: avatar URL }]
   pinSubs: true,      // pinned submissions sidebar (list itself in storage.local "pinnedSubs")
+  walls: false,       // reference walls (walls.html; data in storage.local "walls")
   lang: "auto"        // extension language: auto | en | de | ru
 };

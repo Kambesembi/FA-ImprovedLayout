@@ -67,6 +67,12 @@
   .langs button svg { display: block; width: 100%; height: 100%; }
   .langs button:hover { opacity: .8; }
   .langs button[aria-pressed=true] { opacity: 1; border-color: var(--accent); }
+  .update { display: block; margin: 8px 12px 0; padding: 8px 12px; border-radius: 8px; text-decoration: none;
+    background: rgba(224,166,75,.14); border: 1px solid rgba(224,166,75,.4); color: var(--accent); font-size: 12px; font-weight: 600; }
+  .update:hover { background: rgba(224,166,75,.22); }
+  .update[hidden] { display: none; }
+  .wide-btn { width: 100%; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: #15161a; color: var(--text); font: inherit; cursor: pointer; }
+  .wide-btn:hover { border-color: var(--accent); color: var(--accent); }
   footer { display: flex; justify-content: space-between; align-items: center; padding: 4px 16px 14px; color: var(--muted); font-size: 11px; }
   footer button {
     background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 6px;
@@ -86,6 +92,7 @@
     <label class="switch" data-i18n-title="masterTitle"><input type="checkbox" id="enabled"><i></i></label>
   </header>
 
+  <a id="update" class="update" href="#" hidden></a>
   <main>
   <fieldset id="opts">
     <section class="card" data-group="ultrawide">
@@ -146,6 +153,13 @@
       <div class="row">
         <div class="label"><i data-i18n="pinSubs"></i><span data-i18n="pinSubsSub"></span></div>
         <label class="switch"><input type="checkbox" id="pinSubs"><i></i></label>
+      </div>
+      <div class="row">
+        <div class="label"><i data-i18n="walls"></i><span data-i18n="wallsSub"></span></div>
+        <label class="switch"><input type="checkbox" id="walls"><i></i></label>
+      </div>
+      <div class="row sub-row" id="walls-row">
+        <button id="open-walls" class="wide-btn" data-i18n="wallOpenAll"></button>
       </div>
       <div class="row">
         <div class="label"><i data-i18n="bbExtra"></i><span data-i18n="bbExtraSub"></span></div>

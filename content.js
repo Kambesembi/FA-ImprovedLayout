@@ -4,10 +4,11 @@
 (() => {
   const DEFAULTS = {
     enabled: true, ultrawide: true, design: true,
-    gutter: 24, thumb: 1.25, pins: true, pinned: [], pinSubs: true, lang: "auto"
+    gutter: 24, thumb: 1.25, pins: true, pinned: [], pinSubs: true, walls: false, lang: "auto"
   };
   const PINBAR = 100;   // minimum side gutter while a pin sidebar is shown (sidebar ≥76px + margins); popup.js mirrors it
   let pinnedSubs = [];  // pinned submissions live in storage.local (more room than sync)
+  let pinnedWalls = []; // reference walls marked "pinned" (walls.js), shown on top of the left sidebar
   const root = document.documentElement;
   let current = DEFAULTS;
   let loaded = false;            // settings read from storage
@@ -43,7 +44,10 @@
     run();
   }
   const barsShown = () => (current.pins && Array.isArray(current.pinned) && current.pinned.length > 0) ||
-    (current.pinSubs && pinnedSubs.length > 0);
+    (current.pinSubs && pinnedSubs.length > 0) || (current.walls && pinnedWalls.length > 0);
+  const setWalls = (list) => {
+    pinnedWalls = (Array.isArray(list) ? list : []).filter((w) => w.pinned).map((w) => ({ u: "wall:" + w.id, n: w.name, wall: w.id }));
+  };
 
   // ---- pin sidebars: pinned artists on the right, pinned submissions on the left. Drawn at page start
   //      (before FA renders) so they don't pop in late. Removing entries needs "delete mode" (trash
@@ -72,7 +76,8 @@
     },
     subs: {
       side: "left", area: "local", key: "pinnedSubs", titleKey: "pinnedSubs", deleteKey: "pinDeleteSubs",
-      on: () => current.pinSubs, list: () => pinnedSubs,
+      on: () => current.pinSubs || current.walls,
+      list: () => (current.walls ? pinnedWalls : []).concat(current.pinSubs ? pinnedSubs : []),
       href: (p) => "/view/" + p.u + "/",
       img: (p) => p.a,
       isHere: (p) => herePath.startsWith("/view/" + p.u + "/")
@@ -99,12 +104,23 @@
       head.append(label, trash);
       const list = document.createElement("div");
       list.className = "faw-pinbar__list";
-      // in delete mode a click removes the entry instead of opening it
+      // in delete mode a click removes the entry instead of opening it; walls open their page
+      // (or get unpinned in delete mode – the wall itself stays)
       list.addEventListener("click", (e) => {
         const a = e.target.closest(".faw-pin");
-        if (!a || !bar.classList.contains("is-deleting")) return;
+        if (!a) return;
+        const deleting = bar.classList.contains("is-deleting");
+        if (a.dataset.wall) {
+          e.preventDefault();
+          if (!deleting) { chrome.runtime.sendMessage({ type: "faw-open-walls", wall: a.dataset.wall }); return; }
+          chrome.storage.local.get({ walls: [] }, (l) => {
+            chrome.storage.local.set({ walls: (l.walls || []).map((w) => (w.id === a.dataset.wall ? Object.assign({}, w, { pinned: false }) : w)) });
+          });
+          return;
+        }
+        if (!deleting) return;
         e.preventDefault();
-        saveBar(cfg, cfg.list().filter((q) => String(q.u) !== a.dataset.u));
+        saveBar(cfg, cfg.list().filter((q) => String(q.u) !== a.dataset.u && !q.wall));
       });
       enableReorder(cfg, list);
       bar.append(head, list);
@@ -119,22 +135,26 @@
     list.replaceChildren();
     for (const p of pins) {
       const a = document.createElement("a");
-      a.className = "faw-pin" + (cfg.isHere(p) ? " is-current" : "");
-      a.href = cfg.href(p);
+      a.className = "faw-pin" + (cfg.isHere(p) ? " is-current" : "") + (p.wall ? " is-wall" : "");
+      a.href = p.wall ? "#" : cfg.href(p);
+      if (p.wall) a.dataset.wall = p.wall;
       a.title = p.n || p.u;
       a.dataset.u = String(p.u);
       a.draggable = false;
       const img = document.createElement("img");
       img.alt = "";
       img.draggable = false;
-      img.src = cfg.img(p) || "https://a.furaffinity.net/default.gif";
-      img.onerror = () => { img.onerror = null; img.src = "https://a.furaffinity.net/default.gif"; };
+      if (!p.wall) {
+        img.src = cfg.img(p) || "https://a.furaffinity.net/default.gif";
+        img.onerror = () => { img.onerror = null; img.src = "https://a.furaffinity.net/default.gif"; };
+      }
       const name = document.createElement("span");
       name.textContent = p.n || p.u;
       const x = document.createElement("i");
       x.className = "faw-pin__x";
       x.textContent = "×";
-      a.append(img, name, x);
+      a.append(p.wall ? Object.assign(document.createElement("b"), { className: "faw-pin__wall" }) : img, name, x);
+      if (p.wall) a.firstChild.append(svgIcon(["M3 3h7v9H3z", "M14 3h7v5h-7z", "M14 12h7v9h-7z", "M3 16h7v5H3z"], 24));
       list.appendChild(a);
     }
   }
@@ -178,7 +198,7 @@
     let drag = null, swallowClick = false;
     list.addEventListener("mousedown", (e) => {
       const a = e.target.closest(".faw-pin");
-      if (!a || e.button !== 0 || cfg.el.classList.contains("is-deleting")) return;
+      if (!a || a.dataset.wall || e.button !== 0 || cfg.el.classList.contains("is-deleting")) return;
       e.preventDefault();
       drag = { a, x: e.clientX, y: e.clientY, active: false };
     });
@@ -212,7 +232,7 @@
       cfg.el.classList.remove("is-reordering");
       swallowClick = true;
       setTimeout(() => { swallowClick = false; }, 0);
-      const byU = new Map(cfg.list().map((p) => [String(p.u), p]));
+      const byU = new Map(cfg.list().filter((p) => !p.wall).map((p) => [String(p.u), p]));
       saveBar(cfg, [...list.children].map((x) => byU.get(x.dataset.u)).filter(Boolean));
     });
     list.addEventListener("click", (e) => { if (swallowClick) { e.preventDefault(); e.stopPropagation(); } }, true);
@@ -287,13 +307,20 @@
     root.classList.toggle("faw-light", light);
     if (name) root.dataset.fawTheme = name;
   }
-  chrome.storage.local.get({ pinnedSubs: [] }, (l) => {
+  chrome.storage.local.get({ pinnedSubs: [], walls: [] }, (l) => {
     pinnedSubs = Array.isArray(l.pinnedSubs) ? l.pinnedSubs : [];
+    setWalls(l.walls);
     chrome.storage.sync.get(DEFAULTS, apply);
   });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && changes.pinnedSubs) pinnedSubs = changes.pinnedSubs.newValue || [];
-    if (area === "sync" || (area === "local" && changes.pinnedSubs)) chrome.storage.sync.get(DEFAULTS, apply);
+    let wallsChanged = false;
+    if (area === "local" && changes.walls) {       // walls are saved on every drag – redraw only if the pinned ones changed
+      const before = JSON.stringify(pinnedWalls);
+      setWalls(changes.walls.newValue);
+      wallsChanged = before !== JSON.stringify(pinnedWalls);
+    }
+    if (area === "sync" || (area === "local" && (changes.pinnedSubs || wallsChanged))) chrome.storage.sync.get(DEFAULTS, apply);
   });
   if (!domReady) {
     document.addEventListener("DOMContentLoaded", () => { domReady = true; run(); }, { once: true });

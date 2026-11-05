@@ -120,6 +120,9 @@ html.faw-layout #page-userpage .faw-pair > .faw-gallery > .userpage-section-left
 html.faw-layout #page-userpage .faw-pair #gallery-latest-submissions { flex: 1; min-height: 0; }
 html.faw-layout #page-userpage #gallery-latest-submissions figure,
 html.faw-layout #page-userpage #gallery-latest-favorites figure { zoom: 1; }
+/* Favorites has no top padding of its own (FA expects Gallery above it) – add it when it comes first */
+html.faw-layout #page-userpage .userpage-layout-left-col-content > .faw-favs { padding-top: 10px !important; }
+html.faw-layout #page-userpage .userpage-layout-left-col-content > :is(.faw-featured, .faw-gallery):not(.faw-empty) ~ .faw-favs { padding-top: 0 !important; }
 html.faw-layout #page-userpage .userpage-layout-left-col-content > .faw-empty,
 html.faw-layout #page-userpage #gallery-preview,
 html.faw-layout #page-userpage #favorite-preview { display: none !important; }
@@ -391,3 +394,5 @@ html.faw-layout #pageid-submission .submission-page-content { padding-left: var(
 
 /* top menu: FA's "Search" item has no visible link on desktop but still takes up room */
 html.faw-layout #ddmenu ul.navhideonmobile > li:has(> a.hideondesktop:only-child) { display: none !important; }
+.faw-pin__wall { display: grid; place-items: center; width: 50px; height: 50px; border-radius: 12px; background: rgba(224,166,75,.14); color: var(--faw-accent-text); }
+.faw-pin.is-wall:hover .faw-pin__wall { background: rgba(224,166,75,.24); }

@@ -2,7 +2,7 @@
 // their next load. Texts come from i18n.js via data-i18n / data-i18n-title attributes.
 const $ = (id) => document.getElementById(id);
 const RANGES = ["gutter", "thumb"];
-const CHECKS = ["ultrawide", "design", "imageFit", "quickView", "comic", "comicHorizontal", "infinite", "bbExtra", "topbar", "pins", "pinSubs", "archiveLink"];
+const CHECKS = ["ultrawide", "design", "imageFit", "quickView", "comic", "comicHorizontal", "infinite", "bbExtra", "topbar", "pins", "pinSubs", "walls", "archiveLink"];
 const PINBAR = 100;   // same as content.js: minimum gutter while a pin sidebar is shown
 let pinCounts = { artists: 0, subs: 0 };
 
@@ -32,6 +32,7 @@ function render(s) {
 // Sub-options are dimmed while their parent switch is off
 function syncDependents() {
   $("comicHorizontal").disabled = !$("comic").checked;
+  $("walls-row").hidden = !$("walls").checked;
   // while a pin sidebar is shown the gutter can't go below its width – the slider starts there
   const bar = ($("pins").checked && pinCounts.artists) || ($("pinSubs").checked && pinCounts.subs);
   $("gutter").min = bar ? PINBAR : 0;
@@ -80,4 +81,33 @@ $("reset").addEventListener("click", () => {
     const fresh = Object.assign({}, FAW_DEFAULTS, { pinned });
     chrome.storage.sync.clear(() => chrome.storage.sync.set(fresh, () => render(fresh)));
   });
+});
+
+$("open-walls").addEventListener("click", () => chrome.tabs.create({ url: chrome.runtime.getURL("walls.html") }));
+
+// Update check: latest GitHub release, cached for 6 hours (only the popup asks, never the FA pages)
+const REPO = "Kambesembi/FA-ImprovedLayout";
+const newer = (a, b) => {               // "2.4.0" > "2.3.2"?
+  const x = a.split(".").map(Number), y = b.split(".").map(Number);
+  for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0);
+  return false;
+};
+chrome.storage.local.get({ updCheck: null }, async ({ updCheck }) => {
+  let latest = updCheck && Date.now() - updCheck.t < 6 * 3600e3 ? updCheck : null;
+  if (!latest) {
+    try {
+      const r = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, { headers: { Accept: "application/vnd.github+json" } });
+      if (r.ok) {
+        const j = await r.json();
+        latest = { t: Date.now(), tag: String(j.tag_name || "").replace(/^v/, ""), url: j.html_url };
+        chrome.storage.local.set({ updCheck: latest });
+      }
+    } catch (e) { /* offline: no hint */ }
+  }
+  if (latest && latest.tag && newer(latest.tag, chrome.runtime.getManifest().version)) {
+    const a = $("update");
+    a.textContent = T("updateAvail", latest.tag);
+    a.hidden = false;
+    a.addEventListener("click", (e) => { e.preventDefault(); chrome.tabs.create({ url: latest.url || `https://github.com/${REPO}/releases/latest` }); });
+  }
 });

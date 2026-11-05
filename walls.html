@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>FA-ImprovedLayout – Walls</title>
+<link rel="icon" href="icon32.png">
+<link rel="stylesheet" href="walls.css">
+</head>
+<body>
+  <header class="bar">
+    <nav id="tabs" class="tabs"></nav>
+    <button id="add" class="btn" data-i18n-title="wallNew">+</button>
+    <div class="spacer"></div>
+    <span id="hint" class="hint" data-i18n="wallHint"></span>
+    <button id="fit" class="btn" data-i18n="wallFit"></button>
+    <button id="pin" class="btn icon" data-i18n-title="wallPin"></button>
+    <button id="export" class="btn" data-i18n="wallExport"></button>
+    <button id="del" class="btn danger icon" data-i18n-title="wallDelete"></button>
+  </header>
+  <main id="board" class="board">
+    <div id="layer" class="layer"></div>
+    <p id="empty" class="empty" data-i18n="wallEmpty" hidden></p>
+  </main>
+  <script src="i18n.js"></script>
+  <script src="walls.js"></script>
+</body>
+</html>

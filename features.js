@@ -7,7 +7,7 @@
   const DEFAULTS = {
     enabled: true, ultrawide: true, design: true,
     imageFit: true, quickView: true, comic: true, comicHorizontal: false, infinite: true,
-    archiveLink: false, bbExtra: true, topbar: true, pins: true, pinned: [], pinSubs: true, thumb: 1.25, lang: "auto"
+    archiveLink: false, bbExtra: true, topbar: true, pins: true, pinned: [], pinSubs: true, walls: false, thumb: 1.25, lang: "auto"
   };
   const root = document.documentElement;
   const page = document.body ? document.body.id : "";
@@ -57,6 +57,7 @@
     if (S.topbar) initTopBar();
     if (S.pins) initPins();
     if (S.pinSubs && page === "pageid-submission") initSubPin();
+    if (S.walls && page === "pageid-submission") initWallButton();
   });
 
   // ------------------------------------------------------------------ fetching / parsing
@@ -1246,6 +1247,7 @@
     arrow: "M5 12h14M13 6l6 6-6 6",
     bellOff: ["M8.7 3A6 6 0 0 1 18 8c0 2.7.6 4.6 1.3 6", "M17 17H3s3-2 3-9c0-.8.1-1.5.4-2.2", "M10.3 21a1.94 1.94 0 0 0 3.4 0", "M2 2l20 20"],
     pinOff: ["M12 17v5", "M15 9.34V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H7.89", "M2 2l20 20", "M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h11"],
+    wall: ["M3 3h7v9H3z", "M14 3h7v5h-7z", "M14 12h7v9h-7z", "M3 16h7v5H3z"],
     pin: ["M12 17v5", "M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"]
   };
 
@@ -1342,10 +1344,11 @@
           if (divider && divider.textContent.trim() !== lastDivText) {
             // new date group in message center: keep its header
             sec.removeAttribute("id");
+            sec.querySelectorAll("figure").forEach((f) => f.classList.add("faw-inf-added"));
             target.after(document.adoptNode(divider), document.adoptNode(sec));
           } else {
             if (!isMsgCenter && added === 0) target.appendChild(el("div", "faw-inf-page", T("pageDivider", pageNo + 1)));
-            for (const f of figs) target.appendChild(document.adoptNode(f));
+            for (const f of figs) { f.classList.add("faw-inf-added"); target.appendChild(document.adoptNode(f)); }
           }
           added += figs.length;
         }
@@ -1383,6 +1386,17 @@
     }, { passive: true });
 
     infinite = { loadMore, get done() { return done; }, get loading() { return loading; } };
+
+    // FA attaches its hover title (shown while "Enable Titles" is off) only to the figures present at
+    // load; appended ones get the same small header from us when their caption is hidden
+    document.addEventListener("mouseover", (e) => {
+      const f = e.target.closest && e.target.closest("figure.faw-inf-added");
+      if (!f || f.dataset.fawTitle !== undefined) return;
+      const cap = f.querySelector("figcaption");
+      const t = f.querySelector("figcaption a[title], figcaption p a")?.getAttribute("title") || f.querySelector("figcaption a")?.textContent || "";
+      f.dataset.fawTitle = t.trim();
+      if (cap && getComputedStyle(cap).display === "none" && t.trim()) f.classList.add("faw-hovertitle");
+    });
   }
 
   // "Next" link or button (forms are used on browse/search/favorites)
@@ -1545,6 +1559,61 @@
     if (dl) dl.after(btn); else controls.append(btn);
   }
 
+  // ------------------------------------------------------------------ reference walls (walls.html)
+  // "Add to wall" places the submission on the active wall, to the right of what's already there
+  // (new row after ~4000px). Data in chrome.storage.local, see walls.js.
+  async function addToWall({ sid, src, res }) {
+    const l = await new Promise((r) => chrome.storage.local.get({ walls: [], activeWall: null }, r));
+    const walls = Array.isArray(l.walls) ? l.walls : [];
+    if (!walls.length) walls.push({ id: Math.random().toString(36).slice(2, 10), name: T("wallName", 1), pinned: false, view: { x: 40, y: 40, z: 0.5 }, items: [] });
+    const w = walls.find((x) => x.id === l.activeWall) || walls[0];
+    if (w.items.some((i) => String(i.sid) === String(sid))) { toast(T("wallAlready", w.name), w.id); return; }
+    const width = 600, height = res ? Math.round(width * res.h / res.w) : width;
+    let x = 0, y = 0;
+    if (w.items.length) {
+      const top = Math.min(...w.items.map((i) => i.y));
+      const right = Math.max(...w.items.map((i) => i.x + i.w));
+      if (right + 40 + width <= 4000) { x = right + 40; y = top; }
+      else { x = Math.min(...w.items.map((i) => i.x)); y = Math.max(...w.items.map((i) => i.y + i.h)) + 40; }
+    }
+    w.items.push({ id: Math.random().toString(36).slice(2, 10), sid: String(sid), src, x, y, w: width, h: height, fixed: !!res });
+    await new Promise((r) => chrome.storage.local.set({ walls, activeWall: w.id }, r));
+    toast(T("wallAdded", w.name), w.id);
+  }
+  const openWalls = (id) => chrome.runtime.sendMessage({ type: "faw-open-walls", wall: id || "" });
+  let toastEl = null, toastTimer = null;
+  function toast(text, wallId) {
+    if (!toastEl) { toastEl = el("div", "faw-toast"); document.body.appendChild(toastEl); }
+    toastEl.replaceChildren(el("span", null, text));
+    const open = el("button", null, T("wallOpen"));
+    open.type = "button";
+    open.addEventListener("click", () => openWalls(wallId));
+    toastEl.append(open);
+    toastEl.classList.add("is-on");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove("is-on"), 3500);
+  }
+  function wallButton(cls, size) {
+    const b = el("button", cls);
+    b.type = "button";
+    b.title = T("wallAdd");
+    b.append(icon(ICONS.wall, size));
+    return b;
+  }
+  function initWallButton() {
+    const controls = document.querySelector(".submission-controls-upper");
+    const id = viewId(location.pathname);
+    if (!controls || !id) return;
+    const btn = wallButton("button standard mobile-fix faw-wall-btn", 18);
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const cur = parseSubmission(document, location.pathname);
+      if (cur.full) addToWall({ sid: id, src: cur.full, res: cur.res });
+    });
+    const after = controls.querySelector(".faw-subpin-btn") || [...controls.children].find((x) => /download/i.test(x.textContent));
+    if (after) after.after(btn); else controls.append(btn);
+  }
+
   // ------------------------------------------------------------------ quick view
   function initQuickView() {
     let qv = null, list = [], idx = 0, token = 0;
@@ -1623,6 +1692,7 @@
             <button class="faw-qv__btn" data-act="dl">${T("download")}</button>
             <a class="faw-qv__btn" data-act="open">${T("openPage")}</a>
             <button class="faw-qv__btn faw-qv__pin" data-act="pin" data-size="15"></button>
+            <button class="faw-qv__btn faw-qv__wall" data-act="wall"></button>
           </div>
           <dl class="faw-qv__meta"></dl>
           <div class="faw-qv__tags"></div>
@@ -1660,6 +1730,12 @@
           subPins.toggle({ u: it.id, n: ((data && String(data.id) === String(it.id) && data.title) || "").slice(0, 80), a: thumb300(it.thumb || (data && data.preview)) });
         };
       } else pinBtn.remove();
+      const wallBtn = $("[data-act=wall]");
+      if (S.walls) {
+        wallBtn.title = T("wallAdd");
+        wallBtn.append(icon(ICONS.wall, 15));
+        wallBtn.onclick = () => { if (data && data.full) addToWall({ sid: data.id, src: data.full, res: data.res }); };
+      } else wallBtn.remove();
       $(".faw-qv__stage").addEventListener("click", (e) => { if (e.target === e.currentTarget) close(); });
       const qvStage = $(".faw-qv__stage"), qvFrame = $(".faw-qv__frame");
       const qvPan = makePannable(qvFrame, { x: qvStage, y: qvStage, active: () => qvStage.classList.contains("is-actual"), hostClass: qvFrame });
@@ -1750,6 +1826,9 @@
       $(".faw-qv__stage").classList.remove("is-actual");
       $(".faw-qv__frame").classList.remove("faw-pannable");
       if (refreshPin) refreshPin();                                // pin state of the new item right away
+      data = null;                                                 // no stale fav / download state from the last item
+      updateFavBtn();
+      $("[data-act=dl]").disabled = true;
       $(".faw-qv__nav--prev").disabled = idx === 0;
       $(".faw-qv__nav--next").disabled = idx >= list.length - 1 && !(infinite && !infinite.done);
       // Low-quality layer first: the (enlarged) thumbnail. Sized with the exact dimensions when the
