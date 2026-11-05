@@ -4,6 +4,17 @@
 (() => {
   "use strict";
 
+  // After the extension is reloaded/updated, scripts still running in open tabs lose access to chrome.*
+  // ("Extension context invalidated"). Catch that instead of logging errors, and tell the user once.
+  let staleShown = false;
+  function onStale(e, reason) {
+    if (!/context invalidated/i.test(String(reason && reason.message || reason))) return;
+    e.preventDefault();
+    if (!staleShown && document.body) { staleShown = true; toast(T("staleCtx")); }
+  }
+  window.addEventListener("unhandledrejection", (e) => onStale(e, e.reason));
+  window.addEventListener("error", (e) => onStale(e, e.error || e.message));
+
   const DEFAULTS = {
     enabled: true, ultrawide: true, design: true,
     imageFit: true, quickView: true, comic: true, comicHorizontal: false, infinite: true,
@@ -1624,10 +1635,12 @@
   function toast(text, wallId) {
     if (!toastEl) { toastEl = el("div", "faw-toast"); document.body.appendChild(toastEl); }
     toastEl.replaceChildren(el("span", null, text));
-    const open = el("button", null, T("wallOpen"));
-    open.type = "button";
-    open.addEventListener("click", () => openWalls(wallId));
-    toastEl.append(open);
+    if (wallId !== undefined) {                     // wall toasts get an "Open wall" button
+      const open = el("button", null, T("wallOpen"));
+      open.type = "button";
+      open.addEventListener("click", () => openWalls(wallId));
+      toastEl.append(open);
+    }
     toastEl.classList.add("is-on");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toastEl.classList.remove("is-on"), 3500);

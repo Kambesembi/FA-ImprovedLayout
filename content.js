@@ -2,6 +2,10 @@
 // <html> before FA paints. Once the DOM is ready it also does the structural changes that must not
 // flash: splitting the submission sidebar, tagging profile sections, arrow buttons, theme detection.
 (() => {
+  // after an extension reload, old tabs lose chrome.* ("Extension context invalidated") – not an error worth logging
+  const stale = (e, r) => { if (/context invalidated/i.test(String(r && r.message || r))) e.preventDefault(); };
+  window.addEventListener("unhandledrejection", (e) => stale(e, e.reason));
+  window.addEventListener("error", (e) => stale(e, e.error || e.message));
   const DEFAULTS = {
     enabled: true, ultrawide: true, design: true,
     gutter: 24, thumb: 1.25, pins: true, pinned: [], pinSubs: true, walls: false, lang: "auto"
