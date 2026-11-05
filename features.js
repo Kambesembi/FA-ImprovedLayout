@@ -57,6 +57,7 @@
     if (S.topbar) initTopBar();
     if (S.pins) initPins();
     if (S.pinSubs && page === "pageid-submission") initSubPin();
+    if (S.walls) initWallsNav();
     if (S.walls && page === "pageid-submission") initWallButton();
   });
 
@@ -1248,6 +1249,7 @@
     bellOff: ["M8.7 3A6 6 0 0 1 18 8c0 2.7.6 4.6 1.3 6", "M17 17H3s3-2 3-9c0-.8.1-1.5.4-2.2", "M10.3 21a1.94 1.94 0 0 0 3.4 0", "M2 2l20 20"],
     pinOff: ["M12 17v5", "M15 9.34V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H7.89", "M2 2l20 20", "M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h11"],
     wall: ["M3 3h7v9H3z", "M14 3h7v5h-7z", "M14 12h7v9h-7z", "M3 16h7v5H3z"],
+    wallOn: ["M3 3h7v9H3z", "M14 3h7v5h-7z", "M3 16h7v5H3z", "M14 16.5l2.5 2.5 4.5-5"],   // last tile → check mark
     pin: ["M12 17v5", "M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"]
   };
 
@@ -1387,16 +1389,22 @@
 
     infinite = { loadMore, get done() { return done; }, get loading() { return loading; } };
 
-    // FA attaches its hover title (shown while "Enable Titles" is off) only to the figures present at
-    // load; appended ones get the same small header from us when their caption is hidden
-    document.addEventListener("mouseover", (e) => {
-      const f = e.target.closest && e.target.closest("figure.faw-inf-added");
-      if (!f || f.dataset.fawTitle !== undefined) return;
-      const cap = f.querySelector("figcaption");
-      const t = f.querySelector("figcaption a[title], figcaption p a")?.getAttribute("title") || f.querySelector("figcaption a")?.textContent || "";
-      f.dataset.fawTitle = t.trim();
-      if (cap && getComputedStyle(cap).display === "none" && t.trim()) f.classList.add("faw-hovertitle");
-    });
+    // While "Enable Titles" is off, FA moves each figure's caption into its link on mouseenter (styled as a
+    // dark header with clickable title + artist) and back on mouseleave – but only for figures present at
+    // load. Appended figures get the same treatment here.
+    const capHost = (f) => f.querySelector(":scope > b > u > a") || f.querySelector(":scope > b a");
+    document.addEventListener("mouseenter", (e) => {
+      const f = e.target;
+      if (!(f instanceof Element) || !f.matches("figure.faw-inf-added")) return;
+      const cap = f.querySelector(":scope > figcaption"), host = capHost(f);
+      if (cap && host && getComputedStyle(cap).display === "none") host.appendChild(cap);
+    }, true);
+    document.addEventListener("mouseleave", (e) => {
+      const f = e.target;
+      if (!(f instanceof Element) || !f.matches("figure.faw-inf-added")) return;
+      const cap = f.querySelector(":scope > b figcaption");
+      if (cap) f.appendChild(cap);
+    }, true);
   }
 
   // "Next" link or button (forms are used on browse/search/favorites)
@@ -1562,23 +1570,54 @@
   // ------------------------------------------------------------------ reference walls (walls.html)
   // "Add to wall" places the submission on the active wall, to the right of what's already there
   // (new row after ~4000px). Data in chrome.storage.local, see walls.js.
-  async function addToWall({ sid, src, res }) {
-    const l = await new Promise((r) => chrome.storage.local.get({ walls: [], activeWall: null }, r));
+  const getWalls = () => new Promise((r) => chrome.storage.local.get({ walls: [], activeWall: null }, (l) => {
     const walls = Array.isArray(l.walls) ? l.walls : [];
-    if (!walls.length) walls.push({ id: Math.random().toString(36).slice(2, 10), name: T("wallName", 1), pinned: false, view: { x: 40, y: 40, z: 0.5 }, items: [] });
-    const w = walls.find((x) => x.id === l.activeWall) || walls[0];
-    if (w.items.some((i) => String(i.sid) === String(sid))) { toast(T("wallAlready", w.name), w.id); return; }
+    r({ walls, w: walls.find((x) => x.id === l.activeWall) || walls[0] || null });
+  }));
+  const GAP = 12;   // space between automatically placed images
+  // Toggle: adds the submission to the active wall, or takes it off again if it's already there
+  async function toggleWall({ sid, src, res }) {
+    let { walls, w } = await getWalls();
+    if (!w) { w = { id: Math.random().toString(36).slice(2, 10), name: T("wallName", 1), pinned: false, view: { x: 40, y: 40, z: 0.5 }, items: [] }; walls.push(w); }
+    if (w.items.some((i) => String(i.sid) === String(sid))) {
+      w.items = w.items.filter((i) => String(i.sid) !== String(sid));
+      await new Promise((r) => chrome.storage.local.set({ walls }, r));
+      toast(T("wallRemoved", w.name), w.id);
+      return;
+    }
     const width = 600, height = res ? Math.round(width * res.h / res.w) : width;
     let x = 0, y = 0;
     if (w.items.length) {
       const top = Math.min(...w.items.map((i) => i.y));
       const right = Math.max(...w.items.map((i) => i.x + i.w));
-      if (right + 40 + width <= 4000) { x = right + 40; y = top; }
-      else { x = Math.min(...w.items.map((i) => i.x)); y = Math.max(...w.items.map((i) => i.y + i.h)) + 40; }
+      if (right + GAP + width <= 4000) { x = right + GAP; y = top; }
+      else { x = Math.min(...w.items.map((i) => i.x)); y = Math.max(...w.items.map((i) => i.y + i.h)) + GAP; }
     }
     w.items.push({ id: Math.random().toString(36).slice(2, 10), sid: String(sid), src, x, y, w: width, h: height, fixed: !!res });
     await new Promise((r) => chrome.storage.local.set({ walls, activeWall: w.id }, r));
     toast(T("wallAdded", w.name), w.id);
+  }
+  // Wall buttons show whether their submission is on the active wall (accent + check mark)
+  const wallBtns = new Map();   // button → () => submission id
+  async function refreshWallBtns() {
+    const { w } = await getWalls();
+    for (const [b, getSid] of wallBtns) {
+      const sid = getSid();
+      const on = !!(w && sid && w.items.some((i) => String(i.sid) === String(sid)));
+      b.classList.toggle("is-on", on);
+      b.replaceChildren(icon(on ? ICONS.wallOn : ICONS.wall, b.dataset.size));
+      b.title = on ? T("wallOn", w.name) : T("wallAdd");
+      b.setAttribute("aria-label", b.title);
+    }
+  }
+  let wallWatch = false;
+  function bindWallBtn(b, getSid) {
+    wallBtns.set(b, getSid);
+    if (!wallWatch) {
+      wallWatch = true;
+      chrome.storage.onChanged.addListener((c, area) => { if (area === "local" && (c.walls || c.activeWall)) refreshWallBtns(); });
+    }
+    refreshWallBtns();
   }
   const openWalls = (id) => chrome.runtime.sendMessage({ type: "faw-open-walls", wall: id || "" });
   let toastEl = null, toastTimer = null;
@@ -1596,9 +1635,25 @@
   function wallButton(cls, size) {
     const b = el("button", cls);
     b.type = "button";
+    b.dataset.size = size;
     b.title = T("wallAdd");
     b.append(icon(ICONS.wall, size));
     return b;
+  }
+  // Top bar: "Open walls" in its own section between the NSFW switch and the avatar
+  function initWallsNav() {
+    const bar = document.querySelector("#ddmenu ul.navhideonmobile");
+    const anchor = bar && (bar.querySelector("li.faw-topbar") || bar.querySelector("li.message-bar-desktop"));
+    if (!anchor || bar.querySelector(".faw-topbar--walls")) return;
+    const li = el("li", "faw-topbar faw-topbar--walls");
+    const b = el("button", "faw-tb-btn faw-tb-walls");
+    b.type = "button";
+    b.title = T("wallOpenAll");
+    b.setAttribute("aria-label", b.title);
+    b.append(icon(ICONS.wall, 15));
+    b.addEventListener("click", () => openWalls());
+    li.append(b);
+    anchor.after(li);
   }
   function initWallButton() {
     const controls = document.querySelector(".submission-controls-upper");
@@ -1608,8 +1663,9 @@
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       const cur = parseSubmission(document, location.pathname);
-      if (cur.full) addToWall({ sid: id, src: cur.full, res: cur.res });
+      if (cur.full) toggleWall({ sid: id, src: cur.full, res: cur.res });
     });
+    bindWallBtn(btn, () => id);
     const after = controls.querySelector(".faw-subpin-btn") || [...controls.children].find((x) => /download/i.test(x.textContent));
     if (after) after.after(btn); else controls.append(btn);
   }
@@ -1732,9 +1788,9 @@
       } else pinBtn.remove();
       const wallBtn = $("[data-act=wall]");
       if (S.walls) {
-        wallBtn.title = T("wallAdd");
-        wallBtn.append(icon(ICONS.wall, 15));
-        wallBtn.onclick = () => { if (data && data.full) addToWall({ sid: data.id, src: data.full, res: data.res }); };
+        wallBtn.dataset.size = 15;
+        wallBtn.onclick = () => { if (data && data.full) toggleWall({ sid: data.id, src: data.full, res: data.res }); };
+        bindWallBtn(wallBtn, () => list[idx] && list[idx].id);
       } else wallBtn.remove();
       $(".faw-qv__stage").addEventListener("click", (e) => { if (e.target === e.currentTarget) close(); });
       const qvStage = $(".faw-qv__stage"), qvFrame = $(".faw-qv__frame");
@@ -1825,7 +1881,8 @@
       const frame = $(".faw-qv__frame");
       $(".faw-qv__stage").classList.remove("is-actual");
       $(".faw-qv__frame").classList.remove("faw-pannable");
-      if (refreshPin) refreshPin();                                // pin state of the new item right away
+      if (refreshPin) refreshPin();                                // pin + wall state of the new item right away
+      if (S.walls) refreshWallBtns();
       data = null;                                                 // no stale fav / download state from the last item
       updateFavBtn();
       $("[data-act=dl]").disabled = true;

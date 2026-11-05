@@ -12,7 +12,7 @@ Browser extension that adapts Fur Affinity's modern theme to wide and ultrawide 
 - **Infinite scroll** – galleries, favorites, browse, search and the submission inbox
 - **Pinned artists & submissions** – pin button next to Watch on profiles and on submissions / in the quick view; artists stay in a sidebar on the right, submissions on the left (drag to reorder)
 - **Top bar** – clear all notifications with one click (with confirmation), SFW/NSFW switch next to the notifications
-- **Reference walls** (optional) – PureRef-style boards: add submissions with one click, arrange and resize them, up to 12 named walls, pin a wall to the left sidebar, export as PNG
+- **Reference walls** (optional) – PureRef-style boards: add submissions with one click, arrange and resize them, up to 12 named walls, open them from the top bar or pin one to the left sidebar, export as PNG
 - **Extras** – extra BBCode buttons, +Fav without reload, "More from this artist", full watcher lists, in-page link warnings, optional link to archived galleries
 
 Everything can be switched on or off in the popup.

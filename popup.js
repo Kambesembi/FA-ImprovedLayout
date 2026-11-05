@@ -32,7 +32,6 @@ function render(s) {
 // Sub-options are dimmed while their parent switch is off
 function syncDependents() {
   $("comicHorizontal").disabled = !$("comic").checked;
-  $("walls-row").hidden = !$("walls").checked;
   // while a pin sidebar is shown the gutter can't go below its width – the slider starts there
   const bar = ($("pins").checked && pinCounts.artists) || ($("pinSubs").checked && pinCounts.subs);
   $("gutter").min = bar ? PINBAR : 0;
@@ -82,8 +81,6 @@ $("reset").addEventListener("click", () => {
     chrome.storage.sync.clear(() => chrome.storage.sync.set(fresh, () => render(fresh)));
   });
 });
-
-$("open-walls").addEventListener("click", () => chrome.tabs.create({ url: chrome.runtime.getURL("walls.html") }));
 
 // Update check: latest GitHub release, cached for 6 hours (only the popup asks, never the FA pages)
 const REPO = "Kambesembi/FA-ImprovedLayout";

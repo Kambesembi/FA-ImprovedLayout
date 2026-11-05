@@ -1,7 +1,7 @@
 // Reference walls (PureRef-style boards). Data in chrome.storage.local:
 //   walls: [{ id, name, pinned, view: { x, y, z }, items: [{ id, sid, src, x, y, w, h }] }]
 //   activeWall: id of the wall that "Add to wall" on FA pages adds to (= the selected tab here)
-// Drag the background to pan, wheel to zoom at the cursor, drag images to move, the corner handle to
+// Drag the background to pan, wheel to zoom at the cursor, drag images to move, the side/corner handles to
 // resize, Delete to remove, double-click to open the submission on FA.
 const MAX_WALLS = 12;
 const $ = (id) => document.getElementById(id);
@@ -39,6 +39,7 @@ function load(cb) {
     cb();
   });
 }
+const DIRS = ["n", "ne", "e", "se", "s", "sw", "w", "nw"];   // resize handles around a selected image
 function newWall(n) { return { id: uid(), name: T("wallName", n), pinned: false, view: { x: 40, y: 40, z: 0.5 }, items: [] }; }
 // another tab (FA page) added something → redraw, unless it's our own write coming back
 chrome.storage.onChanged.addListener((c, area) => {
@@ -102,6 +103,7 @@ const board = $("board"), layer = $("layer");
 function applyView() {
   const v = wall().view;
   layer.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.z})`;
+  layer.style.setProperty("--z", v.z);   // keeps the resize handles the same size on screen
   board.style.backgroundPosition = `${v.x}px ${v.y}px`;
   board.style.backgroundSize = `${24 * v.z}px ${24 * v.z}px`;
 }
@@ -124,9 +126,13 @@ function renderBoard() {
         save();
       }
     }, { once: true });
-    const h = document.createElement("div");
-    h.className = "handle";
-    d.append(img, h);
+    d.append(img);
+    for (const dir of DIRS) {
+      const h = document.createElement("div");
+      h.className = "handle h-" + dir;
+      h.dataset.dir = dir;
+      d.append(h);
+    }
     layer.appendChild(d);
   }
   $("empty").hidden = wall().items.length > 0;
@@ -152,7 +158,8 @@ board.addEventListener("pointerdown", (e) => {
     const el = layer.querySelector(`[data-id="${it.id}"]`);
     layer.appendChild(el);
     select(it.id);
-    drag = { mode: e.target.classList.contains("handle") ? "resize" : "move", it, el, sx: e.clientX, sy: e.clientY, ox: it.x, oy: it.y, ow: it.w, oh: it.h };
+    const dir = e.target.dataset.dir;
+    drag = { mode: dir ? "resize" : "move", dir, it, el, sx: e.clientX, sy: e.clientY, ox: it.x, oy: it.y, ow: it.w, oh: it.h };
   } else {
     select(null);
     drag = { mode: "pan", sx: e.clientX, sy: e.clientY, ox: v.x, oy: v.y };
@@ -168,9 +175,16 @@ window.addEventListener("pointermove", (e) => {
     drag.it.x = Math.round(drag.ox + dx / z); drag.it.y = Math.round(drag.oy + dy / z);
     drag.el.style.left = drag.it.x + "px"; drag.el.style.top = drag.it.y + "px";
   } else {
-    const w = Math.max(40, drag.ow + dx / z);           // keeps the aspect ratio
-    drag.it.w = Math.round(w); drag.it.h = Math.round(w * drag.oh / drag.ow);
-    drag.el.style.width = drag.it.w + "px"; drag.el.style.height = drag.it.h + "px";
+    // any side or corner, aspect ratio kept; the opposite side stays put (edges scale from the middle)
+    const { dir, ow, oh, ox, oy } = drag;
+    const fx = dir.includes("e") ? (ow + dx / z) / ow : dir.includes("w") ? (ow - dx / z) / ow : 0;
+    const fy = dir.includes("s") ? (oh + dy / z) / oh : dir.includes("n") ? (oh - dy / z) / oh : 0;
+    const f = Math.max(40 / ow, 40 / oh, dir.length === 2 ? Math.max(fx, fy) : fx || fy);
+    const w = Math.round(ow * f), h = Math.round(oh * f);
+    const x = dir.includes("w") ? ox + ow - w : dir.includes("e") ? ox : ox + (ow - w) / 2;
+    const y = dir.includes("n") ? oy + oh - h : dir.includes("s") ? oy : oy + (oh - h) / 2;
+    Object.assign(drag.it, { w, h, x: Math.round(x), y: Math.round(y) });
+    Object.assign(drag.el.style, { width: w + "px", height: h + "px", left: drag.it.x + "px", top: drag.it.y + "px" });
   }
 });
 const endDrag = () => { if (!drag) return; drag = null; board.classList.remove("is-panning"); save(); };
