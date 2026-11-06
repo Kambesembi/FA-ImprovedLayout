@@ -1,8 +1,10 @@
 // Reference walls (PureRef-style boards). Data in chrome.storage.local:
 //   walls: [{ id, name, pinned, view: { x, y, z }, items: [{ id, sid, src, x, y, w, h }] }]
 //   activeWall: id of the wall that "Add to wall" on FA pages adds to (= the selected tab here)
+// Own images (dropped, pasted, uploaded) are kept as blobs in this page's IndexedDB; their item has
+// src "local:<key>" and no sid. storage.local stays small that way (it's synced to every FA tab).
 // Drag the background to pan, wheel to zoom at the cursor, drag images to move, the side/corner handles to
-// resize, Delete to remove, double-click to open the submission on FA.
+// resize, Delete to remove, double-click to open the submission on FA. Own images: drop, paste, upload.
 const MAX_WALLS = 12;
 const $ = (id) => document.getElementById(id);
 const SVG = "http://www.w3.org/2000/svg";
@@ -16,6 +18,96 @@ function icon(paths, size = 16) {
 const PIN = ["M12 17v5", "M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"];
 const TRASH = ["M3 6h18", "M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6", "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"];
 const uid = () => Math.random().toString(36).slice(2, 10);
+const UPLOAD = ["M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", "M17 8l-5-5-5 5", "M12 3v12"];
+const GAP = 12;   // same spacing as automatic placement from FA pages
+
+// ---------------------------------------------------------------- own images (IndexedDB)
+let dbP = null;
+function db() {
+  return dbP || (dbP = new Promise((res, rej) => {
+    const q = indexedDB.open("faw-walls", 1);
+    q.onupgradeneeded = () => q.result.createObjectStore("images");
+    q.onsuccess = () => res(q.result);
+    q.onerror = () => rej(q.error);
+  }));
+}
+async function idb(mode, fn) {
+  const d = await db();
+  return new Promise((res, rej) => {
+    const tx = d.transaction("images", mode), st = tx.objectStore("images");
+    const q = fn(st);
+    tx.oncomplete = () => res(q && q.result);
+    tx.onerror = () => rej(tx.error);
+  });
+}
+const isLocal = (src) => typeof src === "string" && src.startsWith("local:");
+const blobUrls = new Map();   // key → object URL
+async function localUrl(key) {
+  if (!blobUrls.has(key)) {
+    const blob = await idb("readonly", (st) => st.get(key));
+    if (!blob) return "";
+    blobUrls.set(key, URL.createObjectURL(blob));
+  }
+  return blobUrls.get(key);
+}
+async function blobOf(src) {
+  if (isLocal(src)) return idb("readonly", (st) => st.get(src.slice(6)));
+  return (await fetch(src)).blob();
+}
+// drop stored images no wall refers to any more (after deleting items / walls)
+async function gcImages() {
+  try {
+    const used = new Set(walls.flatMap((w) => w.items).filter((i) => isLocal(i.src)).map((i) => i.src.slice(6)));
+    const keys = await idb("readonly", (st) => st.getAllKeys());
+    const gone = (keys || []).filter((k) => !used.has(k));
+    if (!gone.length) return;
+    await idb("readwrite", (st) => { for (const k of gone) st.delete(k); });
+    for (const k of gone) { if (blobUrls.has(k)) URL.revokeObjectURL(blobUrls.get(k)); blobUrls.delete(k); }
+  } catch (e) { /* nothing to clean */ }
+}
+// size of an image blob, or null if the browser can't decode it
+function measure(blob) {
+  return new Promise((res) => {
+    const u = URL.createObjectURL(blob), img = new Image();
+    img.onload = () => { res(img.naturalWidth ? { w: img.naturalWidth, h: img.naturalHeight } : null); URL.revokeObjectURL(u); };
+    img.onerror = () => { res(null); URL.revokeObjectURL(u); };
+    img.src = u;
+  });
+}
+// Adds image files to the active wall in a row, starting at board point (bx, by) or the view centre
+async function addFiles(files, bx, by) {
+  files = [...files].filter((f) => f && f.size);
+  if (!files.length) return;
+  const w = wall(), added = [];
+  for (const f of files) {
+    const size = await measure(f);
+    if (!size) { flash(T("wallBadFile", f.name || f.type || "?")); continue; }
+    const key = uid() + uid();
+    try { await idb("readwrite", (st) => st.put(f, key)); }
+    catch (e) { flash(T("wallBadFile", f.name || f.type || "?")); continue; }   // e.g. no IndexedDB in private windows
+    const k = Math.min(1, 1000 / Math.max(size.w, size.h));   // own images start at ≤1000 board px
+    added.push({ id: uid(), sid: "", src: "local:" + key, x: 0, y: 0, w: Math.round(size.w * k), h: Math.round(size.h * k), fixed: true });
+  }
+  if (!added.length) return;
+  if (bx === undefined) {
+    const r = board.getBoundingClientRect(), v = w.view;
+    bx = (r.width / 2 - v.x) / v.z; by = (r.height / 2 - v.y) / v.z;
+  }
+  // centred on the point, side by side
+  const total = added.reduce((s, i) => s + i.w, 0) + GAP * (added.length - 1);
+  let x = bx - total / 2;
+  for (const it of added) { it.x = Math.round(x); it.y = Math.round(by - it.h / 2); x += it.w + GAP; }
+  w.items.push(...added);
+  selected = added[added.length - 1].id;
+  save(true); renderBoard();
+}
+function flash(text) {
+  const n = document.createElement("div");
+  n.className = "busy is-error";
+  n.textContent = text;
+  document.body.appendChild(n);
+  setTimeout(() => n.remove(), 3500);
+}
 
 let walls = [], activeId = null, selected = null;
 const wall = () => walls.find((w) => w.id === activeId) || walls[0];
@@ -92,11 +184,13 @@ $("del").addEventListener("click", () => {
   walls = walls.filter((w) => w.id !== activeId);
   if (!walls.length) walls.push(newWall(1));
   activeId = walls[0].id; selected = null;
-  save(true); renderTabs(); renderBoard();
+  save(true); renderTabs(); renderBoard(); gcImages();
 });
 $("pin").addEventListener("click", () => { wall().pinned = !wall().pinned; save(true); renderTabs(); });
 $("fit").addEventListener("click", fit);
 $("export").addEventListener("click", exportPng);
+$("upload").addEventListener("click", () => $("file").click());
+$("file").addEventListener("change", (e) => { addFiles(e.target.files); e.target.value = ""; });
 
 // ---------------------------------------------------------------- board
 const board = $("board"), layer = $("layer");
@@ -115,7 +209,8 @@ function renderBoard() {
     d.dataset.id = it.id;
     Object.assign(d.style, { left: it.x + "px", top: it.y + "px", width: it.w + "px", height: it.h + "px" });
     const img = document.createElement("img");
-    img.src = it.src;
+    if (isLocal(it.src)) localUrl(it.src.slice(6)).then((u) => { img.src = u; }).catch(() => {});
+    else img.src = it.src;
     img.alt = "";
     // the stored size was a guess until the image is known → fix the height to the real aspect
     img.addEventListener("load", () => {
@@ -206,7 +301,7 @@ document.addEventListener("keydown", (e) => {
   if (e.target.closest("input")) return;
   if ((e.key === "Delete" || e.key === "Backspace") && selected) {
     wall().items = wall().items.filter((i) => i.id !== selected);
-    selected = null; save(); renderBoard();
+    selected = null; save(); renderBoard(); gcImages();
   } else if (e.key === "f" || e.key === "F") fit();
 });
 
@@ -241,7 +336,7 @@ async function exportPng() {
     g.fillStyle = "#1b1c20"; g.fillRect(0, 0, c.width, c.height);
     for (const it of items) {                 // in stacking order
       try {
-        const blob = await (await fetch(it.src)).blob();
+        const blob = await blobOf(it.src);
         const bmp = await createImageBitmap(blob);
         g.drawImage(bmp, (it.x - b.x1 + pad) * scale, (it.y - b.y1 + pad) * scale, it.w * scale, it.h * scale);
       } catch (err) { /* an image that can't be fetched is left out */ }
@@ -255,6 +350,35 @@ async function exportPng() {
   } finally { note.remove(); }
 }
 
+// ---------------------------------------------------------------- drop & paste own images
+// Files from the desktop, or an image dragged out of a web page (fetched and stored like a file)
+const toPoint = (e) => { const r = board.getBoundingClientRect(), v = wall().view; return [(e.clientX - r.left - v.x) / v.z, (e.clientY - r.top - v.y) / v.z]; };
+const hasImage = (dt) => dt && [...dt.types].some((t) => t === "Files" || t === "text/uri-list");
+let dragDepth = 0;
+window.addEventListener("dragenter", (e) => { if (!hasImage(e.dataTransfer)) return; e.preventDefault(); dragDepth++; $("drop").hidden = false; });
+window.addEventListener("dragleave", () => { if (dragDepth && !--dragDepth) $("drop").hidden = true; });
+window.addEventListener("dragover", (e) => { if (hasImage(e.dataTransfer)) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; } });
+window.addEventListener("drop", async (e) => {
+  e.preventDefault();
+  dragDepth = 0; $("drop").hidden = true;
+  const [bx, by] = toPoint(e);
+  const files = [...e.dataTransfer.files].filter((f) => f.type.startsWith("image/") || !f.type);
+  if (files.length) return addFiles(files, bx, by);
+  const url = (e.dataTransfer.getData("text/uri-list") || "").split(/\r?\n/).find((l) => /^https?:/i.test(l));
+  if (!url) return;
+  try {
+    const blob = await (await fetch(url)).blob();
+    if (!blob.type.startsWith("image/")) throw new Error("not an image");
+    await addFiles([blob], bx, by);
+  } catch (err) { flash(T("wallBadFile", url.split("/").pop().slice(0, 60))); }
+});
+document.addEventListener("paste", (e) => {
+  if (e.target.closest && e.target.closest("input")) return;
+  const files = [...(e.clipboardData ? e.clipboardData.items : [])]
+    .filter((i) => i.kind === "file" && i.type.startsWith("image/")).map((i) => i.getAsFile());
+  if (files.length) { e.preventDefault(); addFiles(files); }
+});
+
 // ---------------------------------------------------------------- start
 chrome.storage.sync.get({ lang: "auto" }, ({ lang }) => {
   fawSetLang(lang);
@@ -262,5 +386,6 @@ chrome.storage.sync.get({ lang: "auto" }, ({ lang }) => {
   for (const n of document.querySelectorAll("[data-i18n-title]")) n.title = T(n.dataset.i18nTitle);
   $("pin").append(icon(PIN));
   $("del").append(icon(TRASH));
-  load(() => { save(true); renderBoard(); });
+  $("upload").append(icon(UPLOAD));
+  load(() => { save(true); renderBoard(); gcImages(); });
 });

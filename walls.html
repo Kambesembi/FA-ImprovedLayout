@@ -12,6 +12,8 @@
     <button id="add" class="btn" data-i18n-title="wallNew">+</button>
     <div class="spacer"></div>
     <span id="hint" class="hint" data-i18n="wallHint"></span>
+    <button id="upload" class="btn icon" data-i18n-title="wallUpload"></button>
+    <input id="file" type="file" accept="image/*" multiple hidden>
     <button id="fit" class="btn" data-i18n="wallFit"></button>
     <button id="pin" class="btn icon" data-i18n-title="wallPin"></button>
     <button id="export" class="btn" data-i18n="wallExport"></button>
@@ -20,6 +22,7 @@
   <main id="board" class="board">
     <div id="layer" class="layer"></div>
     <p id="empty" class="empty" data-i18n="wallEmpty" hidden></p>
+    <div id="drop" class="drop" data-i18n="wallDrop" hidden></div>
   </main>
   <script src="i18n.js"></script>
   <script src="walls.js"></script>

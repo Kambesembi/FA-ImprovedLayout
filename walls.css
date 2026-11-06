@@ -41,3 +41,8 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
 .h-w { left: calc(var(--s) / -2); } .h-e { right: calc(var(--s) / -2); }
 .empty { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); max-width: 460px; text-align: center; color: var(--muted); font-size: 14px; }
 .busy { position: fixed; right: 14px; bottom: 14px; padding: 8px 12px; border-radius: 8px; background: rgba(0,0,0,.7); color: #fff; z-index: 20; }
+/* drag & drop of own images */
+.drop { position: absolute; inset: 10px; border: 2px dashed var(--accent); border-radius: 14px; background: rgba(224,166,75,.08);
+  display: flex; align-items: center; justify-content: center; color: var(--accent); font-size: 16px; pointer-events: none; z-index: 5; }
+.drop[hidden] { display: none; }
+.busy.is-error { background: rgba(160,40,40,.9); }
