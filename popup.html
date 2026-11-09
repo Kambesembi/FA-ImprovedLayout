@@ -71,6 +71,8 @@
     background: rgba(224,166,75,.14); border: 1px solid rgba(224,166,75,.4); color: var(--accent); font-size: 12px; font-weight: 600; }
   .update:hover { background: rgba(224,166,75,.22); }
   .update[hidden] { display: none; }
+  .ver { cursor: pointer; width: fit-content; }
+  .ver:hover { color: var(--accent); text-decoration: underline; }
   footer { display: flex; justify-content: space-between; align-items: center; padding: 4px 16px 14px; color: var(--muted); font-size: 11px; }
   footer button {
     background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 6px;
@@ -81,7 +83,7 @@
 </head>
 <body>
   <header>
-    <h1>FA-ImprovedLayout<small id="version"></small></h1>
+    <h1>FA-ImprovedLayout<small id="version" class="ver" data-i18n-title="updCheckTitle"></small></h1>
     <div class="langs" id="langs" data-i18n-title="language">
       <button data-lang="en" title="English"><svg viewBox="0 0 60 30"><clipPath id="fawuk"><path d="M30 15h30v15zv15H0zH0V0zV0h30z"/></clipPath><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#fawuk)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></svg></button>
       <button data-lang="de" title="Deutsch"><svg viewBox="0 0 5 3"><path fill="#000" d="M0 0h5v1H0z"/><path fill="#D00" d="M0 1h5v1H0z"/><path fill="#FFCE00" d="M0 2h5v1H0z"/></svg></button>

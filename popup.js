@@ -7,6 +7,9 @@ const PINBAR = 100;   // same as content.js: minimum gutter while a pin sidebar 
 let pinCounts = { artists: 0, subs: 0 };
 
 $("version").textContent = "v" + chrome.runtime.getManifest().version;
+// the version opens the update page too (check by hand, release notes)
+const openUpdate = (e) => { if (e) e.preventDefault(); chrome.tabs.create({ url: chrome.runtime.getURL("update.html") }); window.close(); };
+$("version").addEventListener("click", openUpdate);
 
 function fmt(id, v) { return id === "thumb" ? Number(v).toFixed(2) + "×" : v + " px"; }
 function readSlider(id) { return Number($(id).value); }
@@ -105,6 +108,6 @@ chrome.storage.local.get({ updCheck: null }, async ({ updCheck }) => {
     const a = $("update");
     a.textContent = T("updateAvail", latest.tag);
     a.hidden = false;
-    a.addEventListener("click", (e) => { e.preventDefault(); chrome.tabs.create({ url: latest.url || `https://github.com/${REPO}/releases/latest` }); });
+    a.addEventListener("click", openUpdate);
   }
 });

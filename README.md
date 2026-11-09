@@ -22,14 +22,21 @@ Everything can be switched on or off in the popup.
 
 Download the latest package from [Releases](../../releases/latest).
 
-**Chrome / Edge / Brave:** unzip `…-chrome.zip`, open `chrome://extensions`, enable **Developer mode**, click **Load unpacked** and select the `FA-ImprovedLayout` folder. To update, replace the folder's contents and click the reload icon.
+**Chrome / Edge / Brave:** unzip `…-chrome.zip`, open `chrome://extensions`, enable **Developer mode**, click **Load unpacked** and select the `FA-ImprovedLayout` folder.
 
-**Firefox:** download `…-firefox.xpi` from the release and open it with Firefox (or drag it into a Firefox window), then confirm. It's signed by Mozilla and updates by installing the newer `.xpi`.
+**Firefox:** download `…-firefox.xpi` from the release and open it with Firefox (or drag it into a Firefox window), then confirm. It's signed by Mozilla.
+
+## Updates
+
+The toolbar icon shows **↑** when a newer release is out; the popup then offers the update, and clicking the version number opens the update page any time.
+
+- **Chrome / Edge / Brave:** the update page writes the new release into the extension folder and restarts the extension. Browsers don't let an extension replace itself, so the first time you pick the folder you loaded (its path is shown under `chrome://extensions`); after that an update is one click. Every file is checked against GitHub's hash before anything is written.
+- **Firefox:** from 2.8.0 on, Firefox updates the add-on by itself; **Update now** makes it check right away. Older versions: install the newer `.xpi` once.
 
 ## Privacy
 
-No data is collected. Settings are stored in the browser's own storage; the extension only talks to furaffinity.net, opens furarchiver.net only after you confirm, and the popup checks GitHub for a newer release.
+No data is collected. Settings are stored in the browser's own storage; the extension only talks to furaffinity.net, opens furarchiver.net only after you confirm, and it checks GitHub for a newer release (the update page downloads it from there).
 
 ## Building
 
-`./build.sh` creates both packages in `dist/` (`manifest.firefox.json` becomes the Firefox manifest).
+`./build.sh` creates both packages and Firefox's `updates.json` in `dist/` (`manifest.firefox.json` becomes the Firefox manifest). A release gets the two zips, the AMO-signed `FA-ImprovedLayout-vX-firefox.xpi` and `updates.json`.

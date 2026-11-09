@@ -1683,7 +1683,7 @@
   }
   // after an extension update the old page's connection is gone: say so instead of failing silently
   const openWalls = (id) => {
-    try { chrome.runtime.sendMessage({ type: "faw-open-walls", wall: id || "" }); } catch (e) { toast(T("reloadPage")); }
+    try { chrome.runtime.sendMessage({ type: "faw-open-walls", wall: id || "" }); } catch (e) { toast(T("staleCtx")); }
   };
   let toastEl = null, toastTimer = null;
   function toast(text, wallId) {
