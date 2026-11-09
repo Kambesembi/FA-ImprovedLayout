@@ -2,7 +2,7 @@
 // their next load. Texts come from i18n.js via data-i18n / data-i18n-title attributes.
 const $ = (id) => document.getElementById(id);
 const RANGES = ["gutter", "thumb"];
-const CHECKS = ["ultrawide", "design", "imageFit", "quickView", "comic", "comicHorizontal", "infinite", "bbExtra", "topbar", "pins", "pinSubs", "walls", "archiveLink"];
+const CHECKS = ["ultrawide", "design", "imageFit", "quickView", "comic", "comicHorizontal", "infinite", "bbExtra", "topbar", "pins", "pinSubs", "walls", "uploader", "archiveLink"];
 const PINBAR = 100;   // same as content.js: minimum gutter while a pin sidebar is shown
 let pinCounts = { artists: 0, subs: 0 };
 

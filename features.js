@@ -1308,6 +1308,37 @@
   // ------------------------------------------------------------------ infinite scroll
   let infinite = null;
 
+  // FA's tag/user blocklist (censor.js) only checks the thumbnails present at load: every thumbnail
+  // arrives marked "blocked-content" and FA unmarks the allowed ones. Appended pages get the same
+  // rules here: blocked tags, blocked users (u_<name> meta tag) and "hide content without tags".
+  const blocklist = (() => {
+    const b = document.body;
+    if (!b || b.getAttribute("data-user-logged-in") !== "1") return null;
+    const split = (v) => (v || "").split(/\s+/).filter(Boolean);
+    return {
+      tags: new Set(split(b.getAttribute("data-tag-blocklist"))),
+      users: new Set(split(b.getAttribute("data-user-blocklist")).map((u) =>
+        "u_" + u.replace(/[^\w-]/gi, "_").replace(/_{2,}/g, "_").replace(/^[\s_]+|[\s_]+$/g, ""))),
+      tagless: b.getAttribute("data-tag-blocklist-hide-tagless") === "1"
+    };
+  })();
+  function applyBlocklist(img) {
+    if (!img || !img.hasAttribute("data-tags")) return;
+    const tags = img.getAttribute("data-tags").trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const reasons = blocklist ? [...new Set(tags.filter((t) => blocklist.tags.has(t)))] : [];
+    if (blocklist && tags.some((t) => blocklist.users.has(t))) reasons.push("User is blocked by you.");
+    if (blocklist && blocklist.tagless && tags.length - 4 <= 0) reasons.push("Content has no non-meta tags.");
+    const blocked = reasons.length > 0;
+    img.classList.toggle("blocked-content", blocked);
+    if (blocked) {
+      img.title = "Blocked:\n• " + reasons.join("\n• ");
+      img.setAttribute("data-reason", JSON.stringify(reasons));   // FA's hover popup lists these
+    } else img.removeAttribute("data-reason");
+    // FA's blur (blur(60px), no reveal on hover) only applies while the <noscript> next to the image is
+    // empty, as it is on a live page; pages read with DOMParser keep its <span> inside, so empty it
+    for (const n of (img.closest("figure") || img.parentElement).querySelectorAll("noscript")) n.textContent = "";
+  }
+
   function initInfinite() {
     if (!document.querySelector("section.gallery")) return;
     if (/^pageid-(userpage|submission)$/.test(page)) return;
@@ -1357,11 +1388,15 @@
           if (divider && divider.textContent.trim() !== lastDivText) {
             // new date group in message center: keep its header
             sec.removeAttribute("id");
-            sec.querySelectorAll("figure").forEach((f) => f.classList.add("faw-inf-added"));
+            sec.querySelectorAll("figure").forEach((f) => { f.classList.add("faw-inf-added"); applyBlocklist(f.querySelector("img")); });
             target.after(document.adoptNode(divider), document.adoptNode(sec));
           } else {
             if (!isMsgCenter && added === 0) target.appendChild(el("div", "faw-inf-page", T("pageDivider", pageNo + 1)));
-            for (const f of figs) { f.classList.add("faw-inf-added"); target.appendChild(document.adoptNode(f)); }
+            for (const f of figs) {
+              f.classList.add("faw-inf-added");
+              target.appendChild(document.adoptNode(f));
+              applyBlocklist(f.querySelector("img"));
+            }
           }
           added += figs.length;
         }
@@ -1497,6 +1532,7 @@
       document.documentElement.classList.add("faw-sfw-moved");
     }
     msgs.after(li);
+    root.classList.add("faw-nav-flex");   // keeps FA's menu on one line with the extra buttons, layout on or off
   }
 
   // ------------------------------------------------------------------ pinned artists: Pin button on profiles
@@ -1586,6 +1622,20 @@
     r({ walls, w: walls.find((x) => x.id === l.activeWall) || walls[0] || null });
   }));
   const GAP = 12;   // space between automatically placed images
+  // First free spot for a w×h image, reading order (top to bottom, then left to right) within the wall's
+  // width (at least 4000 board px): candidates are right of and below every image already there, so gaps
+  // left by images moved or resized by hand get filled too.
+  function freeSpot(items, w, h) {
+    if (!items.length) return { x: 0, y: 0 };
+    const x0 = Math.min(...items.map((i) => i.x)), y0 = Math.min(...items.map((i) => i.y));
+    const maxX = x0 + Math.max(4000, Math.max(...items.map((i) => i.x + i.w)) - x0);
+    const hits = (x, y) => items.some((i) => x < i.x + i.w + GAP && x + w + GAP > i.x && y < i.y + i.h + GAP && y + h + GAP > i.y);
+    const cands = [{ x: x0, y: y0 }];
+    for (const i of items) cands.push({ x: i.x + i.w + GAP, y: i.y }, { x: i.x, y: i.y + i.h + GAP }, { x: x0, y: i.y + i.h + GAP });
+    cands.sort((a, b) => a.y - b.y || a.x - b.x);
+    for (const c of cands) if (c.x >= x0 && c.y >= y0 && c.x + w <= maxX && !hits(c.x, c.y)) return c;
+    return { x: x0, y: Math.max(...items.map((i) => i.y + i.h)) + GAP };   // nothing fits: new row below everything
+  }
   // Toggle: adds the submission to the active wall, or takes it off again if it's already there
   async function toggleWall({ sid, src, res }) {
     let { walls, w } = await getWalls();
@@ -1597,13 +1647,7 @@
       return;
     }
     const width = 600, height = res ? Math.round(width * res.h / res.w) : width;
-    let x = 0, y = 0;
-    if (w.items.length) {
-      const top = Math.min(...w.items.map((i) => i.y));
-      const right = Math.max(...w.items.map((i) => i.x + i.w));
-      if (right + GAP + width <= 4000) { x = right + GAP; y = top; }
-      else { x = Math.min(...w.items.map((i) => i.x)); y = Math.max(...w.items.map((i) => i.y + i.h)) + GAP; }
-    }
+    const { x, y } = freeSpot(w.items, width, height);
     w.items.push({ id: Math.random().toString(36).slice(2, 10), sid: String(sid), src, x, y, w: width, h: height, fixed: !!res });
     await new Promise((r) => chrome.storage.local.set({ walls, activeWall: w.id }, r));
     toast(T("wallAdded", w.name), w.id);
@@ -1667,6 +1711,7 @@
     b.addEventListener("click", () => openWalls());
     li.append(b);
     anchor.after(li);
+    root.classList.add("faw-nav-flex");
   }
   function initWallButton() {
     const controls = document.querySelector(".submission-controls-upper");

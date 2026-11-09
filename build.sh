@@ -5,7 +5,7 @@
 set -e
 cd "$(dirname "$0")"
 V=$(sed -n 's/.*"version": "\(.*\)".*/\1/p' manifest.json)
-FILES="background.js content.js features.css features.js i18n.js popup.html popup.js settings.js ultrawide.css walls.html walls.js walls.css icon16.png icon32.png icon48.png icon128.png"
+FILES="background.js content.js features.css features.js uploader.js i18n.js popup.html popup.js settings.js ultrawide.css walls.html walls.js walls.css icon16.png icon32.png icon48.png icon128.png"
 rm -rf dist && mkdir -p dist/FA-ImprovedLayout dist/firefox
 cp $FILES manifest.json dist/FA-ImprovedLayout/
 cp $FILES dist/firefox/ && cp manifest.firefox.json dist/firefox/manifest.json

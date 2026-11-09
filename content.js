@@ -92,6 +92,8 @@
   function renderBars() { for (const k in BARS) renderBar(BARS[k]); }
   function renderBar(cfg) {
     const pins = current.enabled && cfg.on() && Array.isArray(cfg.list()) ? cfg.list() : [];
+    // faw-bar-left / -right on <html>: lets the CSS make room for the bar when the layout is off
+    root.classList.toggle("faw-bar-" + cfg.side, pins.length > 0);
     if (!pins.length) { if (cfg.el) { cfg.el.hidden = true; cfg.el.classList.remove("is-deleting"); } return; }
     if (!cfg.el) {
       const bar = cfg.el = document.createElement("aside");

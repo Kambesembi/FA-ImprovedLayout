@@ -17,5 +17,6 @@ const FAW_DEFAULTS = {
   pinned: [],         // [{ u: slug, n: name, a: avatar URL }]
   pinSubs: true,      // pinned submissions sidebar (list itself in storage.local "pinnedSubs")
   walls: false,       // reference walls (walls.html; data in storage.local "walls")
+  uploader: true,     // quick upload form on /submit/ (uploader.js)
   lang: "auto"        // extension language: auto | en | de | ru
 };
