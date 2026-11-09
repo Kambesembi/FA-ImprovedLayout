@@ -1365,7 +1365,14 @@
     };
     prefetch();
 
-    async function loadMore() {
+    // one load at a time; a caller arriving mid-load (quick view's "next") waits for that one
+    let inflight = null;
+    function loadMore() {
+      if (done) return Promise.resolve();
+      if (!inflight) inflight = loadPage().finally(() => { inflight = null; });
+      return inflight;
+    }
+    async function loadPage() {
       if (loading || done) return;
       loading = true;
       status.textContent = T("loadingPage", pageNo + 1);
@@ -1674,7 +1681,10 @@
     }
     refreshWallBtns();
   }
-  const openWalls = (id) => chrome.runtime.sendMessage({ type: "faw-open-walls", wall: id || "" });
+  // after an extension update the old page's connection is gone: say so instead of failing silently
+  const openWalls = (id) => {
+    try { chrome.runtime.sendMessage({ type: "faw-open-walls", wall: id || "" }); } catch (e) { toast(T("reloadPage")); }
+  };
   let toastEl = null, toastTimer = null;
   function toast(text, wallId) {
     if (!toastEl) { toastEl = el("div", "faw-toast"); document.body.appendChild(toastEl); }

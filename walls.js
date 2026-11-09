@@ -241,7 +241,7 @@ function select(id) {
 }
 
 // pan / move / resize with one pointer handler
-let drag = null;
+let drag = null, lastPress = null;
 board.addEventListener("pointerdown", (e) => {
   if (e.button !== 0 && e.button !== 1) return;
   const it = e.button === 0 && itemOf(e.target);
@@ -251,8 +251,19 @@ board.addEventListener("pointerdown", (e) => {
     const items = wall().items;
     items.push(items.splice(items.indexOf(it), 1)[0]);
     const el = layer.querySelector(`[data-id="${it.id}"]`);
-    layer.appendChild(el);
+    if (el !== layer.lastElementChild) layer.appendChild(el);   // moving the node mid-click can eat the click
     select(it.id);
+    // double press on the same image opens its submission. Counted here instead of a dblclick listener:
+    // that one needs both clicks on the same node, which a redraw between the clicks (storage change from
+    // another tab, image load fixing the size) or the bring-to-front move above can break.
+    const now = Date.now();
+    if (it.sid && lastPress && lastPress.id === it.id && now - lastPress.t < 450 &&
+        Math.hypot(e.clientX - lastPress.x, e.clientY - lastPress.y) < 8) {
+      lastPress = null;
+      openSub(it.sid);
+      return;
+    }
+    lastPress = { id: it.id, t: now, x: e.clientX, y: e.clientY };
     const dir = e.target.dataset.dir;
     drag = { mode: dir ? "resize" : "move", dir, it, el, sx: e.clientX, sy: e.clientY, ox: it.x, oy: it.y, ow: it.w, oh: it.h };
   } else {
@@ -293,10 +304,12 @@ board.addEventListener("wheel", (e) => {
   v.x = mx - (mx - v.x) * (z / v.z); v.y = my - (my - v.y) * (z / v.z); v.z = z;
   applyView(); save();
 }, { passive: false });
-board.addEventListener("dblclick", (e) => {
-  const it = itemOf(e.target);
-  if (it && it.sid) window.open("https://www.furaffinity.net/view/" + it.sid + "/", "_blank", "noopener");
-});
+// opened through the tabs API: needs no user activation and no popup permission (window.open from a
+// restored extension tab can be blocked)
+function openSub(sid) {
+  const url = "https://www.furaffinity.net/view/" + String(sid).replace(/\D/g, "") + "/";
+  try { chrome.tabs.create({ url }); } catch (err) { window.open(url, "_blank", "noopener"); }
+}
 document.addEventListener("keydown", (e) => {
   if (e.target.closest("input")) return;
   if ((e.key === "Delete" || e.key === "Backspace") && selected) {

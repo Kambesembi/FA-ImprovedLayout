@@ -92,6 +92,98 @@
       .replace(/[^a-z0-9_]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
     const mb = (n) => (n / 1048576).toFixed(1);
 
+    // BBCode → DOM nodes (no HTML parsing: user text only ever becomes text nodes), with the class names
+    // FA's own stylesheet uses for descriptions, so the preview looks like the submission page.
+    // Unknown or unmatched tags stay as typed text, the way FA leaves them.
+    const BB_TAGS = {
+      b: "strong", i: "i", u: "u", s: "s", sup: "sup", sub: "sub",
+      left: "span.bbcode_left", center: "span.bbcode_center", right: "span.bbcode_right",
+      quote: "span.bbcode_quote", spoiler: "span.bbcode_spoiler", color: "span", url: "a", yt: "a",
+      h1: "h1.bbcode_h1", h2: "h2.bbcode_h2", h3: "h3.bbcode_h3", h4: "h4.bbcode_h4", h5: "h5.bbcode_h5"
+    };
+    const BB_RE = /\[(\/?)([a-z0-9]+)(?:=([^\]\n]*))?\]|:icon([\w.~-]+):|:link([\w.~-]+):|:([\w.~-]+)icon:|(https?:\/\/[^\s[\]<>"]+)|^-{5,}[ \t]*(?:\n|$)|\n/gim;
+    const safeUrl = (u) => { try { const x = new URL(u.trim()); return /^https?:$/.test(x.protocol) ? x.href : ""; } catch (e) { return ""; } };
+    const userBits = (name, icon, label) => {
+      const slug = name.toLowerCase().replace(/[^a-z0-9._~-]/g, "");
+      const a = el("a", icon ? "iconusername" : "linkusername");
+      a.href = "/user/" + slug + "/";
+      if (icon) {
+        const im = el("img");
+        im.src = "https://a.furaffinity.net/" + slug + ".gif";
+        im.alt = name; im.title = name;
+        a.append(im);
+        if (label) a.append(" " + name);
+      } else a.textContent = name;
+      return a;
+    };
+    function bbcode(text) {
+      const root = el("div", "bbcode faw-up__bbout");
+      const stack = [{ tag: "", node: root }];
+      const top = () => stack[stack.length - 1].node;
+      let last = 0, m;
+      BB_RE.lastIndex = 0;
+      while ((m = BB_RE.exec(text))) {
+        if (m.index > last) top().append(text.slice(last, m.index));
+        last = BB_RE.lastIndex;
+        const [all, close, rawTag, arg, icon, link, nameIcon, url] = m;
+        if (all === "\n") { top().append(el("br")); continue; }
+        if (/^-{5}/.test(all)) { top().append(el("span", "bbcode bbcode_hr")); continue; }
+        if (icon) { top().append(userBits(icon, true, true)); continue; }
+        if (link) { top().append(userBits(link, false)); continue; }
+        if (nameIcon) { top().append(userBits(nameIcon, true)); continue; }
+        if (url) {
+          if (stack.some((x) => x.tag === "url" || x.tag === "yt")) { top().append(url); continue; }
+          const a = el("a", null, url);
+          a.href = safeUrl(url); a.target = "_blank"; a.rel = "noopener";
+          top().append(a);
+          continue;
+        }
+        const tag = rawTag.toLowerCase();
+        if (!BB_TAGS[tag]) { top().append(all); continue; }
+        if (close) {
+          const at = stack.map((x) => x.tag).lastIndexOf(tag);
+          if (at > 0) stack.length = at; else top().append(all);
+          continue;
+        }
+        const [name, cls] = BB_TAGS[tag].split(".");
+        const node = el(name, cls ? "bbcode " + cls : null);
+        if (tag === "color") {
+          const c = (arg || "").trim();
+          if (!/^(#[0-9a-f]{3,8}|[a-z]{3,20})$/i.test(c)) { top().append(all); continue; }
+          node.style.color = c;
+        } else if (tag === "url") {
+          const href = safeUrl(arg || "") || "";
+          if (href) { node.href = href; node.target = "_blank"; node.rel = "noopener"; }
+          else if (arg !== undefined) { top().append(all); continue; }
+          else node.dataset.self = "1";           // [url]https://…[/url]: the text is the address
+        } else if (tag === "yt") {
+          node.className = "faw-up__yt";
+          node.dataset.self = "1";
+          node.append("▶ ");
+        } else if (tag === "quote" && arg) {
+          node.append(el("span", "bbcode_quote_name", arg.trim() + " wrote:"));
+        } else if (arg !== undefined) { top().append(all); continue; }
+        top().append(node);
+        stack.push({ tag, node, all });
+      }
+      if (last < text.length) top().append(text.slice(last));
+      // a tag never closed stays as typed text, its content unformatted (as FA shows it)
+      while (stack.length > 1) {
+        const { node, all } = stack.pop();
+        if (node.firstChild && node.firstChild.className === "bbcode_quote_name") node.firstChild.remove();
+        if (node.className === "faw-up__yt" && node.firstChild) node.firstChild.remove();
+        node.replaceWith(all, ...node.childNodes);
+      }
+      // [url]…[/url] and [yt]…[/yt] link to their own text
+      for (const a of root.querySelectorAll("a[data-self]")) {
+        const t = a.textContent.replace(/^▶ /, "").trim();
+        const href = safeUrl(a.dataset.self && /^https?:/i.test(t) ? t : (a.classList.contains("faw-up__yt") ? "https://youtu.be/" + t : ""));
+        if (href) { a.href = href; a.target = "_blank"; a.rel = "noopener"; }
+        delete a.dataset.self;
+      }
+      return root;
+    }
+
     // ---------------------------------------------------------------- storage: IndexedDB, memory as fallback
     // "files": { id, file, thumb } for the form's files and queued uploads (same id), "jobs": the queue.
     const DB = (() => {
@@ -169,16 +261,21 @@
     const fileCache = new Map(); // job id → { file, thumb }
 
     // ---- frame: head bar, then files | text | details
-    const panel = el("section", "faw-up");
+    const panel = el("div", "faw-up");                     // not a <section>: FA borders every section
     const head = el("div", "faw-up__head");
     const ht = el("div", "faw-up__htext");
     ht.append(el("h2", null, T("upTitle")), el("p", "faw-up__hint", T("upSub")));
     const copyBtn = btn("faw-up__btn faw-up__btn--accent", T("upCopy"), () => openPicker());
-    const classic = btn("faw-up__link", T("upClassic"), () => {
-      const hidden = faBox.classList.toggle("faw-up-hidden");
-      classic.textContent = hidden ? T("upClassic") : T("upHideClassic");
-    });
-    head.append(ht, copyBtn, classic);
+    // switches between the two forms: FA's takes the place of ours, the head bar stays to switch back
+    const classic = btn("faw-up__link", T("upClassic"), () => setClassic(!panel.classList.contains("is-classic")));
+    const setClassic = (on) => {
+      panel.classList.toggle("is-classic", on);
+      faBox.classList.toggle("faw-up-hidden", !on);
+      classic.textContent = on ? T("upHideClassic") : T("upClassic");
+    };
+    const resetBtn = btn("faw-up__btn", T("upReset"), () => resetForm());
+    resetBtn.title = T("upResetTip");
+    head.append(ht, resetBtn, copyBtn, classic);
     const copied = el("div", "faw-up__copied");
     copied.hidden = true;
     const grid = el("div", "faw-up__grid");
@@ -226,7 +323,7 @@
     // A file dropped anywhere on the page lands here. Capture phase: FA's own uploader script swallows
     // drops on the page before they bubble up (its form, when shown, still gets drops on its fields).
     const hasFiles = (e) => !!e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files")
-      && !(faBox.contains(e.target) && !faBox.classList.contains("faw-up-hidden"));
+      && !panel.classList.contains("is-classic");          // FA's form shown: its own drop handling
     let depth = 0;
     window.addEventListener("dragenter", (e) => { if (!hasFiles(e)) return; e.preventDefault(); depth++; colFiles.classList.add("is-over"); }, true);
     window.addEventListener("dragover", (e) => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }, true);
@@ -280,6 +377,7 @@
     function renderFiles() {
       fileList.replaceChildren();
       fileList.classList.toggle("is-empty", !st.files.length);
+      fileList.classList.toggle("is-single", st.files.length === 1);   // one file: a large preview
       const many = st.files.length > 1;
       for (const it of st.files) {
         const card = el("div", "faw-up__card" + (it.apart ? " is-apart" : ""));
@@ -348,6 +446,12 @@
       }
       fileList.append(drop);
       fileHead.replaceChildren(el("h4", null, T("upFiles") + (st.files.length ? " · " + st.files.length : "")));
+      if (st.files.length) fileHead.append(btn("faw-up__link faw-up__clearfiles", T("upClearFiles"), () => {
+        if (st.files.length > 1 && !confirm(T("upClearFilesAsk", st.files.length))) return;
+        for (const f of st.files) { dropUrl(f.id); DB.delFiles(f.id).catch(() => {}); }
+        st.files = [];
+        renderFiles(); saveDraft();
+      }));
       if (many) fileHead.append(el("span", "faw-up__hint", T("upMany")));
     }
 
@@ -377,8 +481,20 @@
       if (tip) b.title = tip;
       bb.append(b);
     }
-    desc.addEventListener("input", () => { st.desc = desc.value; saveDraft(); });
-    sec(colText, T("upDesc"), "faw-up__sec--grow", bb, desc);
+    // live preview below the text, rendered the way FA shows BBCode (FA's own bbcode classes)
+    const preview = el("div", "faw-up__preview");
+    let pvTimer = null;
+    const renderPreview = () => {
+      clearTimeout(pvTimer);
+      pvTimer = null;
+      const out = bbcode(desc.value);
+      preview.replaceChildren(...(out.childNodes.length ? [out] : [el("span", "faw-up__hint", T("upPreviewEmpty"))]));
+    };
+    const queuePreview = () => { if (!pvTimer) pvTimer = setTimeout(renderPreview, 120); };
+    desc.addEventListener("input", () => { st.desc = desc.value; saveDraft(); queuePreview(); });
+    for (const b of bb.children) b.addEventListener("click", queuePreview);
+    sec(colText, T("upDesc"), "faw-up__sec--grow faw-up__sec--desc", bb, desc, el("h5", null, T("upPreview")), preview);
+    renderPreview();
 
     // keywords as chips; a space, comma or Enter turns the typed text into a chip
     const kwBox = el("div", "faw-up__kw");
@@ -402,7 +518,10 @@
     }
     kwIn.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === "," || e.key === " ") { e.preventDefault(); addKw(kwIn.value); kwIn.value = ""; }
-      else if (e.key === "Backspace" && !kwIn.value && st.keywords.length) { st.keywords.pop(); renderKw(); saveDraft(); }
+      else if (e.key === "Backspace" && !kwIn.value && (st.keywords.length || st.genders.length)) {
+        if (st.keywords.length) st.keywords.pop(); else st.genders.pop();
+        renderKw(); saveDraft();
+      }
     });
     kwIn.addEventListener("input", (e) => {
       const v = kwIn.value;
@@ -420,6 +539,12 @@
     function renderKw() {
       for (const c of [...kwBox.children]) if (c !== kwIn) c.remove();   // the input stays, keeping focus
       if (!kwIn.parentNode) kwBox.append(kwIn);
+      for (const g of st.genders) {                      // gender keywords lead the list, as FA gets them
+        const c = el("span", "faw-up__chip is-gender", g.replace("_", " "));
+        c.title = T("upGenders");
+        c.append(btn(null, "×", () => { st.genders = st.genders.filter((q) => q !== g); renderKw(); saveDraft(); if (st.files.some((f) => f.showG && !f.genders)) renderFiles(); }));
+        kwBox.insertBefore(c, kwIn);
+      }
       for (const k of st.keywords) {
         const c = el("span", "faw-up__chip", k);
         c.append(btn(null, "×", () => { st.keywords = st.keywords.filter((q) => q !== k); renderKw(); saveDraft(); }));
@@ -547,12 +672,26 @@
       st.files = rest; st.newFolder = ""; newFolder.value = "";
       if (rest.length) {
         if (!rest.some((f) => !f.apart)) rest[0].apart = false;
-        st.desc = ""; desc.value = ""; st.keywords = []; st.genders = [];
+        st.desc = ""; desc.value = ""; queuePreview(); st.keywords = []; st.genders = [];
         renderKw();
         note(T("upNextApart", rest.length));
       } else note(T("upQueued"));
       saveDraft(); renderFiles(); renderQueue(); ping();
       runQueue();
+    }
+
+    // empties every field but keeps the files (and their titles): back to a fresh form
+    function resetForm() {
+      const filled = st.desc.trim() || st.keywords.length || st.genders.length || st.rating || st.folders.length;
+      if (filled && !confirm(T("upResetAsk"))) return;
+      Object.assign(st, { rating: "", cat: "1", atype: "1", species: "1", folders: [], newFolder: "",
+        lock: false, scrap: false, stripGps: true, desc: "", keywords: [], genders: [] });
+      for (const f of st.files) { f.rating = ""; f.genders = null; }
+      newFolder.value = ""; desc.value = ""; queuePreview();
+      copied.hidden = true;
+      syncSels(); syncRating(); syncChecks(); renderKw(); renderFolders(); renderFiles();
+      savePrefs(); saveDraft();
+      note(T("upResetDone"));
     }
 
     // ---------------------------------------------------------------- the queue list
@@ -622,7 +761,7 @@
           lock: s.lock, scrap: s.scrap, stripGps: s.stripGps, desc: s.desc, keywords: s.keywords.slice(), genders: q.genders.slice(),
           newFolder: s.newFolder || "" });
         it.rating = ""; it.genders = null;
-        newFolder.value = st.newFolder; desc.value = st.desc;
+        newFolder.value = st.newFolder; desc.value = st.desc; queuePreview();
         syncSels(); syncRating(); syncChecks(); renderKw(); renderFolders(); savePrefs();
       }
       jobs = jobs.filter((j) => j.id !== q.id);
@@ -1051,7 +1190,7 @@
         st.folders = [...f.querySelectorAll("input[name='folder_ids[]']:checked")].map((c) => c.value);
         st.floor = Math.max(st.floor, Number(id) || 0);
         const realTitle = (f.querySelector("input[name=title]") || {}).value || title;
-        desc.value = st.desc;
+        desc.value = st.desc; queuePreview();
         syncRating(); syncChecks(); renderKw(); renderFolders(); savePrefs(); saveDraft();
         showCopied(T("upCopied", realTitle), id);
       } catch (err) {
@@ -1070,7 +1209,7 @@
         copied.append(btn("faw-up__link", T("upUndo"), () => {
           Object.assign(st, undoState);
           undoState = null;
-          catSel.value = st.cat; themeSel.value = st.atype; specSel.value = st.species; desc.value = st.desc;
+          catSel.value = st.cat; themeSel.value = st.atype; specSel.value = st.species; desc.value = st.desc; queuePreview();
           syncRating(); syncChecks(); renderKw(); renderFolders(); savePrefs(); saveDraft();
           copied.hidden = true;
         }));
@@ -1205,7 +1344,7 @@
       st.usedKw = Array.isArray(l.uploadKeywords) ? l.uploadKeywords : [];
       st.floor = Number(l.uploadFloor) || 0;
       addSuggestions(st.usedKw.slice(0, 300));
-      desc.value = st.desc;
+      desc.value = st.desc; queuePreview();
       syncChecks(); syncRating(); renderKw(); renderFolders(); renderFiles();
       // the form's files from last time
       for (const m of Array.isArray(d.items) ? d.items : []) {

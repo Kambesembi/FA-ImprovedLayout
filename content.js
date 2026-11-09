@@ -118,7 +118,10 @@
         const deleting = bar.classList.contains("is-deleting");
         if (a.dataset.wall) {
           e.preventDefault();
-          if (!deleting) { chrome.runtime.sendMessage({ type: "faw-open-walls", wall: a.dataset.wall }); return; }
+          if (!deleting) {                   // after an extension update only a reload reconnects the page
+            try { chrome.runtime.sendMessage({ type: "faw-open-walls", wall: a.dataset.wall }); } catch (err) { location.reload(); }
+            return;
+          }
           chrome.storage.local.get({ walls: [] }, (l) => {
             chrome.storage.local.set({ walls: (l.walls || []).map((w) => (w.id === a.dataset.wall ? Object.assign({}, w, { pinned: false }) : w)) });
           });
