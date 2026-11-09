@@ -349,7 +349,7 @@ html.faw-layout #pageid-submission .submission-page-content { padding-left: var(
 /* ---- Pin sidebars (content.js): artists on the right, submissions on the left, each fixed in its
    gutter (content.js keeps the gutter at ≥100px while one is shown). Colours follow the FA scheme. ---- */
 .faw-pinbar {
-  /* fills the free space beside the page (at least 76px); one or two columns */
+  /* fills the free space beside the page (at least 76px); tiles grow and more columns appear as it widens */
   position: fixed; top: 8px; bottom: 8px; z-index: 1000;
   width: max(76px, calc((100vw - var(--faw-w)) / 2 - 26px));
   display: flex; flex-direction: column; align-items: center; gap: 4px; box-sizing: border-box; padding: 6px 0;
@@ -357,14 +357,11 @@ html.faw-layout #pageid-submission .submission-page-content { padding-left: var(
   color: var(--faw-text); font: 11px/1.25 "Open Sans", system-ui, sans-serif;
   container-type: inline-size;
 }
-/* second column only once the sidebar is really wide */
-@container (min-width: 210px) { .faw-pinbar .faw-pinbar__list { grid-template-columns: 1fr 1fr; } }
 .faw-pinbar--right { right: 8px; }
 .faw-pinbar--left { left: 8px; }
-/* Without the ultrawide layout FA keeps its own width (max. 1850px, full-width top menu): the bars start
-   below the menu, fill the space beside the page, and on windows too narrow for that the page and the
-   menu make room for them. */
-html:not(.faw-layout) .faw-pinbar { top: calc(var(--faw-nav) + 8px); width: max(76px, calc((100vw - min(100vw, 1850px)) / 2 - 16px)); }
+/* Without the ultrawide layout FA keeps its own width (max. 1850px): the bars fill the space beside the
+   page, and on windows too narrow for that the page makes room for them. */
+html:not(.faw-layout) .faw-pinbar { width: max(76px, calc((100vw - min(100vw, 1850px)) / 2 - 26px)); }
 @media (max-width: 2034px) {
   html:not(.faw-layout).faw-bar-left body { padding-left: 92px !important; box-sizing: border-box; }
   html:not(.faw-layout).faw-bar-right body { padding-right: 92px !important; box-sizing: border-box; }
@@ -382,16 +379,18 @@ html:not(.faw-layout) .faw-pinbar { top: calc(var(--faw-nav) + 8px); width: max(
 /* padding gives the hover zoom and the current-profile outline room so they aren't clipped */
 .faw-pinbar__list {
   flex: 1; min-height: 0; width: 100%; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; box-sizing: border-box;
-  display: grid; grid-template-columns: 1fr; justify-items: center; align-content: start;
-  gap: 10px 4px; padding: 8px 4px;
+  /* 88px columns: 1 at the minimum width, 2 from ~200px, then more columns (not bigger tiles) as it widens */
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 88px), 1fr));
+  justify-items: center; align-content: start;
+  gap: 12px 6px; padding: 8px 6px;
 }
-.faw-pin { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 68px; flex: none; color: var(--faw-text) !important; text-decoration: none !important; }
-.faw-pin img { width: 50px; height: 50px; border-radius: 12px; object-fit: cover; background: rgba(var(--faw-ink), .06); transition: transform .12s; }
+.faw-pin { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; max-width: 96px; min-width: 0; flex: none; color: var(--faw-text) !important; text-decoration: none !important; }
+.faw-pin img { width: clamp(50px, 76%, 64px); height: auto; aspect-ratio: 1; border-radius: 12px; object-fit: cover; background: rgba(var(--faw-ink), .06); transition: transform .12s; }
 .faw-pin:hover img { transform: scale(1.06); }
 .faw-pin.is-current img { outline: 2px solid #e0a64b; outline-offset: 2px; }
 .faw-pin span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: .85; }
 .faw-pin__x {
-  display: none; position: absolute; top: -5px; right: 8px; width: 18px; height: 18px; border-radius: 50%;
+  display: none; position: absolute; top: -5px; right: max(0px, calc(50% - 41px)); width: 18px; height: 18px; border-radius: 50%;
   background: #d24646; color: #fff; font: normal 700 13px/18px system-ui, sans-serif; text-align: center;
 }
 .faw-pinbar.is-deleting .faw-pin__x { display: block; }
@@ -404,5 +403,6 @@ html:not(.faw-layout) .faw-pinbar { top: calc(var(--faw-nav) + 8px); width: max(
 
 /* top menu: FA's "Search" item has no visible link on desktop but still takes up room */
 :is(html.faw-layout, html.faw-nav-flex) #ddmenu ul.navhideonmobile > li:has(> a.hideondesktop:only-child) { display: none !important; }
-.faw-pin__wall { display: grid; place-items: center; width: 50px; height: 50px; border-radius: 12px; background: rgba(224,166,75,.14); color: var(--faw-accent-text); }
+.faw-pin__wall { display: grid; place-items: center; width: clamp(50px, 76%, 64px); height: auto; aspect-ratio: 1; border-radius: 12px; background: rgba(224,166,75,.14); color: var(--faw-accent-text); }
 .faw-pin.is-wall:hover .faw-pin__wall { background: rgba(224,166,75,.24); }
+.faw-pin__wall svg { width: 45%; height: auto; }
