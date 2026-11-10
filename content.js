@@ -13,6 +13,7 @@
   const PINBAR = 100;   // minimum side gutter while a pin sidebar is shown (sidebar ≥76px + margins); popup.js mirrors it
   let pinnedSubs = [];  // pinned submissions live in storage.local (more room than sync)
   let pinnedWalls = []; // reference walls marked "pinned" (walls.js), shown on top of the left sidebar
+  let pinAvatars = {};  // slug → avatar address of pinned artists, kept on this device (features.js writes it)
   const root = document.documentElement;
   let current = DEFAULTS;
   let loaded = false;            // settings read from storage
@@ -76,7 +77,7 @@
       side: "right", area: "sync", key: "pinned", titleKey: "pinnedArtists", deleteKey: "pinDelete",
       on: () => current.pins, list: () => current.pinned || [],
       href: (p) => "/user/" + encodeURIComponent(p.u) + "/",
-      img: (p) => p.a || "https://a.furaffinity.net/" + encodeURIComponent(p.u) + ".gif",
+      img: (p) => pinAvatars[p.u] || p.a || "https://a.furaffinity.net/" + encodeURIComponent(p.u) + ".gif",
       isHere: (p) => { const m = herePath.match(/^\/(?:user|gallery|scraps|favorites|journals|commissions|stats)\/([^/]+)/i); return !!m && decode(m[1]).toLowerCase() === p.u; }
     },
     subs: {
@@ -318,8 +319,10 @@
     root.classList.toggle("faw-light", light);
     if (name) root.dataset.fawTheme = name;
   }
-  chrome.storage.local.get({ pinnedSubs: [], walls: [] }, (l) => {
+  const asMap = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
+  chrome.storage.local.get({ pinnedSubs: [], walls: [], pinAvatars: {} }, (l) => {
     pinnedSubs = Array.isArray(l.pinnedSubs) ? l.pinnedSubs : [];
+    pinAvatars = asMap(l.pinAvatars);
     setWalls(l.walls);
     chrome.storage.sync.get(DEFAULTS, apply);
   });
@@ -331,7 +334,8 @@
       setWalls(changes.walls.newValue);
       wallsChanged = before !== JSON.stringify(pinnedWalls);
     }
-    if (area === "sync" || (area === "local" && (changes.pinnedSubs || wallsChanged))) chrome.storage.sync.get(DEFAULTS, apply);
+    if (area === "local" && changes.pinAvatars) pinAvatars = asMap(changes.pinAvatars.newValue);
+    if (area === "sync" || (area === "local" && (changes.pinnedSubs || changes.pinAvatars || wallsChanged))) chrome.storage.sync.get(DEFAULTS, apply);
   });
   if (!domReady) {
     document.addEventListener("DOMContentLoaded", () => { domReady = true; run(); }, { once: true });

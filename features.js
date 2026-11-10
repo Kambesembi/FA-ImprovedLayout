@@ -389,18 +389,10 @@
       else area.after(bar);
     };
 
-    // Title-based series ("Name - Page 9"): find siblings via FA search before showing the button
+    // Title-based series ("Name - Page 9"): the siblings are looked up with FA's search when the button
+    // is clicked – not on every page whose title ends in a number
     let titleMatches = null;
-    if (!byLinks) {
-      findTitledSeries(titled, current).then((m) => {
-        if (m.length < 2) return;
-        titleMatches = m;
-        btn.textContent = T("readComicN", m.length);
-        placeBar();
-      }).catch(() => {});
-    } else {
-      placeBar();
-    }
+    placeBar();
 
     let container = null, loading = false;
     const MAX = 150;
@@ -432,6 +424,12 @@
       loading = true;
       btn.disabled = true;
       try {
+        if (!byLinks && !titleMatches) {
+          status.textContent = T("comicSearching");
+          const m = await findTitledSeries(titled, current);
+          if (m.length < 2) { status.textContent = T("comicNone"); btn.remove(); return; }
+          titleMatches = m;
+        }
         const pages = titleMatches
           ? await loadTitled(titleMatches, progress)
           : await loadSeries(current, progress);
@@ -808,6 +806,7 @@
           if (!f.id || seen.has(f.id)) continue;
           seen.add(f.id);
           box.appendChild(document.adoptNode(f));
+          applyBlocklist(f.querySelector("img"));              // FA's own script only saw the first 20
           added++;
         }
         next = added ? findNext(doc, url) : null;
@@ -1036,16 +1035,23 @@
   }
 
   // ------------------------------------------------------------------ watchers / watching: all on one page
-  async function initWatchlistAll() {
+  function initWatchlistAll() {
     const list = document.querySelector(".watch-list");
     const nav = document.querySelector(".watchlist-navigation");
     if (!list) return;
     decorateWatchlist(list);
     let next = findNext(document, location.href);
     if (!next) return;
-    const status = el("div", "faw-inf-status", T("loadingEntries"));
+    // the rest of the list is fetched when asked for (up to 100 pages a go); until then FA's pager stays
+    const status = el("div", "faw-inf-status");
     list.after(status);
-    if (nav) nav.style.display = "none";
+    const offer = (label) => {
+      status.textContent = T("entriesMore", list.children.length) + " ";
+      const more = el("button", null, label);
+      more.type = "button";
+      more.onclick = () => { if (nav) nav.style.display = "none"; status.textContent = T("loadingEntriesN", list.children.length); run(); };
+      status.appendChild(more);
+    };
     const seen = new Set([...list.querySelectorAll("a[href]")].map((a) => a.getAttribute("href")));
     // 100 pages per run; a longer list gets a "Load more" button instead of ending as if it were complete
     const run = async () => {
@@ -1075,19 +1081,14 @@
         next = findNext(doc, url);
         if (next) await sleep(250);
       }
-      if (next) {
-        status.textContent = T("entriesMore", list.children.length) + " ";
-        const more = el("button", null, T("upLoadMore"));
-        more.type = "button";
-        more.onclick = () => { status.textContent = T("loadingEntriesN", list.children.length); run(); };
-        status.appendChild(more);
-      } else status.textContent = T("entriesN", list.children.length);
+      if (next) offer(T("upLoadMore"));
+      else status.textContent = T("entriesN", list.children.length);
     } catch (err) {
       status.textContent = T("stoppedAfter", list.children.length, err.message);
       if (nav) nav.style.display = "";
     }
     };
-    await run();
+    offer(T("loadAll"));
   }
 
   // ------------------------------------------------------------------ comment box: more BBCode buttons
@@ -1297,6 +1298,7 @@
       const { doc } = await fetchDoc(new URL(`/gallery/${slug}/`, location.origin).href);
       const figs = [...doc.querySelectorAll("section.gallery figure")]
         .filter((f) => viewId(f.querySelector("a[href*='/view/']")?.getAttribute("href")) !== me.id)
+        .filter((f) => !blockReasons(f.querySelector("img")).length)   // nothing the blocklist hides
         .slice(0, 9);
       if (!figs.length) return;
       const box = el("section", "faw-more");
@@ -1344,12 +1346,18 @@
       tagless: b.getAttribute("data-tag-blocklist-hide-tagless") === "1"
     };
   })();
+  // why a thumbnail is blocked ([] = it isn't); FA's rules, from the image's data-tags
+  function blockReasons(img) {
+    if (!blocklist || !img || !img.hasAttribute("data-tags")) return [];
+    const tags = img.getAttribute("data-tags").trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const reasons = [...new Set(tags.filter((t) => blocklist.tags.has(t)))];
+    if (tags.some((t) => blocklist.users.has(t))) reasons.push("User is blocked by you.");
+    if (blocklist.tagless && tags.length - 4 <= 0) reasons.push("Content has no non-meta tags.");
+    return reasons;
+  }
   function applyBlocklist(img) {
     if (!img || !img.hasAttribute("data-tags")) return;
-    const tags = img.getAttribute("data-tags").trim().toLowerCase().split(/\s+/).filter(Boolean);
-    const reasons = blocklist ? [...new Set(tags.filter((t) => blocklist.tags.has(t)))] : [];
-    if (blocklist && tags.some((t) => blocklist.users.has(t))) reasons.push("User is blocked by you.");
-    if (blocklist && blocklist.tagless && tags.length - 4 <= 0) reasons.push("Content has no non-meta tags.");
+    const reasons = blockReasons(img);
     const blocked = reasons.length > 0;
     img.classList.toggle("blocked-content", blocked);
     if (blocked) {
@@ -1565,7 +1573,7 @@
   }
 
   // ------------------------------------------------------------------ pinned artists: Pin button on profiles
-  // The list lives in chrome.storage.sync ([{ u: slug, n: name, a: avatar URL }]); content.js draws the
+  // The list lives in chrome.storage.sync ([{ u: slug, n: name }]; older entries also "a": avatar URL); content.js draws the
   // sidebar at page start and redraws it whenever the list changes.
   function initPins() {
     const buttons = document.querySelector("userpage-nav-interface-buttons");
@@ -1582,15 +1590,32 @@
       btn.title = on ? T("unpin") : T("pinTitle");
       btn.setAttribute("aria-label", btn.title);
     };
+    // The synced list holds slug and name only (storage.sync takes 8 KB per item, and an avatar address is
+    // most of an entry). Avatar addresses are kept on this device, in storage.local "pinAvatars", and
+    // refreshed whenever a pinned artist's profile is open; elsewhere the short address is used.
+    const avHere = () => { const av = document.querySelector("userpage-nav-avatar img"); return av ? abs(av.getAttribute("src")) || "" : ""; };
+    const slim = (list, avatars) => list.map((q) => { if (q.a && !avatars[q.u]) avatars[q.u] = q.a; return { u: q.u, n: q.n }; });
+    const savePins = (list) => chrome.storage.local.get({ pinAvatars: {} }, (l) => {
+      const avatars = Object.assign({}, l.pinAvatars);
+      const out = slim(list, avatars);                         // older entries: their address moves over
+      if (out.some((q) => q.u === here) && avHere()) avatars[here] = avHere();
+      for (const u of Object.keys(avatars)) if (!out.some((q) => q.u === u)) delete avatars[u];
+      chrome.storage.local.set({ pinAvatars: avatars });
+      // a write that doesn't fit is refused: say so
+      chrome.storage.sync.set({ pinned: out }, () => { if (chrome.runtime.lastError) toast(T("pinFull")); });
+    });
     btn.addEventListener("click", (e) => {
       e.preventDefault();
-      // storage.sync takes 8 KB per item: a write that doesn't fit is refused, so say so
-      const saved = () => { if (chrome.runtime.lastError) toast(T("pinFull")); };
-      if (pins.some((q) => q.u === here)) { chrome.storage.sync.set({ pinned: pins.filter((q) => q.u !== here) }, saved); return; }
+      if (pins.some((q) => q.u === here)) { savePins(pins.filter((q) => q.u !== here)); return; }
       const name = (document.querySelector("userpage-nav-user-details .js-displayName-block, userpage-nav-user-details .c-usernameBlock__displayName") || {}).textContent;
-      const av = document.querySelector("userpage-nav-avatar img");
-      chrome.storage.sync.set({ pinned: pins.concat({ u: here, n: (name || here).trim(), a: av ? abs(av.getAttribute("src")) : "" }) }, saved);
+      savePins(pins.concat({ u: here, n: (name || here).trim() }));
     });
+    // on a pinned artist's profile: keep the stored avatar address current
+    if (pins.some((q) => q.u === here) && avHere()) {
+      chrome.storage.local.get({ pinAvatars: {} }, (l) => {
+        if (l.pinAvatars[here] !== avHere()) chrome.storage.local.set({ pinAvatars: Object.assign({}, l.pinAvatars, { [here]: avHere() }) });
+      });
+    }
     const watch = buttons.querySelector("#watch-button");
     // FA separates its inline buttons with whitespace; give ours the same gap
     if (watch) watch.after(" ", btn); else buttons.prepend(btn, " ");
@@ -1776,15 +1801,10 @@
     let pendingOpen = null;
     // window + capture runs before FA's (and other extensions') handlers on the page
     window.addEventListener("click", (e) => {
-      if (e.defaultPrevented || e.button !== 0 || e.shiftKey || e.altKey) return;
+      // Ctrl/Cmd/Shift/Alt+click stay the browser's (new tab, new window, download)
+      if (e.defaultPrevented || e.button !== 0 || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
       const a = e.target.closest && e.target.closest("a[href]");
       if (!isQvAnchor(a)) return;
-      if (e.ctrlKey || e.metaKey) {                 // Ctrl/Cmd+click: go straight to the submission page
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        location.href = a.href;
-        return;
-      }
       e.preventDefault();
       e.stopImmediatePropagation();
       // double-click: straight to the submission page. A single click waits one double-click
@@ -1801,16 +1821,20 @@
 
     function buildList(anchor) {
       const seen = new Set();
+      const start = viewId(anchor.getAttribute("href"));
       list = [];
       for (const a of document.querySelectorAll("a[href*='/view/']")) {
         if (!isQvAnchor(a)) continue;
         const id = viewId(a.getAttribute("href"));
         if (seen.has(id)) continue;
-        seen.add(id);
         const ti = a.querySelector("img");
+        // thumbnails hidden by the blocklist are stepped over (and not prefetched); one that was
+        // clicked on purpose still opens
+        if (ti.classList.contains("blocked-content") && id !== start) continue;
+        seen.add(id);
         list.push({ id, thumb: ti.currentSrc || ti.src || "", tw: ti.naturalWidth || 0, th: ti.naturalHeight || 0 });
       }
-      idx = Math.max(0, list.findIndex((x) => x.id === viewId(anchor.getAttribute("href"))));
+      idx = Math.max(0, list.findIndex((x) => x.id === start));
     }
 
     function build() {

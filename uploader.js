@@ -792,7 +792,25 @@
     // ---------------------------------------------------------------- sending, one FA tab at a time
     let running = false, active = null, heartbeat = null;
     const REMOVED = new Error("removed");
+    // Who sends is decided by a Web Lock where the browser has them: held by one tab, freed by the browser
+    // when that tab closes or crashes. (The heartbeat alone isn't enough: Chrome slows the timers of a tab
+    // hidden for a few minutes to one a minute, the heartbeat looked dead and a second tab took over.)
+    // The heartbeat is still written: it tells the other tabs and the background page that a tab is sending.
+    let unlock = null;
+    const tryLock = () => new Promise((res) => {
+      try {
+        if (!navigator.locks || !navigator.locks.request) { res(null); return; }
+        navigator.locks.request("faw-upload-runner", { ifAvailable: true }, (lock) => {
+          if (!lock) { res(false); return undefined; }
+          res(true);
+          return new Promise((r) => { unlock = r; });        // held until release()
+        }).catch(() => res(null));
+      } catch (e) { res(null); }
+    });
     async function claim() {
+      const locked = await tryLock();                        // true: ours · false: another tab's · null: no locks here
+      if (locked === false) return false;
+      if (locked) { await keepNow({ uploadRunner: { tab: TAB, at: Date.now() } }); return true; }
       const { uploadRunner: r } = await store({ uploadRunner: null });
       if (r && r.tab !== TAB && Date.now() - r.at < 20000) return false;
       await keepNow({ uploadRunner: { tab: TAB, at: Date.now() } });
@@ -801,6 +819,7 @@
       return !!r2 && r2.tab === TAB;
     }
     async function release() {
+      if (unlock) { unlock(); unlock = null; }
       const { uploadRunner: r } = await store({ uploadRunner: null });
       if (r && r.tab === TAB) try { chrome.storage.local.remove("uploadRunner"); } catch (e) { /* reloaded */ }
     }
@@ -848,10 +867,14 @@
       }
     }
     // a pause with its countdown on the upload; stops when the upload was removed or taken back meanwhile
+    // Counted against the clock, not in ticks: in a hidden tab a "second" of setTimeout can take a minute.
     async function countdown(q, secs, key) {
-      for (let s = secs; s > 0; s--) {
-        q.info = T(key, s); renderQueue();
-        await sleep(1000);
+      const end = Date.now() + secs * 1000;
+      for (;;) {
+        const left = Math.ceil((end - Date.now()) / 1000);
+        if (left <= 0) return;
+        q.info = T(key, left); renderQueue();
+        await sleep(Math.min(1000, end - Date.now()));
         if (!jobs.includes(q) || !(await DB.job(q.id).catch(() => q))) throw REMOVED;
       }
     }
@@ -1253,6 +1276,7 @@
     async function fitImage(file, stripGps) {
       let f = file;
       if (f.type === "image/jpeg" && stripGps) f = await stripExif(f);
+      else if (f.type === "image/png" && stripGps) f = await stripPng(f);
       if (IMG_OK.test(f.type) && f.size <= maxSize) return f;
       if (f.type === "image/gif" && f.size > maxSize) throw new Error(T("upGifBig"));
       const bmp = await createImageBitmap(f).catch(() => { throw new Error(T("upCantRead")); });
@@ -1283,9 +1307,9 @@
       const s = Math.min(1, 256 / Math.max(bmp.width, bmp.height));
       return toBlob(drawn(bmp, s, true), "image/jpeg", 0.8);
     }
-    // Drops the EXIF block (APP1 "Exif") and XMP (APP1 Adobe XMP, may hold GPS too) from a JPEG without
-    // re-encoding it. A photo that relies on the EXIF orientation is re-encoded upright instead, so it
-    // doesn't end up sideways.
+    // Drops the EXIF block (APP1 "Exif"), XMP (APP1 Adobe XMP and its extension blocks, may hold GPS too)
+    // and Photoshop's IPTC block (APP13, may name the place) from a JPEG without re-encoding it. A photo
+    // that relies on the EXIF orientation is re-encoded upright instead, so it doesn't end up sideways.
     async function stripExif(file) {
       const buf = new Uint8Array(await file.arrayBuffer());
       if (buf[0] !== 0xFF || buf[1] !== 0xD8) return file;
@@ -1295,9 +1319,11 @@
         const m = buf[p + 1], len = (buf[p + 2] << 8) | buf[p + 3];
         if (m === 0xDA) break;                                         // image data starts: keep the rest
         const seg = buf.subarray(p, p + 2 + len);
-        const sig = m === 0xE1 ? String.fromCharCode(...seg.subarray(4, Math.min(seg.length, 33))) : "";
-        const isExif = sig.startsWith("Exif"), isXmp = sig.startsWith("http://ns.adobe.com/xap/");
-        if (isExif || isXmp) { removed = true; if (isExif) rotated = exifOrientation(seg) > 1; } else parts.push(seg);
+        const sig = m === 0xE1 || m === 0xED ? String.fromCharCode(...seg.subarray(4, Math.min(seg.length, 40))) : "";
+        const isExif = m === 0xE1 && sig.startsWith("Exif");
+        const isXmp = m === 0xE1 && (sig.startsWith("http://ns.adobe.com/xap/") || sig.startsWith("http://ns.adobe.com/xmp/extension/"));
+        const isIptc = m === 0xED && sig.startsWith("Photoshop 3.0");
+        if (isExif || isXmp || isIptc) { removed = true; if (isExif && exifOrientation(seg) > 1) rotated = true; } else parts.push(seg);
         p += 2 + len;
       }
       if (!removed) return file;
@@ -1309,8 +1335,39 @@
       parts.push(buf.subarray(p));
       return new File(parts, file.name, { type: "image/jpeg" });
     }
-    function exifOrientation(seg) {
-      const t = 10, le = seg[t] === 0x49;                               // TIFF header after "Exif\0\0"
+    // The same for a PNG: its EXIF chunk (eXIf) and the text chunks that carry XMP or an embedded
+    // EXIF/IPTC/XMP profile. Other text chunks (title, software, comments) stay; the picture isn't re-encoded.
+    async function stripPng(file) {
+      const buf = new Uint8Array(await file.arrayBuffer());
+      const SIG = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+      if (buf.length < 20 || SIG.some((b, i) => buf[i] !== b)) return file;
+      const parts = [buf.subarray(0, 8)];
+      let p = 8, removed = false, rotated = false;
+      while (p + 12 <= buf.length) {
+        const len = ((buf[p] << 24) | (buf[p + 1] << 16) | (buf[p + 2] << 8) | buf[p + 3]) >>> 0;
+        const end = p + 12 + len;
+        if (end > buf.length) return file;                               // damaged: left as it is
+        const type = String.fromCharCode(buf[p + 4], buf[p + 5], buf[p + 6], buf[p + 7]);
+        let drop = type === "eXIf";
+        if (type === "iTXt" || type === "tEXt" || type === "zTXt") {
+          const key = String.fromCharCode(...buf.subarray(p + 8, p + 8 + Math.min(len, 79))).split("\0")[0];
+          drop = key === "XML:com.adobe.xmp" || /^Raw profile type /i.test(key);
+        }
+        if (drop) { removed = true; if (type === "eXIf" && exifOrientation(buf.subarray(p + 8, p + 8 + len), 0) > 1) rotated = true; }
+        else parts.push(buf.subarray(p, end));
+        p = end;
+        if (type === "IEND") break;
+      }
+      if (!removed) return file;
+      if (rotated) {                                                   // bake the rotation in (PNG again: lossless)
+        const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+        const png = await toBlob(drawn(bmp, 1, false), "image/png");
+        if (png) return new File([png], file.name, { type: "image/png" });
+      }
+      return new File(parts, file.name, { type: "image/png" });
+    }
+    function exifOrientation(seg, t = 10) {                             // t: where the TIFF header starts
+      const le = seg[t] === 0x49;                                       // (JPEG: after the marker and "Exif\0\0")
       const u16 = (o) => (le ? seg[t + o] | (seg[t + o + 1] << 8) : (seg[t + o] << 8) | seg[t + o + 1]);
       const u32 = (o) => (le ? (u16(o) | (u16(o + 2) << 16)) : ((u16(o) << 16) | u16(o + 2))) >>> 0;
       try {

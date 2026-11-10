@@ -23,8 +23,22 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
 });
 
 // ---- updates
-// Firefox (signed .xpi): an update it found is installed right away instead of at the next browser start
-if (chrome.runtime.onUpdateAvailable) chrome.runtime.onUpdateAvailable.addListener(() => chrome.runtime.reload());
+// An update the browser found is installed right away instead of at the next browser start – unless the quick
+// upload is sending (a reload cuts the upload off and disconnects every open FA tab): then as soon as the
+// sending tab is done. "uploadRunner" is that tab's heartbeat (uploader.js), removed when the queue is through;
+// a hidden tab's heartbeat can be a minute late, hence the generous limit.
+const uploading = (r) => !!r && Date.now() - r.at < 90000;
+function reloadWhenIdle() {
+  chrome.storage.local.get({ uploadRunner: null }, ({ uploadRunner }) => {
+    if (uploading(uploadRunner)) chrome.storage.local.set({ updPending: true });
+    else chrome.storage.local.remove("updPending", () => chrome.runtime.reload());
+  });
+}
+if (chrome.runtime.onUpdateAvailable) chrome.runtime.onUpdateAvailable.addListener(reloadWhenIdle);
+chrome.storage.onChanged.addListener((c, area) => {
+  if (area !== "local" || !c.uploadRunner || uploading(c.uploadRunner.newValue)) return;
+  chrome.storage.local.get({ updPending: false }, ({ updPending }) => { if (updPending) reloadWhenIdle(); });
+});
 
 // "↑" on the toolbar icon while a newer GitHub release exists. Checked when the browser starts (at most every
 // 6 hours, shared with the popup's check); the popup leads to the update page.
