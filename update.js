@@ -2,7 +2,7 @@
 // - Chromium, unpacked ("Load unpacked"): the user picks the extension folder once (File System Access API,
 //   the handle is kept in IndexedDB); the files of the newest release tag are read from GitHub, each checked
 //   against its git hash, written over the old ones (manifest.json last, everything put back on a failure),
-//   then the extension reloads itself.
+//   files the new release dropped are removed, then the extension reloads itself.
 // - Firefox with the signed .xpi: Firefox updates add-ons itself (update_url in manifest.firefox.json →
 //   updates.json in the newest release); the button only asks it to check now. background.js applies a found
 //   update right away.
@@ -10,8 +10,18 @@
 const $ = (id) => document.getElementById(id);
 const REPO = "Kambesembi/FA-ImprovedLayout";
 const API = "https://api.github.com/repos/" + REPO;
-// repository files that aren't part of the extension
-const SKIP = new Set([".gitattributes", ".gitignore", "README.md", "build.sh", "manifest.firefox.json"]);
+// What belongs to the extension: files of these kinds, minus the Firefox manifest. Everything else in the
+// repository (README, build script, notes, licence, dot files) stays out of the extension folder.
+const SKIP = new Set(["manifest.firefox.json"]);
+const KINDS = /\.(js|css|html|json|png|svg|gif|jpe?g|webp|woff2?)$/i;
+const isExtFile = (x) => x.type === "blob" && KINDS.test(x.path) && !SKIP.has(x.path) && !x.path.split("/").some((p) => p.startsWith("."));
+async function treeOf(tag) {
+  const r = await fetch(`${API}/git/trees/${encodeURIComponent(tag)}?recursive=1`, { headers: { Accept: "application/vnd.github+json" } });
+  if (!r.ok) throw new Error("GitHub: HTTP " + r.status + (r.status === 403 || r.status === 429 ? " (rate limit – try again later)" : ""));
+  const tree = await r.json();
+  if (!tree || !Array.isArray(tree.tree) || tree.truncated) throw new Error("file list");
+  return tree.tree.filter(isExtFile);
+}
 const VERSION = chrome.runtime.getManifest().version;
 const isFirefox = typeof browser !== "undefined" && !!chrome.runtime.getBrowserInfo;
 
@@ -83,6 +93,9 @@ async function checkFolder(dir) {
   const m = await readManifest(dir);
   if (!m || m.name !== "FA-ImprovedLayout") throw new Error(T("updNoManifest"));
   if (m.version !== VERSION) throw new Error(T("updWrongFolder", m.version, VERSION));
+  // a developer's checkout: writing the release over it would discard local changes
+  const git = await dir.getDirectoryHandle(".git").catch(() => null);
+  if (git) throw new Error(T("updGitFolder"));
 }
 async function folder(pick) {
   let dir = pick ? null : await kv("dir").catch(() => null);
@@ -103,9 +116,11 @@ async function updateFolder(rel, pick) {
   $("folder").textContent = T("updFolderLabel", dir.name);
   $("folder").hidden = false;
   // 1. everything downloaded and checked before a single file is touched
-  const tree = await (await fetch(`${API}/git/trees/${encodeURIComponent(rel.tag)}?recursive=1`)).json();
-  if (!tree || !Array.isArray(tree.tree) || tree.truncated) throw new Error("file list");
-  const files = tree.tree.filter((x) => x.type === "blob" && !SKIP.has(x.path) && !x.path.startsWith("."));
+  const files = await treeOf(rel.tag);
+  // files of the running version that the new one no longer has (removed at the end; without the old
+  // tag's list nothing is removed)
+  const old = await treeOf("v" + VERSION).catch(() => []);
+  const gone = old.map((x) => x.path).filter((p) => !files.some((f) => f.path === p));
   if (!files.some((x) => x.path === "manifest.json")) throw new Error("manifest.json missing in the release");
   const bar = $("bar");
   bar.hidden = false; bar.max = files.length * 2; bar.value = 0;
@@ -137,7 +152,8 @@ async function updateFolder(rel, pick) {
     }
     throw e;
   }
-  await new Promise((r) => chrome.storage.local.set({ updCheck: null, updDone: { from: VERSION, to: rel.version, t: Date.now() } }, r));
+  for (const p of gone) await removeFile(dir, p);
+  await new Promise((r) => chrome.storage.local.set({ updCheck: null }, r));
   status(T("updDone", rel.version), "ok");
   setTimeout(() => chrome.runtime.reload(), 1800);
 }

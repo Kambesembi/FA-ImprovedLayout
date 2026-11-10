@@ -41,35 +41,40 @@
   // the feature switches (quick view, comic reader, …) work with either.
   const layoutOn = () => S.enabled && S.ultrawide;
   const designOn = () => S.enabled && S.design;
+  // Each feature starts on its own: one that trips over a change in FA's markup doesn't take the rest down
+  const start = (on, ...fns) => {
+    if (!on) return;
+    for (const fn of fns) {
+      try { const p = fn(); if (p && p.catch) p.catch((e) => console.warn("FA-ImprovedLayout:", fn.name, e)); }
+      catch (e) { console.warn("FA-ImprovedLayout:", fn.name, e); }
+    }
+  };
+  // "%E0" and the like in an address: not a name FA has, and decodeURIComponent would throw
+  const decode = (s) => { try { return decodeURIComponent(s); } catch (e) { return s; } };
   chrome.storage.sync.get(DEFAULTS, (s) => {
     S = s;
     if (!S.enabled) return;
     fawSetLang(S.lang);
-    if (page === "pageid-submission") {
-      if (S.imageFit && layoutOn()) initImageFit();
-      initLightbox();
-      if (S.comic) initComic();
-      initAjaxFav();
-      if (layoutOn()) { initMoreFromArtist(); initSubmissionNav(); }
-    }
-    if (S.infinite) initInfinite();
-    if (S.archiveLink) initArchiveLink();
-    if (page === "pageid-userpage") {
-      if (layoutOn()) initProfileGallery();
-      if (designOn()) initWatcherRows();
-    }
-    if (page === "pageid-watchlist") initWatchlistAll();
-    initCommentToolbar();
-    initExternalConfirm();
-    indentReplies();
-    if (designOn()) { applyArrowButtons(); classifySystemMessages(); }
+    const sub = page === "pageid-submission", user = page === "pageid-userpage";
+    start(sub && S.imageFit && layoutOn(), initImageFit);
+    start(sub, initLightbox);
+    start(sub && S.comic, initComic);
+    start(sub, initAjaxFav);
+    start(sub && layoutOn(), initMoreFromArtist, initSubmissionNav);
+    start(S.infinite, initInfinite);
+    start(S.archiveLink, initArchiveLink);
+    start(user && layoutOn(), initProfileGallery);
+    start(user && designOn(), initWatcherRows);
+    start(page === "pageid-watchlist", initWatchlistAll);
+    start(true, initCommentToolbar, initExternalConfirm, indentReplies);
+    start(designOn(), applyArrowButtons, classifySystemMessages);
     onDomChange(() => { if (designOn()) applyArrowButtons(); initCommentToolbar(); indentReplies(); });
-    if (S.quickView) initQuickView();
-    if (S.topbar) initTopBar();
-    if (S.pins) initPins();
-    if (S.pinSubs && page === "pageid-submission") initSubPin();
-    if (S.walls) initWallsNav();
-    if (S.walls && page === "pageid-submission") initWallButton();
+    start(S.quickView, initQuickView);
+    start(S.topbar, initTopBar);
+    start(S.pins, initPins);
+    start(S.pinSubs && sub, initSubPin);
+    start(S.walls, initWallsNav);
+    start(S.walls && sub, initWallButton);
   });
 
   // ------------------------------------------------------------------ fetching / parsing
@@ -260,6 +265,7 @@
   function initLightbox() {
     const img = document.getElementById("submissionImg");
     if (!img) return;
+    root.classList.add("faw-lb-ready");                        // zoom-in cursor only while the viewer exists
     let lb = null, offResize = null;
     const open = () => {
       const full = abs(img.getAttribute("data-fullview-src")) || img.currentSrc || img.src;
@@ -284,9 +290,9 @@
       };
       pic.addEventListener("load", fit);
       window.addEventListener("resize", fit);
-      offResize = () => window.removeEventListener("resize", fit);
       if (pic.complete) fit();
       const pan = makePannable(pic, { x: stage, y: stage, active: () => lb.classList.contains("is-zoom"), hostClass: stage });
+      offResize = () => { window.removeEventListener("resize", fit); pan.destroy(); };
       pic.addEventListener("click", (e) => {
         e.stopPropagation();
         if (pan.consumeDrag()) return;
@@ -337,7 +343,7 @@
       start = { x: e.clientX, y: e.clientY, moved: false };
       dragged = false;
     });
-    window.addEventListener("mousemove", (e) => {
+    const onMove = (e) => {
       if (!start) return;
       const dx = e.clientX - start.x, dy = e.clientY - start.y;
       if (!start.moved && Math.hypot(dx, dy) < 4) return;
@@ -346,14 +352,19 @@
       if (x === y) scrollBy(x, dx, dy);
       else { scrollBy(x, dx, 0); scrollBy(y, 0, dy); }
       start.x = e.clientX; start.y = e.clientY;
-    });
-    window.addEventListener("mouseup", () => {
+    };
+    const onUp = () => {
       if (!start) return;
       dragged = start.moved;
       start = null;
       if (hostClass) hostClass.classList.remove("faw-panning");
-    });
-    return { consumeDrag: () => { const d = dragged; dragged = false; return d; } };
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return {
+      consumeDrag: () => { const d = dragged; dragged = false; return d; },
+      destroy: () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); }
+    };
   }
 
   // ------------------------------------------------------------------ comic reader
@@ -557,7 +568,7 @@
   // "Aquarium Encounter - Page 9", "Story pt.3", "Comic #12", "Name 4/10" → { base, num }
   function parseNumberedTitle(title) {
     const m = String(title || "").trim().match(
-      /^(.*?)[\s\-–—:|,.(\[]*(?:page|pg|part|pt|chapter|ch|episode|ep|no)?\.?\s*#?\s*(\d{1,4})(?:\s*(?:\/|of)\s*\d{1,4})?[\s)\]]*$/i
+      /^(.*?)[\s\-–—:|,.(\[]*(?:\b(?:page|pg|part|pt|chapter|ch|episode|ep|no))?\.?\s*#?\s*(\d{1,4})(?:\s*(?:\/|of)\s*\d{1,4})?[\s)\]]*$/i
     );
     if (!m) return null;
     if (+m[2] >= 1900 && +m[2] <= 2100) return null;   // a year, not a page number
@@ -599,7 +610,7 @@
       .find((e) => /system message/i.test(e.textContent) && e.textContent.length < 200);
     if (!head) return;
     const box = head.closest("section, table, .notice-message") || head.parentElement;
-    const name = decodeURIComponent(m[1]).toLowerCase();
+    const name = decode(m[1]).toLowerCase();
     const url = "https://furarchiver.net/Artist/Gallery?artist=" + encodeURIComponent(name);
     const wrap = el("div", "faw-archive-sys");
     const btn = el("button", "button standard", T("archivedGallery"));
@@ -619,7 +630,7 @@
     const home = [...ul.querySelectorAll("a[href]")].map((a) => a.getAttribute("href").match(/^\/user\/([^/]+)/)).find(Boolean);
     const m = home || location.pathname.match(/^\/(?:user|gallery|scraps|favorites|journals|commissions|stats)\/([^/]+)/i);
     if (!m) return;
-    const name = decodeURIComponent(m[1]).toLowerCase();
+    const name = decode(m[1]).toLowerCase();
     const url = "https://furarchiver.net/Artist/Gallery?artist=" + encodeURIComponent(name);
 
     const li = el("li", "faw-archive");
@@ -661,15 +672,16 @@
     box.append(row);
     ov.appendChild(box);
     document.body.appendChild(ov);
-    ok.focus();
+    (danger ? cancel : ok).focus();                 // something that can't be undone: Cancel is the default
     const done = (go) => {
       ov.remove();
       document.removeEventListener("keydown", onKey, true);
       if (go) onOk();
     };
+    // Enter acts on the focused button (Cancel stays Cancel); the keys don't reach the page or the quick view
     const onKey = (e) => {
-      if (e.key === "Escape") { e.preventDefault(); done(false); }
-      else if (e.key === "Enter") { e.preventDefault(); done(true); }
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); done(false); }
+      else if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); done(danger ? document.activeElement === ok : document.activeElement !== cancel); }
     };
     document.addEventListener("keydown", onKey, true);
     cancel.onclick = () => done(false);
@@ -1035,7 +1047,9 @@
     list.after(status);
     if (nav) nav.style.display = "none";
     const seen = new Set([...list.querySelectorAll("a[href]")].map((a) => a.getAttribute("href")));
-    let pages = 1;
+    // 100 pages per run; a longer list gets a "Load more" button instead of ending as if it were complete
+    const run = async () => {
+    let pages = 0;
     try {
       while (next && pages < 100) {
         const { doc, url } = await fetchDoc(next.url, next.init);
@@ -1045,7 +1059,7 @@
           seen.add(h);
           return true;
         });
-        if (!items.length) break;
+        if (!items.length) { next = null; break; }
         // FA starts a new row ("new-section") at each new initial letter; a page boundary inside the
         // same letter must not start one
         const initial = (it) => (it.textContent.replace(/[^a-z0-9]/gi, "")[0] || "").toLowerCase();
@@ -1061,11 +1075,19 @@
         next = findNext(doc, url);
         if (next) await sleep(250);
       }
-      status.textContent = T("entriesN", list.children.length);
+      if (next) {
+        status.textContent = T("entriesMore", list.children.length) + " ";
+        const more = el("button", null, T("upLoadMore"));
+        more.type = "button";
+        more.onclick = () => { status.textContent = T("loadingEntriesN", list.children.length); run(); };
+        status.appendChild(more);
+      } else status.textContent = T("entriesN", list.children.length);
     } catch (err) {
       status.textContent = T("stoppedAfter", list.children.length, err.message);
       if (nav) nav.style.display = "";
     }
+    };
+    await run();
   }
 
   // ------------------------------------------------------------------ comment box: more BBCode buttons
@@ -1549,7 +1571,7 @@
     const buttons = document.querySelector("userpage-nav-interface-buttons");
     const slugHere = (location.pathname.match(/^\/(?:user|gallery|scraps|favorites|journals|commissions|stats)\/([^/]+)/i) || [])[1];
     if (!buttons || !slugHere) return;
-    const here = decodeURIComponent(slugHere).toLowerCase();
+    const here = decode(slugHere).toLowerCase();
     let pins = Array.isArray(S.pinned) ? S.pinned : [];
     const btn = el("a", "button standard faw-pin-btn");
     btn.href = "#";
@@ -1562,10 +1584,12 @@
     };
     btn.addEventListener("click", (e) => {
       e.preventDefault();
-      if (pins.some((q) => q.u === here)) { chrome.storage.sync.set({ pinned: pins.filter((q) => q.u !== here) }); return; }
+      // storage.sync takes 8 KB per item: a write that doesn't fit is refused, so say so
+      const saved = () => { if (chrome.runtime.lastError) toast(T("pinFull")); };
+      if (pins.some((q) => q.u === here)) { chrome.storage.sync.set({ pinned: pins.filter((q) => q.u !== here) }, saved); return; }
       const name = (document.querySelector("userpage-nav-user-details .js-displayName-block, userpage-nav-user-details .c-usernameBlock__displayName") || {}).textContent;
       const av = document.querySelector("userpage-nav-avatar img");
-      chrome.storage.sync.set({ pinned: pins.concat({ u: here, n: (name || here).trim(), a: av ? abs(av.getAttribute("src")) : "" }) });
+      chrome.storage.sync.set({ pinned: pins.concat({ u: here, n: (name || here).trim(), a: av ? abs(av.getAttribute("src")) : "" }) }, saved);
     });
     const watch = buttons.querySelector("#watch-button");
     // FA separates its inline buttons with whitespace; give ours the same gap
@@ -1984,15 +2008,19 @@
       $(".faw-qv__clist").textContent = "";
       $(".faw-qv__ch span").textContent = "";
       $(".faw-qv__cstatus").textContent = "";
+      // into a local first: an answer that arrives after the user moved on must not replace the data of
+      // the submission now shown (Fav, Download, wall and comments all act on `data`)
+      let got;
       try {
-        data = await getSubmission("/view/" + item.id + "/");
+        got = await getSubmission("/view/" + item.id + "/");
       } catch (err) {
         if (t !== token) return;
         $(".faw-qv__spinner").textContent = T("loadFailed", err.message);
         return;
       }
-      ready.set(item.id, data);
+      ready.set(item.id, got);
       if (t !== token) return;
+      data = got;
       $(".faw-qv__spinner").textContent = T("loading");
       $(".faw-qv__title a").textContent = data.title;
       const by = $(".faw-qv__by");
@@ -2118,13 +2146,23 @@
         if (!res.ok) throw new Error("HTTP " + res.status);
         const doc = new DOMParser().parseFromString(await res.text(), "text/html");
         const fresh = parseSubmission(doc, `/view/${cur.id}/`);
-        docCache.set(cur.id, Promise.resolve(fresh));
-        ready.set(cur.id, fresh);
-        if (data === cur) {
-          data = fresh;
-          renderComments();
-          const panel = qv.querySelector(".faw-qv__panel");
-          if (panel) panel.scrollTop = panel.scrollHeight;
+        // FA answers 200 for its own refusals too (flood protection, blocked, comments off): the comment
+        // counts as posted only when the returned page lists one more. Otherwise the text stays in the box.
+        const isSub = !!doc.querySelector("#submissionImg, #comments-submission, #add_comment_form");
+        if (isSub) {
+          docCache.set(cur.id, Promise.resolve(fresh));
+          ready.set(cur.id, fresh);
+          if (data === cur) {
+            data = fresh;
+            renderComments();
+            const panel = qv.querySelector(".faw-qv__panel");
+            if (panel) panel.scrollTop = panel.scrollHeight;
+          }
+        }
+        if (!isSub || fresh.comments.length <= cur.comments.length) {
+          const why = doc.querySelector("section.notice-message .section-body, .redirect-message, .error-message");
+          st.textContent = why ? T("postFailed", why.textContent.replace(/\s+/g, " ").trim().slice(0, 160)) : T("postUnclear");
+          return;
         }
         ta.value = "";
         st.textContent = T("posted");

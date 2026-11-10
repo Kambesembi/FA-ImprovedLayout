@@ -867,6 +867,12 @@
       DB.delFiles(q.id).catch(() => {});
       st.floor = Math.max(st.floor, id);
       keep({ uploadFloor: st.floor });
+      // Uploads still waiting get the new floor: whatever FA saves for them comes after this one, so a later
+      // "did FA save it?" check can't mistake this submission for theirs when the titles are the same.
+      // (Not the unclear ones: theirs may already be on FA, with a lower ID.)
+      for (const j of jobs) {
+        if (j !== q && j.state === "wait" && !j.uncertain && (j.floor || 0) < id) { j.floor = id; saveJob(j); }
+      }
       const done = jobs.filter((j) => j.state === "done");
       for (const j of done.slice(0, Math.max(0, done.length - KEEP_DONE))) removeJob(j, true);
     }
@@ -1149,11 +1155,18 @@
         more.textContent = T("upLoadMore");
       }
       let timer = null;
+      // a link or an ID copies that submission directly – when pasted or confirmed with Enter, not while
+      // it's being typed (every digit after the fifth would be taken for a finished ID)
+      const idIn = (v) => { const m = String(v).match(/\/view\/(\d+)|^\s*(\d{5,})\s*$/); return m ? m[1] || m[2] : ""; };
+      const applyId = (v) => { const id = idIn(v); if (id) { clearTimeout(timer); apply(id, "#" + id); } return !!id; };
+      search.addEventListener("paste", (e) => {
+        const text = e.clipboardData ? e.clipboardData.getData("text") : "";
+        if (applyId(text)) e.preventDefault();
+      });
+      search.addEventListener("keydown", (e) => { if (e.key === "Enter" && applyId(search.value)) e.preventDefault(); });
       search.addEventListener("input", () => {
-        // a link or an ID copies that submission directly
-        const id = (search.value.match(/(?:\/view\/|^\s*)(\d{5,})/) || [])[1];
-        if (id) { apply(id, "#" + id); return; }
         clearTimeout(timer);
+        if (idIn(search.value)) return;                    // an ID in the making: nothing to search for
         timer = setTimeout(() => { render(); if (!visible().length) load(); }, 200);
       });
       gridEl.addEventListener("scroll", () => { if (gridEl.scrollTop + gridEl.clientHeight > gridEl.scrollHeight - 300) load(); });
@@ -1361,6 +1374,7 @@
       renderFiles(); renderQueue();
       runQueue();
       // FA's lists: from the last details page, else from the browse page (same values)
+      const gallery = loadGallery().catch(() => {});       // folders and the newest ID: as early as possible
       st.lists = l.uploadLists && l.uploadLists.cat ? l.uploadLists : null;
       if (!st.lists) {
         try {
@@ -1373,7 +1387,7 @@
       fillSel(themeSel, st.lists.atype, st.atype);
       fillSel(specSel, st.lists.species, st.species);
       st.cat = catSel.value; st.atype = themeSel.value; st.species = specSel.value;
-      loadGallery().catch(() => {});
+      await gallery;
     })();
   }
 })();

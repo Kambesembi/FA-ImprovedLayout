@@ -8,7 +8,7 @@ let pinCounts = { artists: 0, subs: 0 };
 
 $("version").textContent = "v" + chrome.runtime.getManifest().version;
 // the version opens the update page too (check by hand, release notes)
-const openUpdate = (e) => { if (e) e.preventDefault(); chrome.tabs.create({ url: chrome.runtime.getURL("update.html") }); window.close(); };
+const openUpdate = (e) => { if (e) e.preventDefault(); flush(); chrome.tabs.create({ url: chrome.runtime.getURL("update.html") }); window.close(); };
 $("version").addEventListener("click", openUpdate);
 
 function fmt(id, v) { return id === "thumb" ? Number(v).toFixed(2) + "×" : v + " px"; }
@@ -47,8 +47,16 @@ let pending = {}, timer = null;
 function save(patch) {
   Object.assign(pending, patch);
   clearTimeout(timer);
-  timer = setTimeout(() => { chrome.storage.sync.set(pending); pending = {}; }, 120);
+  timer = setTimeout(flush, 120);
 }
+// also when the popup closes inside that delay, so the last click isn't lost
+function flush() {
+  clearTimeout(timer); timer = null;
+  if (!Object.keys(pending).length) return;
+  chrome.storage.sync.set(pending);
+  pending = {};
+}
+window.addEventListener("pagehide", flush);
 
 chrome.storage.local.get({ pinnedSubs: [] }, (l) => {
   pinCounts.subs = (l.pinnedSubs || []).length;
@@ -79,9 +87,10 @@ $("langs").addEventListener("click", (e) => {
 $("reset").addEventListener("click", () => {
   clearTimeout(timer); pending = {};
   // keeps the pinned artists: Reset only restores the settings
+  // (one write over the current values – no clear() first, which would lose the pins if the popup closed in between)
   chrome.storage.sync.get({ pinned: [] }, ({ pinned }) => {
     const fresh = Object.assign({}, FAW_DEFAULTS, { pinned });
-    chrome.storage.sync.clear(() => chrome.storage.sync.set(fresh, () => render(fresh)));
+    chrome.storage.sync.set(fresh, () => render(fresh));
   });
 });
 

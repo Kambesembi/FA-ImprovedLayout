@@ -70,13 +70,14 @@
 
   // entries: artists { u: slug, n: name, a: avatar }   submissions { u: id, n: title, a: thumbnail }
   const herePath = location.pathname;
+  const decode = (s) => { try { return decodeURIComponent(s); } catch (e) { return s; } };   // "%E0" in an address throws
   const BARS = {
     artists: {
       side: "right", area: "sync", key: "pinned", titleKey: "pinnedArtists", deleteKey: "pinDelete",
       on: () => current.pins, list: () => current.pinned || [],
       href: (p) => "/user/" + encodeURIComponent(p.u) + "/",
       img: (p) => p.a || "https://a.furaffinity.net/" + encodeURIComponent(p.u) + ".gif",
-      isHere: (p) => { const m = herePath.match(/^\/(?:user|gallery|scraps|favorites|journals|commissions|stats)\/([^/]+)/i); return !!m && decodeURIComponent(m[1]).toLowerCase() === p.u; }
+      isHere: (p) => { const m = herePath.match(/^\/(?:user|gallery|scraps|favorites|journals|commissions|stats)\/([^/]+)/i); return !!m && decode(m[1]).toLowerCase() === p.u; }
     },
     subs: {
       side: "left", area: "local", key: "pinnedSubs", titleKey: "pinnedSubs", deleteKey: "pinDeleteSubs",
@@ -87,7 +88,8 @@
       isHere: (p) => herePath.startsWith("/view/" + p.u + "/")
     }
   };
-  const saveBar = (cfg, list) => chrome.storage[cfg.area].set({ [cfg.key]: list });
+  // a refused write (storage quota) puts the bar back to what is stored
+  const saveBar = (cfg, list) => chrome.storage[cfg.area].set({ [cfg.key]: list }, () => { if (chrome.runtime.lastError) renderBars(); });
 
   function renderBars() { for (const k in BARS) renderBar(BARS[k]); }
   function renderBar(cfg) {
