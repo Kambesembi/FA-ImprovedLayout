@@ -160,6 +160,12 @@ async function updateFolder(rel, pick) {
 
 // Firefox: let it look for the update (update_url) and install it
 function firefoxCheck(rel) {
+  // not every Firefox has requestUpdateCheck: it then finds the update by itself, or by hand in about:addons
+  if (typeof chrome.runtime.requestUpdateCheck !== "function") {
+    status(T("updFFAuto"));
+    $("manual").hidden = false;
+    return;
+  }
   status(T("updCheckFF"));
   chrome.runtime.requestUpdateCheck((res) => {
     const st = res && (res.status || res);

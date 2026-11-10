@@ -172,7 +172,15 @@ function rename(tabEl, w) {
   input.maxLength = 40;
   tabEl.replaceChildren(input);
   input.focus(); input.select();
-  const done = (ok) => { if (ok && input.value.trim()) w.name = input.value.trim(); save(true); renderTabs(); };
+  // once only: taking the input out of the page (renderTabs) fires "blur" in Chrome, which would save
+  // the text after Escape and save twice after Enter
+  let finished = false;
+  const done = (ok) => {
+    if (finished) return;
+    finished = true;
+    if (ok && input.value.trim()) w.name = input.value.trim();
+    save(true); renderTabs();
+  };
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") done(true); else if (e.key === "Escape") done(false); e.stopPropagation(); });
   input.addEventListener("blur", () => done(true));
 }

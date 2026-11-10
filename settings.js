@@ -14,7 +14,7 @@ const FAW_DEFAULTS = {
   bbExtra: true,      // extra BBCode buttons in comment boxes
   topbar: true,       // clear-all-notifications button + SFW switch in the top bar
   pins: true,         // pinned artists sidebar
-  pinned: [],         // [{ u: slug, n: name, a: avatar URL }]
+  pinned: [],         // [{ u: slug, n: name }] (avatar addresses: storage.local "pinAvatars")
   pinSubs: true,      // pinned submissions sidebar (list itself in storage.local "pinnedSubs")
   walls: false,       // reference walls (walls.html; data in storage.local "walls")
   uploader: true,     // quick upload form on /submit/ (uploader.js)
