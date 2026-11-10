@@ -138,6 +138,9 @@ chrome.storage.onChanged.addListener((c, area) => {
   if (area !== "local" || !c.walls) return;
   const json = JSON.stringify(c.walls.newValue || []);
   if (json === lastSaved) return;
+  // in the middle of moving or resizing an image: taken over when it's dropped (endDrag), so neither the
+  // other tab's change nor this move is lost
+  if (drag && drag.it) { remoteWalls = c.walls.newValue || []; return; }
   walls = c.walls.newValue || [];
   if (!walls.some((w) => w.id === activeId) && walls[0]) activeId = walls[0].id;
   renderTabs(); renderBoard();
@@ -241,7 +244,7 @@ function select(id) {
 }
 
 // pan / move / resize with one pointer handler
-let drag = null, lastPress = null;
+let drag = null, lastPress = null, remoteWalls = null;
 board.addEventListener("pointerdown", (e) => {
   if (e.button !== 0 && e.button !== 1) return;
   const it = e.button === 0 && itemOf(e.target);
@@ -293,7 +296,21 @@ window.addEventListener("pointermove", (e) => {
     Object.assign(drag.el.style, { width: w + "px", height: h + "px", left: drag.it.x + "px", top: drag.it.y + "px" });
   }
 });
-const endDrag = () => { if (!drag) return; drag = null; board.classList.remove("is-panning"); save(); };
+const endDrag = () => {
+  if (!drag) return;
+  const { it } = drag;
+  drag = null; board.classList.remove("is-panning");
+  if (remoteWalls) {                         // another tab changed the walls meanwhile: its state + this move
+    const wallId = activeId;
+    walls = remoteWalls; remoteWalls = null;
+    if (!walls.length) walls.push(newWall(1));
+    if (!walls.some((w) => w.id === activeId)) activeId = walls[0].id;
+    const w = walls.find((x) => x.id === wallId), at = w && it ? w.items.findIndex((i) => i.id === it.id) : -1;
+    if (at >= 0) w.items.push(Object.assign(w.items.splice(at, 1)[0], { x: it.x, y: it.y, w: it.w, h: it.h }));
+    renderBoard();
+  }
+  save();
+};
 window.addEventListener("pointerup", endDrag);
 window.addEventListener("pointercancel", endDrag);
 board.addEventListener("wheel", (e) => {
@@ -315,7 +332,7 @@ document.addEventListener("keydown", (e) => {
   if ((e.key === "Delete" || e.key === "Backspace") && selected) {
     wall().items = wall().items.filter((i) => i.id !== selected);
     selected = null; save(); renderBoard(); gcImages();
-  } else if (e.key === "f" || e.key === "F") fit();
+  } else if ((e.key === "f" || e.key === "F") && !e.ctrlKey && !e.metaKey && !e.altKey) fit();   // not on Ctrl+F
 });
 
 function bounds(items) {
@@ -342,25 +359,31 @@ async function exportPng() {
   document.body.appendChild(note);
   try {
     const b = bounds(items), pad = 40;
-    const scale = Math.min(1, 12000 / Math.max(b.w + 2 * pad, b.h + 2 * pad));   // browsers cap canvas size
+    // browsers cap the canvas: about 16000 px a side, and Firefox around 120 megapixels in all
+    const fw = b.w + 2 * pad, fh = b.h + 2 * pad;
+    const scale = Math.min(1, 12000 / Math.max(fw, fh), Math.sqrt(100e6 / (fw * fh)));
     const c = document.createElement("canvas");
     c.width = Math.ceil((b.w + 2 * pad) * scale); c.height = Math.ceil((b.h + 2 * pad) * scale);
     const g = c.getContext("2d");
     g.fillStyle = "#1b1c20"; g.fillRect(0, 0, c.width, c.height);
+    let skipped = 0;
     for (const it of items) {                 // in stacking order
       try {
         const blob = await blobOf(it.src);
         const bmp = await createImageBitmap(blob);
         g.drawImage(bmp, (it.x - b.x1 + pad) * scale, (it.y - b.y1 + pad) * scale, it.w * scale, it.h * scale);
-      } catch (err) { /* an image that can't be fetched is left out */ }
+      } catch (err) { skipped++; }            // an image that can't be fetched is left out (and said so)
     }
     const png = await new Promise((r) => c.toBlob(r, "image/png"));
+    if (!png) { flash(T("wallExportFail")); return; }   // the browser couldn't make a canvas this large
     const a = document.createElement("a");
     a.href = URL.createObjectURL(png);
     a.download = wall().name.replace(/[\\/:*?"<>|]+/g, "_") + ".png";
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-  } finally { note.remove(); }
+    if (skipped) flash(T("wallExportSkipped", skipped));
+  } catch (err) { flash(T("wallExportFail")); }
+  finally { note.remove(); }
 }
 
 // ---------------------------------------------------------------- drop & paste own images

@@ -120,7 +120,7 @@
 
 /* ======================================================================= full-screen image viewer */
 html.faw-lb-open { overflow: hidden; }
-#pageid-submission #submissionImg { cursor: zoom-in !important; }
+html.faw-lb-ready #pageid-submission #submissionImg { cursor: zoom-in !important; }
 .faw-lb { position: fixed; inset: 0; z-index: 2147483000; background: rgba(8, 8, 10, .94); }
 .faw-lb__stage {
   position: absolute; inset: 0; overflow: auto; padding: 16px; box-sizing: border-box;

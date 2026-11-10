@@ -8,6 +8,8 @@
 set -e
 cd "$(dirname "$0")"
 V=$(sed -n 's/.*"version": "\(.*\)".*/\1/p' manifest.json)
+VF=$(sed -n 's/.*"version": "\(.*\)".*/\1/p' manifest.firefox.json)
+[ "$V" = "$VF" ] || { echo "version differs: manifest.json $V, manifest.firefox.json $VF" >&2; exit 1; }
 FILES="background.js content.js features.css features.js uploader.js i18n.js popup.html popup.js settings.js ultrawide.css walls.html walls.js walls.css update.html update.js icon16.png icon32.png icon48.png icon128.png"
 rm -rf dist && mkdir -p dist/FA-ImprovedLayout dist/firefox
 cp $FILES manifest.json dist/FA-ImprovedLayout/
