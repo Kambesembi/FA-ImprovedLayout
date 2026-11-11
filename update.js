@@ -84,6 +84,10 @@ async function writeFile(root, path, buf) {
   await w.write(buf);
   await w.close();
 }
+// a write that never comes back (held up by an antivirus program) counts as blocked after 20 seconds
+const STAGE = ".faw-update";
+const within = (promise, what) => Promise.race([promise,
+  new Promise((_, rej) => setTimeout(() => rej(new Error(T("updBlocked", what))), 20000))]);
 async function removeFile(root, path) {
   try { const { d, name } = await dirFor(root, path, false); await d.removeEntry(name); } catch (e) { /* gone already */ }
 }
@@ -136,19 +140,35 @@ async function updateFolder(rel, pick) {
   }
   const nm = JSON.parse(new TextDecoder().decode(got.get("manifest.json")));
   if (nm.name !== "FA-ImprovedLayout" || nm.version !== rel.version) throw new Error("manifest.json " + nm.version);
-  // 2. write, manifest.json last; on a failure the old files go back
+  // 2. a trial run in a folder of its own (.faw-update): every file is written there, left alone for a
+  //    moment and read back. Antivirus programs check files as they are written and may hold a write up or
+  //    take the file away again – if that happens, it happens here, and the extension's own files are untouched.
   status(T("updWriting"));
   const order = [...got.keys()].filter((p) => p !== "manifest.json").concat("manifest.json");
+  const shaOf = new Map(files.map((f) => [f.path, f.sha]));
+  const intact = async (root, p) => { const b = await readFile(root, p); return !!b && (await gitSha(b)) === shaOf.get(p); };
+  const dropStage = () => dir.removeEntry(STAGE, { recursive: true }).catch(() => {});
+  bar.max = files.length * 3;
+  await dropStage();
+  try {
+    const stage = await within(dir.getDirectoryHandle(STAGE, { create: true }), STAGE);
+    for (const p of order) { await within(writeFile(stage, p, got.get(p)), p); bar.value++; }
+    await new Promise((r) => setTimeout(r, 2500));
+    for (const p of order) if (!(await within(intact(stage, p), p))) throw new Error(T("updBlocked", p));
+  } catch (e) { await dropStage(); throw e; }
+  await dropStage();
+  // 3. the real thing, manifest.json last; each file is read back, and on a failure the old files go back
   const backup = [];
   try {
     for (const p of order) {
       backup.push([p, await readFile(dir, p)]);
-      await writeFile(dir, p, got.get(p));
+      await within(writeFile(dir, p, got.get(p)), p);
+      if (!(await intact(dir, p))) throw new Error(T("updBlocked", p));
       bar.value++;
     }
   } catch (e) {
     for (const [p, old] of backup.reverse()) {
-      try { if (old) await writeFile(dir, p, old); else await removeFile(dir, p); } catch (e2) { /* best effort */ }
+      try { await within(old ? writeFile(dir, p, old) : removeFile(dir, p), p); } catch (e2) { /* best effort */ }
     }
     throw e;
   }

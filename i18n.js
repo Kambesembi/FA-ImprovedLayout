@@ -2,6 +2,7 @@
 // "auto" follows the browser language. Loaded before popup.js and before features.js.
 const FAW_I18N = {
   en: {
+    updBlocked: "{0} was blocked or removed while it was written – probably by an antivirus program",
     comicNone: "No other pages of this series found.", comicSearching: "Looking for the other pages…", loadAll: "Load all", updFFAuto: "Firefox updates the add-on by itself. To check right away: about:addons → gear icon → Check for Updates.",
     language: "Language", pinFull: "Couldn't save: the list of pinned artists is full (the browser's sync storage limit). Unpin some first.", postUnclear: "FA didn't show the comment. Check the list before sending it again.", entriesMore: "{0} entries so far – there are more", wallExportFail: "The wall is too large to export as one picture.", wallExportSkipped: "Exported without {0} image(s) that could not be loaded.", updGitFolder: "This folder is a git checkout. Update it with git instead, so local changes aren't overwritten.",
     // quick upload (uploader.js)
@@ -145,6 +146,7 @@ const FAW_I18N = {
     loadFailed: "Couldn't load submission ({0})", favFailed: "Fav failed", loadingFull: "loading full quality…"
   },
   de: {
+    updBlocked: "{0} wurde beim Schreiben blockiert oder wieder entfernt – vermutlich von einem Antivirenprogramm",
     comicNone: "Keine weiteren Seiten dieser Serie gefunden.", comicSearching: "Suche die anderen Seiten…", loadAll: "Alle laden", updFFAuto: "Firefox aktualisiert das Add-on von selbst. Sofort prüfen: about:addons → Zahnrad → Auf Updates überprüfen.",
     language: "Sprache", pinFull: "Nicht gespeichert: Die Liste der angehefteten Künstler ist voll (Limit des Browser-Sync-Speichers). Löse zuerst einige.", postUnclear: "FA zeigt den Kommentar nicht an. Prüfe die Liste, bevor du ihn noch einmal sendest.", entriesMore: "Bisher {0} Einträge – es gibt noch mehr", wallExportFail: "Die Wand ist zu groß, um sie als ein Bild zu exportieren.", wallExportSkipped: "Exportiert ohne {0} Bild(er), die nicht geladen werden konnten.", updGitFolder: "Dieser Ordner ist ein Git-Checkout. Aktualisiere ihn mit git, damit lokale Änderungen nicht überschrieben werden.",
     // quick upload (uploader.js)
@@ -280,6 +282,7 @@ const FAW_I18N = {
     loadFailed: "Einreichung konnte nicht geladen werden ({0})", favFailed: "Fav fehlgeschlagen", loadingFull: "lade volle Qualität…"
   },
   ru: {
+    updBlocked: "{0}: запись заблокирована или файл сразу удалён – вероятно, антивирусом",
     comicNone: "Других страниц этой серии не найдено.", comicSearching: "Поиск остальных страниц…", loadAll: "Загрузить все", updFFAuto: "Firefox обновляет дополнение сам. Проверить сразу: about:addons → значок шестерёнки → Проверить наличие обновлений.",
     language: "Язык", pinFull: "Не сохранено: список закреплённых художников заполнен (ограничение синхронизируемого хранилища браузера). Сначала открепите кого-нибудь.", postUnclear: "FA не показал комментарий. Проверьте список, прежде чем отправлять его снова.", entriesMore: "Пока записей: {0} – есть ещё", wallExportFail: "Доска слишком велика, чтобы экспортировать её одним изображением.", wallExportSkipped: "Экспортировано без изображений, которые не удалось загрузить: {0}.", updGitFolder: "Эта папка – git-репозиторий. Обновите её через git, чтобы не перезаписать локальные изменения.",
     // quick upload (uploader.js)
