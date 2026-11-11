@@ -16,7 +16,7 @@
   window.addEventListener("error", (e) => onStale(e, e.error || e.message));
 
   const DEFAULTS = {
-    enabled: true, ultrawide: true, design: true,
+    enabled: true, ultrawide: true, pageLayout: null, design: true,
     imageFit: true, quickView: true, comic: true, comicHorizontal: false, infinite: true,
     archiveLink: false, bbExtra: true, topbar: true, pins: true, pinned: [], pinSubs: true, walls: false, thumb: 1.25, lang: "auto"
   };
@@ -37,9 +37,9 @@
 
   let S = Object.assign({}, DEFAULTS);
 
-  // Master switch off → nothing runs. "Ultrawide layout" and "Bubbles design" gate their own parts;
+  // Master switch off → nothing runs. "Profile & submission layout" and "Bubbles design" gate their own parts;
   // the feature switches (quick view, comic reader, …) work with either.
-  const layoutOn = () => S.enabled && S.ultrawide;
+  const pagesOn = () => S.enabled && S.pageLayout;      // reworked profile / submission pages
   const designOn = () => S.enabled && S.design;
   // Each feature starts on its own: one that trips over a change in FA's markup doesn't take the rest down
   const start = (on, ...fns) => {
@@ -53,17 +53,18 @@
   const decode = (s) => { try { return decodeURIComponent(s); } catch (e) { return s; } };
   chrome.storage.sync.get(DEFAULTS, (s) => {
     S = s;
+    if (S.pageLayout == null) S.pageLayout = S.ultrawide;   // never set (before 2.9.1): it was part of "Ultrawide layout"
     if (!S.enabled) return;
     fawSetLang(S.lang);
     const sub = page === "pageid-submission", user = page === "pageid-userpage";
-    start(sub && S.imageFit && layoutOn(), initImageFit);
+    start(sub && S.imageFit && pagesOn(), initImageFit);
     start(sub, initLightbox);
     start(sub && S.comic, initComic);
     start(sub, initAjaxFav);
-    start(sub && layoutOn(), initMoreFromArtist, initSubmissionNav);
+    start(sub && pagesOn(), initMoreFromArtist, initSubmissionNav);
     start(S.infinite, initInfinite);
     start(S.archiveLink, initArchiveLink);
-    start(user && layoutOn(), initProfileGallery);
+    start(user && pagesOn(), initProfileGallery);
     start(user && designOn(), initWatcherRows);
     start(page === "pageid-watchlist", initWatchlistAll);
     start(true, initCommentToolbar, initExternalConfirm, indentReplies);

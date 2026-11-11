@@ -4,13 +4,14 @@ Browser extension that adapts Fur Affinity's modern theme to wide and ultrawide 
 
 ## Features
 
-- **Ultrawide layout** – centered page, width set by the side gutter; submission page with comments beside the image; profile split into two columns with a justified gallery box
+- **Ultrawide layout** – centered page, width set by the side gutter
+- **Profile & submission layout** (own switch) – submission page with comments beside the image; profile split into two columns with a justified gallery box
 - **Bubbles design** – rounded panels and buttons, chat-bubble comments and shouts, avatar tiles for watchers, coloured system messages
 - **Quick view** – click a thumbnail to open it in an overlay (fav, download, comments, ← → to browse); double-click opens the submission page
 - **Full-screen viewer** – click a submission image; click again to zoom at the cursor, drag to pan
 - **Comic reader** – loads a whole series on one page (vertical or horizontal)
 - **Infinite scroll** – galleries, favorites, browse, search and the submission inbox
-- **Pinned artists & submissions** – pin button next to Watch on profiles and on submissions / in the quick view; artists stay in a sidebar on the right, submissions on the left (drag to reorder)
+- **Pinned artists & submissions** – pin button next to Watch on profiles and on submissions / in the quick view; artists stay in a sidebar on the right, submissions on the left (drag to reorder); the sidebars fill the free space beside the page or stay narrow
 - **Top bar** – clear all notifications with one click (with confirmation), SFW/NSFW switch next to the notifications
 - **Reference walls** (optional) – PureRef-style boards: add submissions with one click or drop, paste and upload your own images, arrange and resize them, up to 12 named walls, open them from the top bar or pin one to the left sidebar, export as PNG
 - **Quick upload** – FA's three upload pages as one form: several files at once (one submission each, or set apart for their own description), keywords as chips, settings copied from one of your submissions, last choices remembered; the queue shows progress, survives a reload and checks your gallery before an unclear upload is sent again

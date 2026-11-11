@@ -34,6 +34,7 @@
   .row.main b { font-size: 13.5px; font-weight: 650; }
   .card .sub { border-top: 1px solid var(--line); transition: opacity .15s; }
   .card .sub.off { opacity: .4; pointer-events: none; }
+  fieldset:not(:disabled) .row:has(input:disabled) { opacity: .4; }
   .row.col { flex-direction: column; align-items: stretch; gap: 6px; }
   .label { display: flex; flex-direction: column; min-width: 0; }
   .label span { color: var(--muted); font-size: 11px; }
@@ -110,6 +111,15 @@
           <div class="head"><span data-i18n="thumbSize"></span><span class="val" id="thumb-v"></span></div>
           <input type="range" id="thumb" min="0.8" max="2" step="0.05">
         </div>
+      </div>
+    </section>
+
+    <section class="card" data-group="pageLayout">
+      <div class="row main">
+        <div class="label"><b data-i18n="pageLayout"></b><span data-i18n="pageLayoutSub"></span></div>
+        <label class="switch"><input type="checkbox" id="pageLayout"><i></i></label>
+      </div>
+      <div class="sub">
         <div class="row">
           <div class="label"><i data-i18n="imageFit"></i><span data-i18n="imageFitSub"></span></div>
           <label class="switch"><input type="checkbox" id="imageFit"><i></i></label>
@@ -153,6 +163,10 @@
       <div class="row">
         <div class="label"><i data-i18n="pinSubs"></i><span data-i18n="pinSubsSub"></span></div>
         <label class="switch"><input type="checkbox" id="pinSubs"><i></i></label>
+      </div>
+      <div class="row sub-row">
+        <div class="label"><i data-i18n="pinGrow"></i><span data-i18n="pinGrowSub"></span></div>
+        <label class="switch"><input type="checkbox" id="pinGrow"><i></i></label>
       </div>
       <div class="row">
         <div class="label"><i data-i18n="walls"></i><span data-i18n="wallsSub"></span></div>

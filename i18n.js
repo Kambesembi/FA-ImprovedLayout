@@ -2,6 +2,7 @@
 // "auto" follows the browser language. Loaded before popup.js and before features.js.
 const FAW_I18N = {
   en: {
+    pageLayout: "Profile & submission layout", pageLayoutSub: "Comments beside the image, profile in two columns", pinGrow: "Sidebars grow", pinGrowSub: "Fill the free space beside the page; off: always the narrow size",
     updBlocked: "{0} was blocked or removed while it was written – probably by an antivirus program",
     comicNone: "No other pages of this series found.", comicSearching: "Looking for the other pages…", loadAll: "Load all", updFFAuto: "Firefox updates the add-on by itself. To check right away: about:addons → gear icon → Check for Updates.",
     language: "Language", pinFull: "Couldn't save: the list of pinned artists is full (the browser's sync storage limit). Unpin some first.", postUnclear: "FA didn't show the comment. Check the list before sending it again.", entriesMore: "{0} entries so far – there are more", wallExportFail: "The wall is too large to export as one picture.", wallExportSkipped: "Exported without {0} image(s) that could not be loaded.", updGitFolder: "This folder is a git checkout. Update it with git instead, so local changes aren't overwritten.",
@@ -99,7 +100,7 @@ const FAW_I18N = {
     // popup
     
     masterTitle: "Turn the whole extension on / off",
-    ultrawide: "Ultrawide layout", ultrawideSub: "Wide page, comments beside the image, profile layout",
+    ultrawide: "Ultrawide layout", ultrawideSub: "Centered wide page; the side gutter sets its width",
     gutter: "Side gutter", thumbSize: "Thumbnail size", 
     imageFit: "Fit image to screen", imageFitSub: "Click the image for a full-screen view",
     design: "Bubbles design", designSub: "Comments, shouts, buttons, panels, comment box, arrows, avatars for watchers",
@@ -146,6 +147,7 @@ const FAW_I18N = {
     loadFailed: "Couldn't load submission ({0})", favFailed: "Fav failed", loadingFull: "loading full quality…"
   },
   de: {
+    pageLayout: "Profil- & Einreichungs-Layout", pageLayoutSub: "Kommentare neben dem Bild, Profil in zwei Spalten", pinGrow: "Seitenleisten wachsen mit", pinGrowSub: "Füllen den freien Platz neben der Seite; aus: immer die schmale Größe",
     updBlocked: "{0} wurde beim Schreiben blockiert oder wieder entfernt – vermutlich von einem Antivirenprogramm",
     comicNone: "Keine weiteren Seiten dieser Serie gefunden.", comicSearching: "Suche die anderen Seiten…", loadAll: "Alle laden", updFFAuto: "Firefox aktualisiert das Add-on von selbst. Sofort prüfen: about:addons → Zahnrad → Auf Updates überprüfen.",
     language: "Sprache", pinFull: "Nicht gespeichert: Die Liste der angehefteten Künstler ist voll (Limit des Browser-Sync-Speichers). Löse zuerst einige.", postUnclear: "FA zeigt den Kommentar nicht an. Prüfe die Liste, bevor du ihn noch einmal sendest.", entriesMore: "Bisher {0} Einträge – es gibt noch mehr", wallExportFail: "Die Wand ist zu groß, um sie als ein Bild zu exportieren.", wallExportSkipped: "Exportiert ohne {0} Bild(er), die nicht geladen werden konnten.", updGitFolder: "Dieser Ordner ist ein Git-Checkout. Aktualisiere ihn mit git, damit lokale Änderungen nicht überschrieben werden.",
@@ -242,7 +244,7 @@ const FAW_I18N = {
     upApart: "Eigener Text", upApartTip: "Eigene Beschreibung und Keywords: diese Datei wartet und bekommt ein eigenes Formular, sobald die anderen gesendet sind", upApartBadge: "eigenes Formular", upNextApart: "In der Warteschlange. Als Nächstes: {0} zurückgestellte Datei(en) – gib ihnen eine eigene Beschreibung und Keywords.", upGendersForm: "Geschlechter: wie Formular", upGendersOwn: "Geschlechter: {0}", upGendersNone: "Geschlechter: keine", upFormGenders: "wie Formular", upAnimated: "Animiert – nur das erste Bild wird hochgeladen", upTooLarge: "Über FAs {0} MB: {1}", upCantReadFile: "Bild nicht lesbar: {0}", upLoggedOut: "Du bist bei FA abgemeldet – melde dich an, dann „Erneut versuchen“", upKindNo: "FA nimmt diese Art von Upload gerade nicht an", upCheck: "FA will eine Browser-Prüfung – lade die Seite neu, dann „Erneut versuchen“", upNetwork: "Keine Verbindung zu FA", upNetRetry: "Keine Verbindung – neuer Versuch in {0} s", upChecking: "Sehe in deiner Galerie nach…", upMaybe: "FA hat es vielleicht trotzdem gespeichert; „Erneut versuchen“ sieht zuerst in deiner Galerie nach", upInterrupted: "beim Senden der Details unterbrochen", upRefused: "FA hat das Details-Formular zurückgeschickt", upEdit: "Bearbeiten", upClear: "Fertige entfernen", upOtherTab: "Ein anderer FA-Tab sendet die Uploads.", upNoUser: "Dein Benutzername wurde auf dieser Seite nicht gefunden", upKwFileFull: "die Keywords für „{0}“ sind über 500 Zeichen", upGone: "Die Datei ist weg – füge sie neu hinzu", upUngrouped: "Ohne Gruppe",
     
     masterTitle: "Erweiterung komplett ein- / ausschalten",
-    ultrawide: "Ultrawide-Layout", ultrawideSub: "Breite, Kommentare neben dem Bild, Profil-Layout",
+    ultrawide: "Ultrawide-Layout", ultrawideSub: "Zentrierte breite Seite; der Seitenrand bestimmt die Breite",
     gutter: "Seitenrand", thumbSize: "Vorschaugröße", 
     imageFit: "Bild an Bildschirm anpassen", imageFitSub: "Klick aufs Bild öffnet die Vollbildansicht",
     design: "Bubbles-Design", designSub: "Kommentare, Shouts, Buttons, Panels, Kommentarfeld, Pfeile, Avatare der Watcher",
@@ -282,6 +284,7 @@ const FAW_I18N = {
     loadFailed: "Einreichung konnte nicht geladen werden ({0})", favFailed: "Fav fehlgeschlagen", loadingFull: "lade volle Qualität…"
   },
   ru: {
+    pageLayout: "Макет профиля и работ", pageLayoutSub: "Комментарии рядом с изображением, профиль в две колонки", pinGrow: "Панели растягиваются", pinGrowSub: "Занимают свободное место рядом со страницей; выкл.: всегда узкие",
     updBlocked: "{0}: запись заблокирована или файл сразу удалён – вероятно, антивирусом",
     comicNone: "Других страниц этой серии не найдено.", comicSearching: "Поиск остальных страниц…", loadAll: "Загрузить все", updFFAuto: "Firefox обновляет дополнение сам. Проверить сразу: about:addons → значок шестерёнки → Проверить наличие обновлений.",
     language: "Язык", pinFull: "Не сохранено: список закреплённых художников заполнен (ограничение синхронизируемого хранилища браузера). Сначала открепите кого-нибудь.", postUnclear: "FA не показал комментарий. Проверьте список, прежде чем отправлять его снова.", entriesMore: "Пока записей: {0} – есть ещё", wallExportFail: "Доска слишком велика, чтобы экспортировать её одним изображением.", wallExportSkipped: "Экспортировано без изображений, которые не удалось загрузить: {0}.", updGitFolder: "Эта папка – git-репозиторий. Обновите её через git, чтобы не перезаписать локальные изменения.",
@@ -378,7 +381,7 @@ const FAW_I18N = {
     upApart: "Свой текст", upApartTip: "Своё описание и ключевые слова: файл подождёт и получит отдельную форму, когда остальные будут отправлены", upApartBadge: "своя форма", upNextApart: "В очереди. Дальше: отложенные файлы ({0}) — задайте им своё описание и ключевые слова.", upGendersForm: "Пол: как в форме", upGendersOwn: "Пол: {0}", upGendersNone: "Пол: нет", upFormGenders: "как в форме", upAnimated: "Анимация — загрузится только первый кадр", upTooLarge: "Больше {0} МБ (лимит FA): {1}", upCantReadFile: "Не удаётся прочитать изображение: {0}", upLoggedOut: "Вы вышли из FA — войдите и нажмите «Повторить»", upKindNo: "FA сейчас не принимает такой тип работ", upCheck: "FA требует проверку браузера — перезагрузите страницу и нажмите «Повторить»", upNetwork: "Нет связи с FA", upNetRetry: "Нет связи — новая попытка через {0} с", upChecking: "Проверяю вашу галерею…", upMaybe: "возможно, FA всё же сохранил работу; «Повторить» сначала проверит галерею", upInterrupted: "прервано при отправке данных", upRefused: "FA вернул форму с данными", upEdit: "Изменить", upClear: "Убрать готовые", upOtherTab: "Загрузки отправляет другая вкладка FA.", upNoUser: "Не удалось найти ваше имя пользователя на этой странице", upKwFileFull: "ключевые слова для «{0}» длиннее 500 символов", upGone: "Файл пропал — добавьте его снова", upUngrouped: "Без группы",
     
     masterTitle: "Включить / выключить расширение",
-    ultrawide: "Широкий макет", ultrawideSub: "Ширина, комментарии рядом с изображением, макет профиля",
+    ultrawide: "Широкий макет", ultrawideSub: "Широкая страница по центру; ширину задаёт боковой отступ",
     gutter: "Боковой отступ", thumbSize: "Размер миниатюр", 
     imageFit: "Вписать изображение в экран", imageFitSub: "Нажмите на изображение для полноэкранного просмотра",
     design: "Дизайн «Bubbles»", designSub: "Комментарии, шауты, кнопки, панели, поле комментария, стрелки, аватары подписчиков",

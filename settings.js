@@ -1,7 +1,9 @@
 // Shared defaults for the popup (content.js / features.js keep their own copies)
 const FAW_DEFAULTS = {
   enabled: true,
-  ultrawide: true,    // main switch: ultrawide layout
+  ultrawide: true,    // main switch: ultrawide layout (page width)
+  pageLayout: true,   // main switch: reworked profile and submission pages (unset before 2.9.1: follows ultrawide)
+  pinGrow: true,      // pin sidebars fill the free space beside the page (off: always the minimum width)
   design: true,       // main switch: bubbles design
   gutter: 24,         // px
   thumb: 1.25,        // thumbnail scale

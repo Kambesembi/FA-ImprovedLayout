@@ -2,7 +2,7 @@
 // their next load. Texts come from i18n.js via data-i18n / data-i18n-title attributes.
 const $ = (id) => document.getElementById(id);
 const RANGES = ["gutter", "thumb"];
-const CHECKS = ["ultrawide", "design", "imageFit", "quickView", "comic", "comicHorizontal", "infinite", "bbExtra", "topbar", "pins", "pinSubs", "walls", "uploader", "archiveLink"];
+const CHECKS = ["ultrawide", "pageLayout", "pinGrow", "design", "imageFit", "quickView", "comic", "comicHorizontal", "infinite", "bbExtra", "topbar", "pins", "pinSubs", "walls", "uploader", "archiveLink"];
 const PINBAR = 100;   // same as content.js: minimum gutter while a pin sidebar is shown
 let pinCounts = { artists: 0, subs: 0 };
 
@@ -40,6 +40,8 @@ function syncDependents() {
   $("gutter").min = bar ? PINBAR : 0;
   $("gutter-v").textContent = fmt("gutter", readSlider("gutter"));
   document.querySelector('[data-group="ultrawide"] .sub').classList.toggle("off", !$("ultrawide").checked);
+  document.querySelector('[data-group="pageLayout"] .sub').classList.toggle("off", !$("pageLayout").checked);
+  $("pinGrow").disabled = !$("pins").checked && !$("pinSubs").checked;   // nothing to size without a sidebar
 }
 
 // Debounced: storage.sync limits writes per minute, sliders fire many input events
@@ -60,7 +62,11 @@ window.addEventListener("pagehide", flush);
 
 chrome.storage.local.get({ pinnedSubs: [] }, (l) => {
   pinCounts.subs = (l.pinnedSubs || []).length;
-  chrome.storage.sync.get(FAW_DEFAULTS, (s) => { pinCounts.artists = (s.pinned || []).length; render(s); });
+  // pageLayout never set (before 2.9.1): it was part of "Ultrawide layout", so it starts as that switch is
+  chrome.storage.sync.get(Object.assign({}, FAW_DEFAULTS, { pageLayout: null }), (s) => {
+    if (s.pageLayout == null) s.pageLayout = s.ultrawide;
+    pinCounts.artists = (s.pinned || []).length; render(s);
+  });
 });
 
 for (const id of RANGES) {
