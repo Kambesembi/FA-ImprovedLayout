@@ -68,6 +68,13 @@ jobs:
           Get-MpComputerStatus | Select-Object AntivirusSignatureVersion | Format-List
           New-Item -ItemType Directory scan | Out-Null
           Get-ChildItem dist\*.zip | ForEach-Object { Expand-Archive $_.FullName -DestinationPath (Join-Path scan $_.BaseName) }
+          # calibration (temporary): the released 2.9.0 zip, which Defender flagged on a user's machine
+          New-Item -ItemType Directory calib | Out-Null
+          Invoke-WebRequest "https://github.com/Kambesembi/FA-ImprovedLayout/releases/download/v2.9.0/FA-ImprovedLayout-v2.9.0-chrome.zip" -OutFile calib\old.zip
+          Expand-Archive calib\old.zip -DestinationPath calib\old
+          Get-MpPreference | Select-Object MAPSReporting, CloudBlockLevel, SubmitSamplesConsent | Format-List
+          & $mp -Scan -ScanType 3 -File "$PWD\calib" -DisableRemediation | Out-Host
+          Write-Host "calibration exit code: $LASTEXITCODE"
           $bad = $false
           foreach ($t in @("$PWD\dist", "$PWD\scan")) {
             & $mp -Scan -ScanType 3 -File $t -DisableRemediation | Out-Host
