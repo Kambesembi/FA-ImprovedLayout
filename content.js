@@ -8,7 +8,7 @@
   window.addEventListener("error", (e) => stale(e, e.error || e.message));
   const DEFAULTS = {
     enabled: true, ultrawide: true, design: true,
-    gutter: 24, thumb: 1.25, pins: true, pinned: [], pinSubs: true, walls: false, lang: "auto"
+    pageLayout: null, pinGrow: true, gutter: 24, thumb: 1.25, pins: true, pinned: [], pinSubs: true, walls: false, lang: "auto"
   };
   const PINBAR = 100;   // minimum side gutter while a pin sidebar is shown (sidebar ≥76px + margins); popup.js mirrors it
   let pinnedSubs = [];  // pinned submissions live in storage.local (more room than sync)
@@ -29,13 +29,17 @@
   }
   const VARS = ["--faw-gutter", "--faw-thumb"];
   const layoutOn = () => current.enabled && current.ultrawide;
+  const pagesOn = () => current.enabled && current.pageLayout;      // reworked profile / submission pages
   const designOn = () => current.enabled && current.design;
 
   // Master switch off → no classes, no variables, no DOM changes: FA as if the extension weren't there.
   function apply(s) {
     s = Object.assign({}, DEFAULTS, s);
+    if (s.pageLayout == null) s.pageLayout = s.ultrawide;   // never set (before 2.9.1): it was part of "Ultrawide layout"
     current = s;
     root.classList.toggle("faw-layout", layoutOn());
+    root.classList.toggle("faw-pages", pagesOn());
+    root.classList.toggle("faw-bars-fixed", s.enabled && !s.pinGrow);
     root.classList.toggle("faw-design", designOn());
     if (layoutOn()) {
       root.style.setProperty("--faw-gutter", (barsShown() ? Math.max(s.gutter, PINBAR) : s.gutter) + "px");
@@ -176,7 +180,7 @@
   const moved = [];
   function splitSubmissionPanel() {
     if (!document.body || document.body.id !== "pageid-submission") return;
-    const want = layoutOn();
+    const want = pagesOn();
     let panel = document.getElementById("faw-subinfo");
 
     if (!want) {                                   // put everything back where FA had it
@@ -252,7 +256,7 @@
 
   // ---- profile page: tag the left-column sections so CSS can pair Featured | Gallery reliably
   function tagProfile() {
-    if (!layoutOn() || !document.body || document.body.id !== "pageid-userpage") return;
+    if (!pagesOn() || !document.body || document.body.id !== "pageid-userpage") return;
     const lc = document.querySelector(".userpage-layout-left-col-content");
     if (!lc) return;
     let featured = null, gallery = null;
