@@ -72,6 +72,8 @@ jobs:
           New-Item -ItemType Directory calib | Out-Null
           Invoke-WebRequest "https://github.com/Kambesembi/FA-ImprovedLayout/releases/download/v2.9.0/FA-ImprovedLayout-v2.9.0-chrome.zip" -OutFile calib\old.zip
           Expand-Archive calib\old.zip -DestinationPath calib\old
+          # cloud-delivered protection, as on a home PC (off by default on the hosted machine)
+          Set-MpPreference -MAPSReporting Advanced -CloudBlockLevel High -CloudExtendedTimeout 50 -SubmitSamplesConsent SendAllSamples
           Get-MpPreference | Select-Object MAPSReporting, CloudBlockLevel, SubmitSamplesConsent | Format-List
           & $mp -Scan -ScanType 3 -File "$PWD\calib" -DisableRemediation | Out-Host
           Write-Host "calibration exit code: $LASTEXITCODE"
