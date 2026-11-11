@@ -20,9 +20,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Only this job publishes the release.
-    permissions:
-      contents: write
+    outputs:
+      version: ${{ steps.build.outputs.version }}
+      release: ${{ steps.build.outputs.release }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,14 +32,15 @@ jobs:
           for f in *.js; do node --check "$f"; done
           node -e 'for (const f of ["manifest.json", "manifest.firefox.json"]) JSON.parse(require("fs").readFileSync(f, "utf8"))'
       - name: Build
+        id: build
         run: |
           sh build.sh
           V=$(sed -n 's/.*"version": "\(.*\)".*/\1/p' manifest.json)
-          echo "VERSION=$V" >> "$GITHUB_ENV"
+          echo "version=$V" >> "$GITHUB_OUTPUT"
           if git rev-parse -q --verify "refs/tags/v$V" >/dev/null; then
             echo "::notice::v$V is released already: packages built, no release. Raise the version in both manifests to publish one."
-          else
-            echo "RELEASE=1" >> "$GITHUB_ENV"
+          elif [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            echo "release=1" >> "$GITHUB_OUTPUT"
           fi
       - uses: actions/upload-artifact@v4
         with:
@@ -47,11 +48,53 @@ jobs:
           path: |
             dist/*.zip
             dist/updates.json
+
+  # Microsoft Defender has to pass the packages before anything is published: a file it takes for malware
+  # gets the download deleted on Windows and the in-extension update blocked (as happened with 2.9.0).
+  scan:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: dist
+      - name: Microsoft Defender scan
+        shell: pwsh
+        run: |
+          $mp = "$env:ProgramFiles\Windows Defender\MpCmdRun.exe"
+          Get-MpComputerStatus | Select-Object AMServiceEnabled, RealTimeProtectionEnabled, AntivirusSignatureVersion, AntivirusSignatureLastUpdated | Format-List
+          & $mp -SignatureUpdate | Out-Host
+          Get-MpComputerStatus | Select-Object AntivirusSignatureVersion | Format-List
+          New-Item -ItemType Directory scan | Out-Null
+          Get-ChildItem dist\*.zip | ForEach-Object { Expand-Archive $_.FullName -DestinationPath (Join-Path scan $_.BaseName) }
+          $bad = $false
+          foreach ($t in @("$PWD\dist", "$PWD\scan")) {
+            & $mp -Scan -ScanType 3 -File $t -DisableRemediation | Out-Host
+            if ($LASTEXITCODE -ne 0) { $bad = $true }
+          }
+          Get-MpThreatDetection | Select-Object -Last 20 | Format-List ThreatID, Resources, InitialDetectionTime
+          Get-MpThreat | Format-List ThreatName, SeverityID, Resources
+          if ($bad) { Write-Host "::error::Microsoft Defender flags a file in the packages"; exit 1 }
+
+  release:
+    needs: [build, scan]
+    if: needs.build.outputs.release == '1'
+    runs-on: ubuntu-latest
+    # Only this job publishes the release.
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: dist
       # Firefox installs only add-ons signed by Mozilla. With the two API secrets (addons.mozilla.org →
       # Tools → Manage API Keys) the package is signed here; without them the release gets the zips only
       # and the signed .xpi and updates.json are added by hand.
       - name: Sign for Firefox
-        if: env.RELEASE == '1'
         env:
           WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
           WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
@@ -71,7 +114,6 @@ jobs:
             rm dist/updates.json
           fi
       - uses: softprops/action-gh-release@v2
-        if: env.RELEASE == '1'
         with:
           tag_name: v${{ env.VERSION }}
           name: FA-ImprovedLayout ${{ env.VERSION }}
