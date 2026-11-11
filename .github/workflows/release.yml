@@ -1,0 +1,80 @@
+name: Build and release
+
+# Every push to main builds the packages. A release is published when the version in manifest.json has no
+# tag yet – so a release is made by raising the version (in both manifests) and pushing.
+# The version can't be counted up automatically as in FA-Mobile: the update page of the extension reads the
+# files of the release tag and checks that manifest.json there carries the same version as the tag.
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Only this job publishes the release.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check
+        run: |
+          for f in *.js; do node --check "$f"; done
+          node -e 'for (const f of ["manifest.json", "manifest.firefox.json"]) JSON.parse(require("fs").readFileSync(f, "utf8"))'
+      - name: Build
+        run: |
+          sh build.sh
+          V=$(sed -n 's/.*"version": "\(.*\)".*/\1/p' manifest.json)
+          echo "VERSION=$V" >> "$GITHUB_ENV"
+          if git rev-parse -q --verify "refs/tags/v$V" >/dev/null; then
+            echo "::notice::v$V is released already: packages built, no release. Raise the version in both manifests to publish one."
+          else
+            echo "RELEASE=1" >> "$GITHUB_ENV"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: |
+            dist/*.zip
+            dist/updates.json
+      # Firefox installs only add-ons signed by Mozilla. With the two API secrets (addons.mozilla.org →
+      # Tools → Manage API Keys) the package is signed here; without them the release gets the zips only
+      # and the signed .xpi and updates.json are added by hand.
+      - name: Sign for Firefox
+        if: env.RELEASE == '1'
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          if [ -z "$WEB_EXT_API_KEY" ] || [ -z "$WEB_EXT_API_SECRET" ]; then
+            echo "::warning::No AMO_JWT_ISSUER / AMO_JWT_SECRET secrets: the release has no signed .xpi and no updates.json, so Firefox won't update by itself."
+            rm dist/updates.json
+            exit 0
+          fi
+          mkdir -p firefox-src signed
+          unzip -q "dist/FA-ImprovedLayout-v$VERSION-firefox.zip" -d firefox-src
+          if npx --yes web-ext@8 sign --source-dir firefox-src --artifacts-dir signed --channel unlisted \
+               --approval-timeout 900000 && ls signed/*.xpi >/dev/null 2>&1; then
+            mv signed/*.xpi "dist/FA-ImprovedLayout-v$VERSION-firefox.xpi"
+          else
+            echo "::warning::Signing at addons.mozilla.org failed: the release has no signed .xpi and no updates.json. Sign the firefox.zip by hand and add both files."
+            rm dist/updates.json
+          fi
+      - uses: softprops/action-gh-release@v2
+        if: env.RELEASE == '1'
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: FA-ImprovedLayout ${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: dist/*

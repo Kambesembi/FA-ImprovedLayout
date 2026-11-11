@@ -39,4 +39,6 @@ No data is collected. Settings are stored in the browser's own storage; the exte
 
 ## Building
 
-`./build.sh` creates both packages and Firefox's `updates.json` in `dist/` (`manifest.firefox.json` becomes the Firefox manifest). A release gets the two zips, the AMO-signed `FA-ImprovedLayout-vX-firefox.xpi` and `updates.json`.
+`./build.sh` creates both packages and Firefox's `updates.json` in `dist/` (`manifest.firefox.json` becomes the Firefox manifest).
+
+Releases are made by GitHub Actions (`.github/workflows/release.yml`): every push to `main` builds the packages, and when the version in `manifest.json` has no tag yet, release `vX` is published with the two zips. To release, raise the version in both manifests and push. With the repository secrets `AMO_JWT_ISSUER` and `AMO_JWT_SECRET` (addons.mozilla.org → Tools → Manage API Keys) the Firefox package is signed there too and the release also gets `FA-ImprovedLayout-vX-firefox.xpi` and `updates.json`; without them those two are added by hand.
