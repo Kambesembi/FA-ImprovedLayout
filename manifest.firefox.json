@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FA-ImprovedLayout",
-  "version": "2.8.0",
+  "version": "2.9.0",
   "description": "Fur Affinity for wide screens: centered wide layout, modern design, quick view, comic reader, infinite scroll and more.",
   "permissions": [
     "storage",
