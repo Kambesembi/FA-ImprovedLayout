@@ -49,8 +49,9 @@ jobs:
             dist/*.zip
             dist/updates.json
 
-  # Microsoft Defender has to pass the packages before anything is published: a file it takes for malware
-  # gets the download deleted on Windows and the in-extension update blocked (as happened with 2.9.0).
+  # Microsoft Defender has to pass the packages before anything is published. A partial check only: it catches
+  # what Defender's signatures know. The 2.9.0 zip, which Defender deleted on a user's PC after a download in
+  # Chrome (update.js taken for a trojan), passed this scan, so a clean result here is no guarantee.
   scan:
     needs: build
     runs-on: windows-latest
@@ -68,15 +69,8 @@ jobs:
           Get-MpComputerStatus | Select-Object AntivirusSignatureVersion | Format-List
           New-Item -ItemType Directory scan | Out-Null
           Get-ChildItem dist\*.zip | ForEach-Object { Expand-Archive $_.FullName -DestinationPath (Join-Path scan $_.BaseName) }
-          # calibration (temporary): the released 2.9.0 zip, which Defender flagged on a user's machine
-          New-Item -ItemType Directory calib | Out-Null
-          Invoke-WebRequest "https://github.com/Kambesembi/FA-ImprovedLayout/releases/download/v2.9.0/FA-ImprovedLayout-v2.9.0-chrome.zip" -OutFile calib\old.zip
-          Expand-Archive calib\old.zip -DestinationPath calib\old
           # cloud-delivered protection, as on a home PC (off by default on the hosted machine)
           Set-MpPreference -MAPSReporting Advanced -CloudBlockLevel High -CloudExtendedTimeout 50 -SubmitSamplesConsent SendAllSamples
-          Get-MpPreference | Select-Object MAPSReporting, CloudBlockLevel, SubmitSamplesConsent | Format-List
-          & $mp -Scan -ScanType 3 -File "$PWD\calib" -DisableRemediation | Out-Host
-          Write-Host "calibration exit code: $LASTEXITCODE"
           $bad = $false
           foreach ($t in @("$PWD\dist", "$PWD\scan")) {
             & $mp -Scan -ScanType 3 -File $t -DisableRemediation | Out-Host
