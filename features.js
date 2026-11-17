@@ -1187,6 +1187,7 @@
   // ------------------------------------------------------------------ external links: in-page confirmation
   // Replaces FA's "You are leaving Fur Affinity" interstitial with the same overlay as Archived Gallery.
   function initExternalConfirm() {
+    if (/^\/externalurl\/?$/.test(location.pathname)) return;   // FA's own warning page: one warning is enough
     const handler = (e) => {
       if (e.defaultPrevented) return;
       if (e.type === "click" && (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey)) return;
@@ -1196,6 +1197,11 @@
       let url;
       try { url = new URL(a.getAttribute("href"), location.href); } catch (err) { return; }
       if (!/^https?:$/.test(url.protocol)) return;
+      // FA wraps links in descriptions and comments as /externalurl/?q=<address> (its own warning page)
+      if (/(^|\.)furaffinity\.net$/i.test(url.hostname) && /^\/externalurl\/?$/.test(url.pathname)) {
+        try { url = new URL(url.searchParams.get("q") || ""); } catch (err) { return; }
+        if (!/^https?:$/.test(url.protocol)) return;
+      }
       if (/(^|\.)(furaffinity\.net|facdn\.net)$/i.test(url.hostname)) return;
       e.preventDefault();
       e.stopImmediatePropagation();
