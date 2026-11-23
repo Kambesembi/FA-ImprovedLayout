@@ -20,6 +20,7 @@
   button.ghost { color: var(--text); background: transparent; border-color: var(--line); padding: 8px 14px; font-weight: 500; font-size: 13px; }
   button:disabled { opacity: .5; cursor: default; }
   a { color: var(--accent); }
+  a.btn { font: 600 14px/1 system-ui, "Segoe UI", sans-serif; padding: 11px 22px; border-radius: 9px; color: #1b1408; background: var(--accent); text-decoration: none; }
   #status { min-height: 1.5em; }
   #status.ok { color: var(--ok); }
   #status.bad { color: var(--err); }
@@ -34,13 +35,10 @@
     <div class="card">
       <div class="vers"><span id="cur"></span><span id="latest"></span></div>
       <p id="status"></p>
-      <progress id="bar" max="1" value="0" hidden></progress>
       <div class="row">
-        <button id="go" hidden></button>
-        <button id="refolder" class="ghost" hidden data-i18n="updChangeFolder"></button>
+        <a id="download" class="btn" href="#" hidden></a>
         <a id="manual" href="#" target="_blank" rel="noopener" hidden data-i18n="updManual"></a>
       </div>
-      <p id="folder" class="hint" hidden></p>
       <p id="howto" class="hint" hidden></p>
     </div>
     <div class="card" id="notesCard" hidden>

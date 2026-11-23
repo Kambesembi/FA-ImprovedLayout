@@ -29,14 +29,14 @@ Download the latest package from [Releases](../../releases/latest).
 
 ## Updates
 
-The toolbar icon shows **↑** when a newer release is out; the popup then offers the update, and clicking the version number opens the update page any time.
+The toolbar icon shows **↑** when a newer release is out; the popup then links to the update page (clicking the version number opens it any time), which shows the release notes and the download for your browser.
 
-- **Chrome / Edge / Brave:** the update page writes the new release into the extension folder and restarts the extension. Browsers don't let an extension replace itself, so the first time you pick the folder you loaded (its path is shown under `chrome://extensions`); after that an update is one click. Every file is checked against GitHub's hash before anything is written.
-- **Firefox:** from 2.8.0 on, Firefox updates the add-on by itself; **Update now** makes it check right away. Older versions: install the newer `.xpi` once.
+- **Chrome / Edge / Brave:** unzip the new `…-chrome.zip`, copy its files over your extension folder, then click the reload icon under `chrome://extensions`. Don't remove the extension to update – that deletes your pinned items and walls.
+- **Firefox:** the signed `.xpi` updates by itself; or open the newer `.xpi` with Firefox.
 
 ## Privacy
 
-No data is collected. Settings are stored in the browser's own storage; the extension only talks to furaffinity.net, opens furarchiver.net only after you confirm, and it checks GitHub for a newer release (the update page downloads it from there).
+No data is collected. Settings are stored in the browser's own storage; the extension only talks to furaffinity.net, opens furarchiver.net only after you confirm, and it checks GitHub for a newer release .
 
 ## Building
 

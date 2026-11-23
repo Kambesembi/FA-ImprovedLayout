@@ -2,8 +2,21 @@
 // "auto" follows the browser language. Loaded before popup.js and before features.js.
 const FAW_I18N = {
   en: {
+    updDownload: "Download {0}",
+    updHowChrome: "Unzip the download and copy its files over the extension folder (the one you loaded with “Load unpacked”), then click the reload icon under chrome://extensions. Don't remove the extension: that deletes your pins and walls.",
+    updHowFF: "Open the downloaded .xpi with Firefox and confirm. A signed install also updates by itself.",
+    upTabGeneral: "General text",
+    upTabFile: "File {0}",
+    upNeedDescFor: "write a description for “{0}”",
+    upNeedKwFor: "add at least 3 keywords for “{0}”",
+    upFooterTip: "Your submission footer (profile settings) – FA adds it below the description",
+    upDoneTitle: "Uploaded",
+    upDoneTitleN: "{0} submissions uploaded",
+    upDoneOpen: "Open",
+    postedOn: "Posted",
+    reply: "Reply",
+    replyingTo: "Replying to {0}",
     pageLayout: "Profile & submission layout", pageLayoutSub: "Comments beside the image, profile in two columns", pinGrow: "Sidebars grow", pinGrowSub: "Fill the free space beside the page; off: always the narrow size",
-    updBlocked: "{0} was blocked or removed while it was written – probably by an antivirus program",
     comicNone: "No other pages of this series found.", comicSearching: "Looking for the other pages…", loadAll: "Load all", updFFAuto: "Firefox updates the add-on by itself. To check right away: about:addons → gear icon → Check for Updates.",
     language: "Language", pinFull: "Couldn't save: the list of pinned artists is full (the browser's sync storage limit). Unpin some first.", postUnclear: "FA didn't show the comment. Check the list before sending it again.", entriesMore: "{0} entries so far – there are more", wallExportFail: "The wall is too large to export as one picture.", wallExportSkipped: "Exported without {0} image(s) that could not be loaded.", updGitFolder: "This folder is a git checkout. Update it with git instead, so local changes aren't overwritten.",
     // quick upload (uploader.js)
@@ -27,26 +40,17 @@ const FAW_I18N = {
     updLatest: "Newest release: {0}",
     updLooking: "Looking for the newest release…",
     updUpToDate: "You have the newest version.",
-    updAvail: "Version {0} is ready to install.",
-    updNow: "Update now",
-    updChangeFolder: "Choose another folder",
+    updAvail: "Version {0} is out. Updating is done by hand:", 
+    
     updManual: "Open the release on GitHub",
     updNotes: "What's new",
-    updPickHint: "Chrome can't replace an unpacked extension by itself. The first time, pick the folder you loaded with “Load unpacked” (shown under chrome://extensions); after that an update is one click.",
-    updFolderLabel: "Extension folder: {0}",
-    updNoManifest: "This folder doesn't contain FA-ImprovedLayout's manifest.json.",
-    updWrongFolder: "This folder holds version {0}, but version {1} is running. Pick the folder Chrome loads the extension from.",
-    updDenied: "No permission to write to the folder.",
-    updFetching: "Downloading file {0} of {1}…",
-    updWriting: "Writing the files…",
-    updDone: "Updated to {0}. The extension restarts now; reload open FA tabs afterwards.",
-    updFailed: "Update failed ({0}). The old files are untouched.",
+    
+    
+    
+    
     updOffline: "GitHub isn't reachable: {0}",
-    updCheckFF: "Asking Firefox for the update…",
-    updFFFound: "Firefox installs version {0} now.",
-    updFFNone: "Firefox found no update. Download the .xpi from the release and open it with Firefox.",
-    updHowFFDev: "Temporary add-ons can't update themselves: load the new version again under about:debugging.",
-    updHowOther: "This install can't be updated from here. Get the new version from the release.",
+    
+    
     upDrop: "Drop files or click to choose",
     upDropSub: "Pictures (other formats are converted), stories, music · Ctrl+V pastes",
     upBadType: "Not a file FA takes: {0}",
@@ -57,7 +61,7 @@ const FAW_I18N = {
     upCover: "+ cover",
     upCoverSet: "Cover: {0}",
     upRemove: "Remove",
-    upMany: "Titles, ratings and genders per file; everything else comes from the right. “Own text” keeps a file for a form of its own.",
+    upMany: "Titles, ratings and genders per file; everything else comes from the right. “Own text” gives a file its own description and keywords in a tab of its own.", 
     upRating: "Rating",
     upDesc: "Description",
     upDescField: "Description (BBCode works)",
@@ -96,9 +100,8 @@ const FAW_I18N = {
     upGifBig: "GIF over FA's size limit (it can't be shrunk without losing the animation)",
     upCantRead: "The picture can't be read",
     upTooBig: "Couldn't get the picture under FA's size limit",
-    upApart: "Own text", upApartTip: "Own description and keywords: this file waits and gets a form of its own once the others are sent", upApartBadge: "own form", upNextApart: "Queued. Next: {0} file(s) set apart – give them their own description and keywords.", upGendersForm: "Genders: form's", upGendersOwn: "Genders: {0}", upGendersNone: "Genders: none", upFormGenders: "form's", upAnimated: "Animated – only the first frame is uploaded", upTooLarge: "Over FA's {0} MB: {1}", upCantReadFile: "Can't read this picture: {0}", upLoggedOut: "You're logged out of FA – log in, then Retry", upKindNo: "FA doesn't take this kind of upload right now", upCheck: "FA wants a browser check – reload the page, then Retry", upNetwork: "No connection to FA", upNetRetry: "No connection – trying again in {0} s", upChecking: "Looking in your gallery…", upMaybe: "FA may have saved it anyway; Retry looks in your gallery first", upInterrupted: "interrupted while sending the details", upRefused: "FA sent the details form back", upEdit: "Edit", upClear: "Clear finished", upOtherTab: "Another FA tab is sending the uploads.", upNoUser: "Couldn't find your username on this page", upKwFileFull: "the keywords for “{0}” are over 500 characters", upGone: "The file is gone – add it again", upUngrouped: "Not in a group",
+    upApart: "Own text", upApartTip: "Own description and keywords for this file: edit them in its tab above the description", upApartBadge: "own text", upGendersForm: "Genders: form's", upGendersOwn: "Genders: {0}", upGendersNone: "Genders: none", upFormGenders: "form's", upAnimated: "Animated – only the first frame is uploaded", upTooLarge: "Over FA's {0} MB: {1}", upCantReadFile: "Can't read this picture: {0}", upLoggedOut: "You're logged out of FA – log in, then Retry", upKindNo: "FA doesn't take this kind of upload right now", upCheck: "FA wants a browser check – reload the page, then Retry", upNetwork: "No connection to FA", upNetRetry: "No connection – trying again in {0} s", upChecking: "Looking in your gallery…", upMaybe: "FA may have saved it anyway; Retry looks in your gallery first", upInterrupted: "interrupted while sending the details", upRefused: "FA sent the details form back", upEdit: "Edit", upClear: "Clear finished", upOtherTab: "Another FA tab is sending the uploads.", upNoUser: "Couldn't find your username on this page", upKwFileFull: "the keywords for “{0}” are over 500 characters", upGone: "The file is gone – add it again", upUngrouped: "Not in a group",
     // popup
-    
     masterTitle: "Turn the whole extension on / off",
     ultrawide: "Ultrawide layout", ultrawideSub: "Centered wide page; the side gutter sets its width",
     gutter: "Side gutter", thumbSize: "Thumbnail size", 
@@ -147,8 +150,21 @@ const FAW_I18N = {
     loadFailed: "Couldn't load submission ({0})", favFailed: "Fav failed", loadingFull: "loading full quality…"
   },
   de: {
+    updDownload: "{0} herunterladen",
+    updHowChrome: "Entpacke den Download und kopiere seine Dateien über den Erweiterungsordner (den du mit „Entpackte Erweiterung laden“ geladen hast), dann klicke unter chrome://extensions auf das Neu-laden-Symbol. Entferne die Erweiterung nicht: das löscht deine Pins und Wände.",
+    updHowFF: "Öffne die heruntergeladene .xpi mit Firefox und bestätige. Eine signierte Installation aktualisiert sich auch selbst.",
+    upTabGeneral: "Allgemeiner Text",
+    upTabFile: "Datei {0}",
+    upNeedDescFor: "Beschreibung für „{0}“ schreiben",
+    upNeedKwFor: "mindestens 3 Keywords für „{0}“",
+    upFooterTip: "Dein Einreichungs-Footer (Profileinstellungen) – FA fügt ihn unter der Beschreibung an",
+    upDoneTitle: "Hochgeladen",
+    upDoneTitleN: "{0} Einreichungen hochgeladen",
+    upDoneOpen: "Öffnen",
+    postedOn: "Veröffentlicht",
+    reply: "Antworten",
+    replyingTo: "Antwort an {0}",
     pageLayout: "Profil- & Einreichungs-Layout", pageLayoutSub: "Kommentare neben dem Bild, Profil in zwei Spalten", pinGrow: "Seitenleisten wachsen mit", pinGrowSub: "Füllen den freien Platz neben der Seite; aus: immer die schmale Größe",
-    updBlocked: "{0} wurde beim Schreiben blockiert oder wieder entfernt – vermutlich von einem Antivirenprogramm",
     comicNone: "Keine weiteren Seiten dieser Serie gefunden.", comicSearching: "Suche die anderen Seiten…", loadAll: "Alle laden", updFFAuto: "Firefox aktualisiert das Add-on von selbst. Sofort prüfen: about:addons → Zahnrad → Auf Updates überprüfen.",
     language: "Sprache", pinFull: "Nicht gespeichert: Die Liste der angehefteten Künstler ist voll (Limit des Browser-Sync-Speichers). Löse zuerst einige.", postUnclear: "FA zeigt den Kommentar nicht an. Prüfe die Liste, bevor du ihn noch einmal sendest.", entriesMore: "Bisher {0} Einträge – es gibt noch mehr", wallExportFail: "Die Wand ist zu groß, um sie als ein Bild zu exportieren.", wallExportSkipped: "Exportiert ohne {0} Bild(er), die nicht geladen werden konnten.", updGitFolder: "Dieser Ordner ist ein Git-Checkout. Aktualisiere ihn mit git, damit lokale Änderungen nicht überschrieben werden.",
     // quick upload (uploader.js)
@@ -172,26 +188,17 @@ const FAW_I18N = {
     updLatest: "Neuestes Release: {0}",
     updLooking: "Suche das neueste Release…",
     updUpToDate: "Du hast die neueste Version.",
-    updAvail: "Version {0} ist bereit zur Installation.",
-    updNow: "Jetzt aktualisieren",
-    updChangeFolder: "Anderen Ordner wählen",
+    updAvail: "Version {0} ist erschienen. Aktualisiert wird von Hand:", 
+    
     updManual: "Release auf GitHub öffnen",
     updNotes: "Neuerungen",
-    updPickHint: "Chrome kann eine entpackte Erweiterung nicht selbst ersetzen. Wähle beim ersten Mal den Ordner, den du mit „Entpackte Erweiterung laden“ geladen hast (steht unter chrome://extensions); danach ist ein Update ein Klick.",
-    updFolderLabel: "Erweiterungsordner: {0}",
-    updNoManifest: "Dieser Ordner enthält keine manifest.json von FA-ImprovedLayout.",
-    updWrongFolder: "In diesem Ordner liegt Version {0}, es läuft aber Version {1}. Wähle den Ordner, aus dem Chrome die Erweiterung lädt.",
-    updDenied: "Keine Berechtigung, in den Ordner zu schreiben.",
-    updFetching: "Lade Datei {0} von {1}…",
-    updWriting: "Schreibe die Dateien…",
-    updDone: "Auf {0} aktualisiert. Die Erweiterung startet neu; lade offene FA-Tabs danach neu.",
-    updFailed: "Update fehlgeschlagen ({0}). Die alten Dateien sind unverändert.",
+    
+    
+    
+    
     updOffline: "GitHub ist nicht erreichbar: {0}",
-    updCheckFF: "Frage Firefox nach dem Update…",
-    updFFFound: "Firefox installiert jetzt Version {0}.",
-    updFFNone: "Firefox hat kein Update gefunden. Lade die .xpi aus dem Release und öffne sie mit Firefox.",
-    updHowFFDev: "Temporäre Add-ons können sich nicht selbst aktualisieren: lade die neue Version unter about:debugging erneut.",
-    updHowOther: "Diese Installation lässt sich hier nicht aktualisieren. Hol die neue Version aus dem Release.",
+    
+    
     upDrop: "Dateien ablegen oder klicken",
     upDropSub: "Bilder (andere Formate werden umgewandelt), Geschichten, Musik · Strg+V fügt ein",
     upBadType: "Keine Datei, die FA annimmt: {0}",
@@ -202,7 +209,7 @@ const FAW_I18N = {
     upCover: "+ Cover",
     upCoverSet: "Cover: {0}",
     upRemove: "Entfernen",
-    upMany: "Titel, Rating und Geschlechter pro Datei; alles andere kommt von rechts. „Eigener Text“ hebt eine Datei für ein eigenes Formular auf.",
+    upMany: "Titel, Rating und Geschlechter pro Datei; alles andere kommt von rechts. „Eigener Text“ gibt einer Datei eigene Beschreibung und Keywords in einem eigenen Tab.", 
     upRating: "Rating",
     upDesc: "Beschreibung",
     upDescField: "Beschreibung (BBCode geht)",
@@ -241,8 +248,7 @@ const FAW_I18N = {
     upGifBig: "GIF über FAs Größenlimit (verkleinern würde die Animation zerstören)",
     upCantRead: "Das Bild kann nicht gelesen werden",
     upTooBig: "Das Bild ließ sich nicht unter FAs Größenlimit bringen",
-    upApart: "Eigener Text", upApartTip: "Eigene Beschreibung und Keywords: diese Datei wartet und bekommt ein eigenes Formular, sobald die anderen gesendet sind", upApartBadge: "eigenes Formular", upNextApart: "In der Warteschlange. Als Nächstes: {0} zurückgestellte Datei(en) – gib ihnen eine eigene Beschreibung und Keywords.", upGendersForm: "Geschlechter: wie Formular", upGendersOwn: "Geschlechter: {0}", upGendersNone: "Geschlechter: keine", upFormGenders: "wie Formular", upAnimated: "Animiert – nur das erste Bild wird hochgeladen", upTooLarge: "Über FAs {0} MB: {1}", upCantReadFile: "Bild nicht lesbar: {0}", upLoggedOut: "Du bist bei FA abgemeldet – melde dich an, dann „Erneut versuchen“", upKindNo: "FA nimmt diese Art von Upload gerade nicht an", upCheck: "FA will eine Browser-Prüfung – lade die Seite neu, dann „Erneut versuchen“", upNetwork: "Keine Verbindung zu FA", upNetRetry: "Keine Verbindung – neuer Versuch in {0} s", upChecking: "Sehe in deiner Galerie nach…", upMaybe: "FA hat es vielleicht trotzdem gespeichert; „Erneut versuchen“ sieht zuerst in deiner Galerie nach", upInterrupted: "beim Senden der Details unterbrochen", upRefused: "FA hat das Details-Formular zurückgeschickt", upEdit: "Bearbeiten", upClear: "Fertige entfernen", upOtherTab: "Ein anderer FA-Tab sendet die Uploads.", upNoUser: "Dein Benutzername wurde auf dieser Seite nicht gefunden", upKwFileFull: "die Keywords für „{0}“ sind über 500 Zeichen", upGone: "Die Datei ist weg – füge sie neu hinzu", upUngrouped: "Ohne Gruppe",
-    
+    upApart: "Eigener Text", upApartTip: "Eigene Beschreibung und Keywords für diese Datei: im eigenen Tab über der Beschreibung bearbeiten", upApartBadge: "eigener Text", upGendersForm: "Geschlechter: wie Formular", upGendersOwn: "Geschlechter: {0}", upGendersNone: "Geschlechter: keine", upFormGenders: "wie Formular", upAnimated: "Animiert – nur das erste Bild wird hochgeladen", upTooLarge: "Über FAs {0} MB: {1}", upCantReadFile: "Bild nicht lesbar: {0}", upLoggedOut: "Du bist bei FA abgemeldet – melde dich an, dann „Erneut versuchen“", upKindNo: "FA nimmt diese Art von Upload gerade nicht an", upCheck: "FA will eine Browser-Prüfung – lade die Seite neu, dann „Erneut versuchen“", upNetwork: "Keine Verbindung zu FA", upNetRetry: "Keine Verbindung – neuer Versuch in {0} s", upChecking: "Sehe in deiner Galerie nach…", upMaybe: "FA hat es vielleicht trotzdem gespeichert; „Erneut versuchen“ sieht zuerst in deiner Galerie nach", upInterrupted: "beim Senden der Details unterbrochen", upRefused: "FA hat das Details-Formular zurückgeschickt", upEdit: "Bearbeiten", upClear: "Fertige entfernen", upOtherTab: "Ein anderer FA-Tab sendet die Uploads.", upNoUser: "Dein Benutzername wurde auf dieser Seite nicht gefunden", upKwFileFull: "die Keywords für „{0}“ sind über 500 Zeichen", upGone: "Die Datei ist weg – füge sie neu hinzu", upUngrouped: "Ohne Gruppe",
     masterTitle: "Erweiterung komplett ein- / ausschalten",
     ultrawide: "Ultrawide-Layout", ultrawideSub: "Zentrierte breite Seite; der Seitenrand bestimmt die Breite",
     gutter: "Seitenrand", thumbSize: "Vorschaugröße", 
@@ -284,8 +290,21 @@ const FAW_I18N = {
     loadFailed: "Einreichung konnte nicht geladen werden ({0})", favFailed: "Fav fehlgeschlagen", loadingFull: "lade volle Qualität…"
   },
   ru: {
+    updDownload: "Скачать {0}",
+    updHowChrome: "Распакуйте архив и скопируйте файлы поверх папки расширения (загруженной через «Загрузить распакованное»), затем нажмите значок перезагрузки в chrome://extensions. Не удаляйте расширение: это сотрёт закрепления и доски.",
+    updHowFF: "Откройте скачанный .xpi в Firefox и подтвердите. Подписанная установка обновляется и сама.",
+    upTabGeneral: "Общий текст",
+    upTabFile: "Файл {0}",
+    upNeedDescFor: "напишите описание для «{0}»",
+    upNeedKwFor: "минимум 3 ключевых слова для «{0}»",
+    upFooterTip: "Ваш футер работ (настройки профиля) — FA добавляет его под описанием",
+    upDoneTitle: "Загружено",
+    upDoneTitleN: "Загружено работ: {0}",
+    upDoneOpen: "Открыть",
+    postedOn: "Опубликовано",
+    reply: "Ответить",
+    replyingTo: "Ответ для {0}",
     pageLayout: "Макет профиля и работ", pageLayoutSub: "Комментарии рядом с изображением, профиль в две колонки", pinGrow: "Панели растягиваются", pinGrowSub: "Занимают свободное место рядом со страницей; выкл.: всегда узкие",
-    updBlocked: "{0}: запись заблокирована или файл сразу удалён – вероятно, антивирусом",
     comicNone: "Других страниц этой серии не найдено.", comicSearching: "Поиск остальных страниц…", loadAll: "Загрузить все", updFFAuto: "Firefox обновляет дополнение сам. Проверить сразу: about:addons → значок шестерёнки → Проверить наличие обновлений.",
     language: "Язык", pinFull: "Не сохранено: список закреплённых художников заполнен (ограничение синхронизируемого хранилища браузера). Сначала открепите кого-нибудь.", postUnclear: "FA не показал комментарий. Проверьте список, прежде чем отправлять его снова.", entriesMore: "Пока записей: {0} – есть ещё", wallExportFail: "Доска слишком велика, чтобы экспортировать её одним изображением.", wallExportSkipped: "Экспортировано без изображений, которые не удалось загрузить: {0}.", updGitFolder: "Эта папка – git-репозиторий. Обновите её через git, чтобы не перезаписать локальные изменения.",
     // quick upload (uploader.js)
@@ -309,26 +328,17 @@ const FAW_I18N = {
     updLatest: "Новейший релиз: {0}",
     updLooking: "Ищу новейший релиз…",
     updUpToDate: "У вас новейшая версия.",
-    updAvail: "Версия {0} готова к установке.",
-    updNow: "Обновить сейчас",
-    updChangeFolder: "Выбрать другую папку",
+    updAvail: "Вышла версия {0}. Обновление — вручную:", 
+    
     updManual: "Открыть релиз на GitHub",
     updNotes: "Что нового",
-    updPickHint: "Chrome не может сам заменить распакованное расширение. В первый раз выберите папку, загруженную через «Загрузить распакованное» (видно в chrome://extensions); дальше обновление — один клик.",
-    updFolderLabel: "Папка расширения: {0}",
-    updNoManifest: "В этой папке нет manifest.json от FA-ImprovedLayout.",
-    updWrongFolder: "В этой папке версия {0}, а работает версия {1}. Выберите папку, из которой Chrome загружает расширение.",
-    updDenied: "Нет разрешения на запись в папку.",
-    updFetching: "Загрузка файла {0} из {1}…",
-    updWriting: "Запись файлов…",
-    updDone: "Обновлено до {0}. Расширение перезапускается; затем перезагрузите открытые вкладки FA.",
-    updFailed: "Обновление не удалось ({0}). Старые файлы не изменены.",
+    
+    
+    
+    
     updOffline: "GitHub недоступен: {0}",
-    updCheckFF: "Запрашиваю обновление у Firefox…",
-    updFFFound: "Firefox устанавливает версию {0}.",
-    updFFNone: "Firefox не нашёл обновления. Скачайте .xpi из релиза и откройте его в Firefox.",
-    updHowFFDev: "Временные дополнения не обновляются сами: загрузите новую версию заново в about:debugging.",
-    updHowOther: "Эту установку нельзя обновить отсюда. Возьмите новую версию из релиза.",
+    
+    
     upDrop: "Перетащите файлы или нажмите",
     upDropSub: "Изображения (другие форматы конвертируются), рассказы, музыка · Ctrl+V вставляет",
     upBadType: "FA не принимает такой файл: {0}",
@@ -339,7 +349,7 @@ const FAW_I18N = {
     upCover: "+ обложка",
     upCoverSet: "Обложка: {0}",
     upRemove: "Убрать",
-    upMany: "Название, рейтинг и пол у каждого файла свои; остальное — справа. «Свой текст» оставляет файл для отдельной формы.",
+    upMany: "Название, рейтинг и пол у каждого файла свои; остальное — справа. «Свой текст» даёт файлу своё описание и ключевые слова в отдельной вкладке.", 
     upRating: "Рейтинг",
     upDesc: "Описание",
     upDescField: "Описание (BBCode работает)",
@@ -378,8 +388,7 @@ const FAW_I18N = {
     upGifBig: "GIF больше лимита FA (уменьшение сломает анимацию)",
     upCantRead: "Не удаётся прочитать изображение",
     upTooBig: "Не удалось уменьшить изображение до лимита FA",
-    upApart: "Свой текст", upApartTip: "Своё описание и ключевые слова: файл подождёт и получит отдельную форму, когда остальные будут отправлены", upApartBadge: "своя форма", upNextApart: "В очереди. Дальше: отложенные файлы ({0}) — задайте им своё описание и ключевые слова.", upGendersForm: "Пол: как в форме", upGendersOwn: "Пол: {0}", upGendersNone: "Пол: нет", upFormGenders: "как в форме", upAnimated: "Анимация — загрузится только первый кадр", upTooLarge: "Больше {0} МБ (лимит FA): {1}", upCantReadFile: "Не удаётся прочитать изображение: {0}", upLoggedOut: "Вы вышли из FA — войдите и нажмите «Повторить»", upKindNo: "FA сейчас не принимает такой тип работ", upCheck: "FA требует проверку браузера — перезагрузите страницу и нажмите «Повторить»", upNetwork: "Нет связи с FA", upNetRetry: "Нет связи — новая попытка через {0} с", upChecking: "Проверяю вашу галерею…", upMaybe: "возможно, FA всё же сохранил работу; «Повторить» сначала проверит галерею", upInterrupted: "прервано при отправке данных", upRefused: "FA вернул форму с данными", upEdit: "Изменить", upClear: "Убрать готовые", upOtherTab: "Загрузки отправляет другая вкладка FA.", upNoUser: "Не удалось найти ваше имя пользователя на этой странице", upKwFileFull: "ключевые слова для «{0}» длиннее 500 символов", upGone: "Файл пропал — добавьте его снова", upUngrouped: "Без группы",
-    
+    upApart: "Свой текст", upApartTip: "Своё описание и ключевые слова для этого файла: редактируются в его вкладке над описанием", upApartBadge: "свой текст", upGendersForm: "Пол: как в форме", upGendersOwn: "Пол: {0}", upGendersNone: "Пол: нет", upFormGenders: "как в форме", upAnimated: "Анимация — загрузится только первый кадр", upTooLarge: "Больше {0} МБ (лимит FA): {1}", upCantReadFile: "Не удаётся прочитать изображение: {0}", upLoggedOut: "Вы вышли из FA — войдите и нажмите «Повторить»", upKindNo: "FA сейчас не принимает такой тип работ", upCheck: "FA требует проверку браузера — перезагрузите страницу и нажмите «Повторить»", upNetwork: "Нет связи с FA", upNetRetry: "Нет связи — новая попытка через {0} с", upChecking: "Проверяю вашу галерею…", upMaybe: "возможно, FA всё же сохранил работу; «Повторить» сначала проверит галерею", upInterrupted: "прервано при отправке данных", upRefused: "FA вернул форму с данными", upEdit: "Изменить", upClear: "Убрать готовые", upOtherTab: "Загрузки отправляет другая вкладка FA.", upNoUser: "Не удалось найти ваше имя пользователя на этой странице", upKwFileFull: "ключевые слова для «{0}» длиннее 500 символов", upGone: "Файл пропал — добавьте его снова", upUngrouped: "Без группы",
     masterTitle: "Включить / выключить расширение",
     ultrawide: "Широкий макет", ultrawideSub: "Широкая страница по центру; ширину задаёт боковой отступ",
     gutter: "Боковой отступ", thumbSize: "Размер миниатюр", 

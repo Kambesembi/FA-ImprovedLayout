@@ -146,6 +146,8 @@
     const favA = doc.querySelector("a[href^='/fav/'], a[href^='/unfav/']");
     const dlA = [...doc.querySelectorAll("a[href]")].find((a) => /^\s*download\s*$/i.test(a.textContent));
     const descEl = doc.querySelector(".submission-description");
+    // publish date: the first FA date outside the comments (data-time = unix seconds)
+    const dateEl = [...doc.querySelectorAll(".popup_date[data-time]")].find((d) => !d.closest("#comments-submission, .comment_container"));
     const comicLinks = {};
     if (descEl) {
       for (const a of descEl.querySelectorAll("a[href]")) {
@@ -160,6 +162,7 @@
       category: metaValue(doc, "Category"),
       species: metaValue(doc, "Species"),
       rating: (doc.querySelector(".rating-box, .rating span") || {}).textContent?.trim() || "",
+      posted: dateEl ? Number(dateEl.getAttribute("data-time")) * 1000 || null : null,
       artist: artistA ? { name: artistA.textContent.trim(), href: artistA.getAttribute("href") } : null,
       fav: favA ? { href: favA.getAttribute("href"), faved: favA.getAttribute("href").startsWith("/unfav/") } : null,
       download: dlA ? abs(dlA.getAttribute("href")) : null,
@@ -185,7 +188,10 @@
       const user = cc.querySelector("comment-username a[href^='/user/'], .avatar a[href^='/user/']");
       const date = cc.querySelector("comment-date span[title], comment-date");
       const text = cc.querySelector("comment-user-text, .comment_text");
+      const anchor = c.querySelector("a.comment_anchor[id^='cid:']");
       out.push({
+        id: anchor ? anchor.id.slice(4) : "",
+        canReply: !!cc.querySelector(".replyto_link"),
         depth: Math.max(0, Math.round((100 - w) / 3)),
         avatar: av ? abs(av.getAttribute("src")) : "",
         name: name ? name.textContent.trim() : "",
@@ -1880,6 +1886,7 @@
             <h3 class="faw-qv__ch">${T("comments")} <span></span></h3>
             <div class="faw-qv__clist"></div>
             <form class="faw-qv__cform">
+              <div class="faw-qv__replyto" hidden><span></span><button type="button" title="${T("close")}">×</button></div>
               <textarea placeholder="${T("writeComment")}" rows="3"></textarea>
               <div class="faw-qv__crow"><span class="faw-qv__cstatus"></span><button class="faw-qv__btn" type="submit">${T("post")}</button></div>
             </form>
@@ -1894,6 +1901,7 @@
       $(".faw-qv__nav--next").onclick = () => go(1);
       $("[data-act=fav]").onclick = toggleFav;
       $(".faw-qv__cform").addEventListener("submit", (e) => { e.preventDefault(); postComment(); });
+      $(".faw-qv__replyto button").onclick = () => setReply(null);
       $(".faw-qv__cform textarea").addEventListener("keydown", (e) => {
         if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); postComment(); }
         e.stopPropagation();                                       // don't trigger F / D / arrows while typing
@@ -2061,7 +2069,9 @@
         by.append(T("by") + " ", a);
       }
       const meta = $(".faw-qv__meta");
-      for (const [k, v] of [[T("category"), data.category], [T("species"), data.species],
+      const posted = data.posted ? new Date(data.posted) : null;
+      for (const [k, v] of [[T("postedOn"), posted ? posted.toLocaleString(FAW_LANG, { dateStyle: "medium", timeStyle: "short" }) : ""],
+        [T("category"), data.category], [T("species"), data.species],
         [T("resolution"), data.res ? `${data.res.w} × ${data.res.h}` : ""], [T("rating"), data.rating]]) {
         if (!v) continue;
         meta.append(el("dt", null, k), el("dd", null, v));
@@ -2153,11 +2163,28 @@
         const text = el("div", "faw-qv__ctext");
         showContent(text, c.body);
         body.append(head, text);
+        if (data.commentForm && c.id && c.canReply) {
+          const rb = el("button", "faw-qv__creply", T("reply"));
+          rb.type = "button";
+          rb.onclick = () => setReply(c);
+          body.append(rb);
+        }
         item.append(img, body);
         list.appendChild(item);
       }
       const form = qv.querySelector(".faw-qv__cform");
       form.hidden = !(data && data.commentForm);
+      if (replyTo && !cs.some((c) => c.id === replyTo.id)) setReply(null);
+    }
+
+    // reply to one comment: FA's comment form with replyto = its id
+    let replyTo = null;
+    function setReply(c) {
+      replyTo = c && c.id ? { id: c.id, name: c.name } : null;
+      const bar = qv.querySelector(".faw-qv__replyto");
+      bar.hidden = !replyTo;
+      bar.querySelector("span").textContent = replyTo ? T("replyingTo", replyTo.name || "?") : "";
+      if (replyTo) qv.querySelector(".faw-qv__cform textarea").focus();
     }
 
     async function postComment() {
@@ -2172,6 +2199,8 @@
       try {
         const body = new URLSearchParams(cur.commentForm.fields);
         body.set("reply", text);
+        const rid = replyTo && replyTo.id;
+        if (rid) body.set("replyto", rid);
         const url = new URL(cur.commentForm.action || `/view/${cur.id}/`, location.origin).href;
         const res = await pageFetch(url, { method: "POST", body, credentials: "same-origin" });
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -2196,6 +2225,7 @@
           return;
         }
         ta.value = "";
+        if (rid) setReply(null);
         st.textContent = T("posted");
       } catch (err) {
         st.textContent = T("postFailed", err.message);

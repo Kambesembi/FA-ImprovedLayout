@@ -39,6 +39,13 @@
     const inPage = typeof content !== "undefined" && content && typeof content.fetch === "function";
     const pageFetch = (url, init) => (inPage ? content.fetch(new URL(url, location.href).href, init) : fetch(url, init));
     const newForm = () => (inPage && content.FormData ? new content.FormData() : new FormData());
+    // Firefox: a File this script made (EXIF/GPS removed, converted, renamed) can't go into the page's FormData
+    // ("Permission denied to access property constructor"), so it's rebuilt on the page side from its bytes
+    const pageFile = async (f) => {
+      if (!inPage || typeof cloneInto !== "function" || !content.File) return f;
+      const buf = await f.arrayBuffer();
+      return new content.File(cloneInto([buf], content), f.name, cloneInto({ type: f.type, lastModified: f.lastModified }, content));
+    };
     const isCheck = (status, text) => (status === 403 || status === 503) && /challenge-platform|cf-chl|Just a moment/i.test(text);
     async function getDoc(url, init) {
       let res;
@@ -253,7 +260,9 @@
       files: [],                 // { id, file, thumb, type, title, rating, genders (null: the form's), apart, text, warn, showG }
       rating: "", cat: "1", atype: "1", species: "1", folders: [], newFolder: "",
       lock: false, scrap: false, stripGps: true,
-      desc: "", keywords: [], genders: [],
+      desc: "", keywords: [], genders: [],   // the text in the editor: of the tab shown
+      tab: "",                   // "" = the general text, else the id of a file with its own text (file.own)
+      gen: { desc: "", keywords: [], genders: [] },   // the general text while another tab is shown
       lists: null, folderList: [], usedKw: [],
       floor: 0                   // newest submission ID known: an upload FA saved has a higher one
     };
@@ -367,6 +376,7 @@
       renderFiles(); saveDraft();
     }
     function removeFile(it) {
+      if (st.tab === it.id) showTab("");
       dropUrl(it.id);
       st.files = st.files.filter((x) => x !== it);
       DB.delFiles(it.id).catch(() => {});
@@ -391,7 +401,7 @@
         if (it.apart) pv.append(el("span", "faw-up__badge", T("upApartBadge")));
         const title = el("input", "faw-up__in faw-up__ctitle");
         title.maxLength = 60; title.value = it.title; title.placeholder = T("upTitleField"); title.title = it.file.name;
-        title.addEventListener("input", () => { it.title = title.value; saveDraft(); });
+        title.addEventListener("input", () => { it.title = title.value; saveDraft(); if (it.apart) renderTabs(); });
         const meta = el("div", "faw-up__fmeta");
         const rs = el("select", "faw-up__sel");           // own rating for this file, or the form's
         rs.title = T("upRating");
@@ -436,7 +446,11 @@
         if (many) {                                        // its own description and keywords, in a form of its own
           const ap = el("label", "faw-up__check faw-up__apart");
           const apc = el("input"); apc.type = "checkbox"; apc.checked = it.apart;
-          apc.addEventListener("change", () => { it.apart = apc.checked; renderFiles(); saveDraft(); });
+          apc.addEventListener("change", () => {
+            if (apc.checked) { it.apart = true; it.own = it.own || emptyText(); renderFiles(); showTab(it.id); }
+            else { if (st.tab === it.id) showTab(""); it.apart = false; renderFiles(); }
+            saveDraft();
+          });
           ap.append(apc, " " + T("upApart"));
           ap.title = T("upApartTip");
           card.append(ap);
@@ -453,6 +467,56 @@
         renderFiles(); saveDraft();
       }));
       if (many) fileHead.append(el("span", "faw-up__hint", T("upMany")));
+      renderTabs();
+    }
+
+    // ---- text tabs: the general text, and one per file with its own text
+    const emptyText = () => ({ desc: "", keywords: [], genders: [] });
+    const textStore = (id) => {
+      if (!id) return st.gen;
+      const f = st.files.find((x) => x.id === id && x.apart);
+      return f ? (f.own = f.own || emptyText()) : null;
+    };
+    // the editor's text back into its tab
+    function stash() {
+      const t = textStore(st.tab);
+      if (t) Object.assign(t, { desc: st.desc, keywords: st.keywords.slice(), genders: st.genders.slice() });
+    }
+    function loadTab(id) {
+      const t = textStore(id);
+      st.tab = t ? id : "";
+      const src = t || st.gen;
+      Object.assign(st, { desc: src.desc, keywords: src.keywords.slice(), genders: src.genders.slice() });
+      desc.value = st.desc; queuePreview(); renderKw(); renderTabs();
+    }
+    function showTab(id) {
+      stash(); loadTab(id);
+      if (st.files.some((f) => f.showG && !f.genders)) renderFiles();
+      saveDraft();
+    }
+    const tabBar = el("div", "faw-up__tabs");
+    tabBar.hidden = true;
+    colText.append(tabBar);
+    function renderTabs() {
+      const own = st.files.filter((f) => f.apart);
+      tabBar.hidden = !own.length;
+      if (st.tab && !own.some((f) => f.id === st.tab)) { loadTab(""); return; }
+      if (!own.length) { tabBar.replaceChildren(); return; }
+      const mk = (id, label, pic, todo) => {
+        const b = btn("faw-up__tab" + (st.tab === id ? " is-on" : "") + (todo ? " is-todo" : ""), null, () => { if (st.tab !== id) showTab(id); });
+        if (pic) b.append(pic);
+        b.append(el("span", null, label));
+        b.title = label;
+        return b;
+      };
+      const items = [mk("", T("upTabGeneral"))];
+      own.forEach((f, i) => {
+        const pic = f.type === "submission" ? pvImage(f.file, f.id) : f.thumb ? pvImage(f.thumb, f.id) : null;
+        const t = f.own || emptyText();
+        const todo = st.tab !== f.id && (!t.desc.trim() || t.keywords.length + (f.genders || t.genders).length < 3);
+        items.push(mk(f.id, f.title.trim() || T("upTabFile", i + 1), pic, todo));
+      });
+      tabBar.replaceChildren(...items);
     }
 
     // ---- text column: rating, description, keywords
@@ -489,7 +553,22 @@
       pvTimer = null;
       const out = bbcode(desc.value);
       preview.replaceChildren(...(out.childNodes.length ? [out] : [el("span", "faw-up__hint", T("upPreviewEmpty"))]));
+      if (footer) {                                   // FA adds the submission footer from the profile settings
+        const f = el("div", "faw-up__footer");
+        f.title = T("upFooterTip");
+        f.append(bbcode(footer));
+        preview.append(f);
+      }
     };
+    let footer = "";
+    (async () => {
+      try {
+        const { doc } = await getDoc("/controls/profile/");
+        const ta = doc.querySelector("textarea[name=submissionfooter]");
+        footer = ta ? ta.value.trim() : "";
+        if (footer) renderPreview();
+      } catch (e) { /* no footer shown */ }
+    })();
     const queuePreview = () => { if (!pvTimer) pvTimer = setTimeout(renderPreview, 120); };
     desc.addEventListener("input", () => { st.desc = desc.value; saveDraft(); queuePreview(); });
     for (const b of bb.children) b.addEventListener("click", queuePreview);
@@ -638,55 +717,63 @@
     const syncChecks = () => { lockC.checked = st.lock; scrapC.checked = st.scrap; gpsC.checked = st.stripGps; };
 
     // ---------------------------------------------------------------- Upload: the form's files into the queue
-    // Files set apart stay behind; the form then starts fresh (description, keywords) for the next of them.
+    // All files at once: those with their own text (a tab of their own) take it, the others the general text.
     function send() {
       if (!st.files.length) { note(T("upNeedFile"), true); return; }
-      let batch = st.files.filter((f) => !f.apart);
-      if (!batch.length) batch = [st.files[0]];
+      stash();
+      const batch = st.files.slice();
+      const textOf = (f) => (f.apart && f.own ? f.own : st.gen);
+      const label = (f) => f.title.trim() || f.file.name || "?";
       const problems = [];
       if (!st.rating && batch.some((f) => !f.rating)) problems.push(T("upNeedRating"));
-      if (!st.desc.trim()) problems.push(T("upNeedDesc"));
-      if (batch.some((f) => (f.genders || st.genders).length + st.keywords.length < 3)) problems.push(T("upNeedKw"));
-      for (const f of batch) if ([...(f.genders || st.genders), ...st.keywords].join(" ").length > KW_MAX) problems.push(T("upKwFileFull", f.title));
+      if (batch.some((f) => textOf(f) === st.gen) && !st.gen.desc.trim()) problems.push(T("upNeedDesc"));
+      for (const f of batch) {
+        const t = textOf(f), g = f.genders || t.genders, own = t !== st.gen;
+        if (own && !t.desc.trim()) problems.push(T("upNeedDescFor", label(f)));
+        if (g.length + t.keywords.length < 3) problems.push(own ? T("upNeedKwFor", label(f)) : T("upNeedKw"));
+        if ([...g, ...t.keywords].join(" ").length > KW_MAX) problems.push(T("upKwFileFull", label(f)));
+      }
+      if (problems.length) { note([...new Set(problems)].join(" · "), true); return; }
       for (const f of batch) if (!f.title.trim()) f.title = titleFrom(f.file.name || "image");
-      if (problems.length) { note(problems.join(" · "), true); return; }
-      // everything but the files is shared: a snapshot per batch, so the form can be reused right away
-      const shared = { cat: st.cat, atype: st.atype, species: st.species,
+      // everything but the files is shared: a snapshot, so the form can be reused right away
+      const base = { cat: st.cat, atype: st.atype, species: st.species,
         catLabel: selLabel(catSel, st.cat), atypeLabel: selLabel(themeSel, st.atype), speciesLabel: selLabel(specSel, st.species),
         folders: st.folders.slice(), newFolder: st.newFolder.trim(),
-        lock: st.lock, scrap: st.scrap, stripGps: st.stripGps, desc: st.desc, keywords: st.keywords.slice() };
+        lock: st.lock, scrap: st.scrap, stripGps: st.stripGps };
       const now = Date.now();
+      const allKw = [];
       batch.forEach((f, i) => {
+        const t = textOf(f);
+        allKw.push(...t.keywords);
+        const shared = Object.assign({}, base, { desc: t.desc, keywords: t.keywords.slice() });
         const job = { id: f.id, created: now + i, title: f.title.trim().slice(0, 60), type: f.type, rating: f.rating || st.rating,
-          genders: (f.genders || st.genders).slice(), text: f.text, warn: f.warn, shared, state: "wait", phase: "", info: "",
+          genders: (f.genders || t.genders).slice(), text: f.text, warn: f.warn, shared, state: "wait", phase: "", info: "",
           link: "", uncertain: false, floor: st.floor, preview: null, progress: 0 };
         jobs.push(job);
         fileCache.set(f.id, { file: f.file, thumb: f.thumb });
         DB.putFiles({ id: f.id, file: f.file, thumb: f.thumb }).catch(() => {});
         DB.putJob(job).catch(() => {});
       });
-      st.usedKw = [...new Set([...st.keywords, ...st.usedKw])].slice(0, 300);
-      addSuggestions(st.keywords);
+      st.usedKw = [...new Set([...allKw, ...st.usedKw])].slice(0, 300);
+      addSuggestions(allKw);
       keep({ uploadKeywords: st.usedKw });
-      const rest = st.files.filter((f) => !batch.includes(f));
-      st.files = rest; st.newFolder = ""; newFolder.value = "";
-      if (rest.length) {
-        if (!rest.some((f) => !f.apart)) rest[0].apart = false;
-        st.desc = ""; desc.value = ""; queuePreview(); st.keywords = []; st.genders = [];
-        renderKw();
-        note(T("upNextApart", rest.length));
-      } else note(T("upQueued"));
+      st.files = []; st.newFolder = ""; newFolder.value = "";
+      loadTab("");                                    // the general text stays for the next files
+      note(T("upQueued"));
       saveDraft(); renderFiles(); renderQueue(); ping();
       runQueue();
     }
 
     // empties every field but keeps the files (and their titles): back to a fresh form
     function resetForm() {
-      const filled = st.desc.trim() || st.keywords.length || st.genders.length || st.rating || st.folders.length;
+      stash();
+      const filled = [st.gen, ...st.files.map((f) => f.own).filter(Boolean)].some((t) => t.desc.trim() || t.keywords.length || t.genders.length)
+        || st.rating || st.folders.length;
       if (filled && !confirm(T("upResetAsk"))) return;
       Object.assign(st, { rating: "", cat: "1", atype: "1", species: "1", folders: [], newFolder: "",
         lock: false, scrap: false, stripGps: true, desc: "", keywords: [], genders: [] });
-      for (const f of st.files) { f.rating = ""; f.genders = null; }
+      for (const f of st.files) { f.rating = ""; f.genders = null; if (f.own) f.own = emptyText(); }
+      st.gen = emptyText();
       newFolder.value = ""; desc.value = ""; queuePreview();
       copied.hidden = true;
       syncSels(); syncRating(); syncChecks(); renderKw(); renderFolders(); renderFiles();
@@ -898,6 +985,32 @@
       }
       const done = jobs.filter((j) => j.state === "done");
       for (const j of done.slice(0, Math.max(0, done.length - KEEP_DONE))) removeJob(j, true);
+      showDone(q);
+    }
+
+    // "Uploaded" window: lists what went up while it's open
+    let doneBox = null;
+    function showDone(q) {
+      if (!doneBox || !doneBox.isConnected) {
+        doneBox = el("div", "faw-up-done");
+        const card = el("div", "faw-up-done__box");
+        card.append(el("h3"), el("div", "faw-up-done__list"),
+          btn("faw-up__go", T("close"), () => doneBox.remove()));
+        doneBox.append(card);
+        doneBox.addEventListener("click", (e) => { if (e.target === doneBox) doneBox.remove(); });
+        document.addEventListener("keydown", (e) => { if (e.key === "Escape" && doneBox && doneBox.isConnected) doneBox.remove(); });
+        document.body.append(doneBox);
+      }
+      const list = doneBox.querySelector(".faw-up-done__list");
+      const row = el("div", "faw-up-done__row");
+      const th = el("span", "faw-up__qthumb");
+      if (q.preview) th.append(pvImage(q.preview, q.id)); else th.textContent = q.type === "music" ? "♪" : "¶";
+      const a = el("a", null, T("upDoneOpen"));
+      a.href = q.link; a.target = "_blank"; a.rel = "noopener";
+      row.append(th, el("span", "faw-up__qtitle", q.title), a);
+      list.append(row);
+      const n = list.children.length;
+      doneBox.querySelector("h3").textContent = n > 1 ? T("upDoneTitleN", n) : T("upDoneTitle");
     }
 
     // FA's reasons: a system message box, its bare "System Error" page, or an error above a form
@@ -962,8 +1075,8 @@
           for (const i of f1.querySelectorAll("input[type=hidden][name]")) fd.append(i.name, i.value);
           fd.append("submission_type", q.type);
           const fileInputs = [...f1.querySelectorAll("input[type=file][name]")];
-          fd.append((fileInputs[0] && fileInputs[0].name) || "submission", file, file.name);
-          if (thumb) fd.append((fileInputs[1] && fileInputs[1].name) || "thumbnail", thumb, thumb.name);
+          fd.append((fileInputs[0] && fileInputs[0].name) || "submission", await pageFile(file), file.name);
+          if (thumb) fd.append((fileInputs[1] && fileInputs[1].name) || "thumbnail", await pageFile(thumb), thumb.name);
           const size = mb(file.size + (thumb ? thumb.size : 0));
           q.info = T("upSending", size, 0); renderQueue();
           const r1 = await postFile(new URL(f1.getAttribute("action") || "/submit/upload/", location.origin).href, fd, (p) => {
@@ -1382,8 +1495,12 @@
     let draftTimer = null;
     function saveDraft() {
       clearTimeout(draftTimer);
-      draftTimer = setTimeout(() => keep({ uploadDraft: { desc: st.desc, keywords: st.keywords, genders: st.genders,
-        items: st.files.map((f) => ({ id: f.id, type: f.type, title: f.title, rating: f.rating, genders: f.genders, apart: f.apart, text: f.text, warn: f.warn })) } }), 400);
+      draftTimer = setTimeout(() => {
+        stash();
+        keep({ uploadDraft: { desc: st.gen.desc, keywords: st.gen.keywords, genders: st.gen.genders, tab: st.tab,
+          items: st.files.map((f) => ({ id: f.id, type: f.type, title: f.title, rating: f.rating, genders: f.genders, apart: f.apart,
+            own: f.own || null, text: f.text, warn: f.warn })) } });
+      }, 400);
     }
     function savePrefs() {
       keep({ uploadPrefs: { rating: st.rating, cat: st.cat, atype: st.atype, species: st.species, folders: st.folders,
@@ -1409,7 +1526,8 @@
         rating: "", cat: "1", atype: "1", species: "1", folders: [], lock: false, scrap: false, stripGps: true
       }, l.uploadPrefs || {});
       const d = l.uploadDraft || {};
-      Object.assign(st, { desc: d.desc || "", keywords: d.keywords || [], genders: d.genders || [] });
+      st.gen = { desc: d.desc || "", keywords: d.keywords || [], genders: d.genders || [] };
+      Object.assign(st, { desc: st.gen.desc, keywords: st.gen.keywords.slice(), genders: st.gen.genders.slice() });
       st.folderList = Array.isArray(l.uploadFolders) ? l.uploadFolders.map((f) => (/^folders not in/i.test(f.g || "") ? Object.assign({}, f, { g: "" }) : f)) : [];
       st.usedKw = Array.isArray(l.uploadKeywords) ? l.uploadKeywords : [];
       st.floor = Number(l.uploadFloor) || 0;
@@ -1419,8 +1537,10 @@
       // the form's files from last time
       for (const m of Array.isArray(d.items) ? d.items : []) {
         const rec = await DB.files(m.id).catch(() => null);
-        if (rec && rec.file) st.files.push(Object.assign({ genders: null, apart: false, warn: "" }, m, { file: rec.file, thumb: rec.thumb || null }));
+        if (rec && rec.file) st.files.push(Object.assign({ genders: null, apart: false, own: null, warn: "" }, m, { file: rec.file, thumb: rec.thumb || null }));
       }
+      for (const f of st.files) if (f.apart && !f.own) f.own = emptyText();
+      if (d.tab) loadTab(d.tab);
       // the queue (uploads cut off last time are recovered by runQueue, once no other tab is sending)
       jobs = ((await DB.jobs().catch(() => [])) || []).sort((a, b) => a.created - b.created);
       const r = l.uploadRunner, othersSend = r && r.tab !== TAB && Date.now() - r.at < 20000;
