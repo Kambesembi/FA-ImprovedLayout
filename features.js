@@ -192,6 +192,7 @@
       out.push({
         id: anchor ? anchor.id.slice(4) : "",
         canReply: !!cc.querySelector(".replyto_link"),
+        replyHref: (cc.querySelector(".replyto_link") || { getAttribute: () => "" }).getAttribute("href") || "",
         depth: Math.max(0, Math.round((100 - w) / 3)),
         avatar: av ? abs(av.getAttribute("src")) : "",
         name: name ? name.textContent.trim() : "",
@@ -2177,10 +2178,10 @@
       if (replyTo && !cs.some((c) => c.id === replyTo.id)) setReply(null);
     }
 
-    // reply to one comment: FA's comment form with replyto = its id
+    // reply to one comment: posted through its reply page (/replyto/submission/<id>/)
     let replyTo = null;
     function setReply(c) {
-      replyTo = c && c.id ? { id: c.id, name: c.name } : null;
+      replyTo = c && c.id ? { id: c.id, name: c.name, href: c.replyHref || `/replyto/submission/${c.id}/` } : null;
       const bar = qv.querySelector(".faw-qv__replyto");
       bar.hidden = !replyTo;
       bar.querySelector("span").textContent = replyTo ? T("replyingTo", replyTo.name || "?") : "";
@@ -2197,14 +2198,29 @@
       btn.disabled = true;
       st.textContent = T("posting");
       try {
-        const body = new URLSearchParams(cur.commentForm.fields);
-        body.set("reply", text);
         const rid = replyTo && replyTo.id;
-        if (rid) body.set("replyto", rid);
-        const url = new URL(cur.commentForm.action || `/view/${cur.id}/`, location.origin).href;
+        let url, body;
+        if (rid) {
+          // a reply goes through the comment's own reply page (/replyto/submission/<id>/) and its form
+          const { doc: rd } = await fetchDoc(new URL(replyTo.href, location.origin).href);
+          const rf = [...rd.querySelectorAll("form")].find((f) => /\/replyto\//.test(f.getAttribute("action") || "") && f.querySelector("textarea[name=reply]"));
+          if (!rf) throw new Error("no reply form");
+          body = new URLSearchParams();
+          for (const i of rf.querySelectorAll("input[name]")) if (i.type === "hidden" || i.type === "submit") body.set(i.name, i.value);
+          body.set("reply", text);
+          url = new URL(rf.getAttribute("action") || replyTo.href, location.origin).href;
+        } else {
+          body = new URLSearchParams(cur.commentForm.fields);
+          body.set("reply", text);
+          url = new URL(cur.commentForm.action || `/view/${cur.id}/`, location.origin).href;
+        }
         const res = await pageFetch(url, { method: "POST", body, credentials: "same-origin" });
         if (!res.ok) throw new Error("HTTP " + res.status);
-        const doc = new DOMParser().parseFromString(await res.text(), "text/html");
+        let doc = new DOMParser().parseFromString(await res.text(), "text/html");
+        // the reply page may answer with itself instead of the submission: read the submission again
+        if (rid && !doc.querySelector("#comments-submission, #add_comment_form") && !doc.querySelector("section.notice-message")) {
+          doc = (await fetchDoc(new URL(`/view/${cur.id}/`, location.origin).href)).doc;
+        }
         const fresh = parseSubmission(doc, `/view/${cur.id}/`);
         // FA answers 200 for its own refusals too (flood protection, blocked, comments off): the comment
         // counts as posted only when the returned page lists one more. Otherwise the text stays in the box.
